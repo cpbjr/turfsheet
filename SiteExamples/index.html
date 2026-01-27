@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TurfSheet | TurfSheet Whiteboard</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">T</div>
+            <nav>
+                <div class="nav-item active"><i class="fa-solid fa-house"></i></div>
+                <div class="nav-item"><i class="fa-solid fa-calendar"></i></div>
+                <div class="nav-item"><i class="fa-solid fa-users"></i></div>
+                <div class="nav-item"><i class="fa-solid fa-briefcase"></i></div>
+                <div class="nav-item"><i class="fa-solid fa-chart-line"></i></div>
+                <div class="nav-item"><i class="fa-solid fa-gear"></i></div>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <h1 class="header-title">TURFSHEET WHITEBOARD</h1>
+                <div class="header-right">
+                    <div class="date-selector">
+                        <i class="fa-solid fa-chevron-left"></i>
+                        <span>Wed Feb 5, 2025</span>
+                        <i class="fa-solid fa-calendar-days"></i>
+                        <i class="fa-solid fa-chevron-right"></i>
+                        <span style="margin-left: 10px; color: var(--turf-green);">Workday: 05:30 AM-2:30 PM</span>
+                    </div>
+                    <div class="user-profile">
+                        <i class="fa-solid fa-bell" style="color: var(--turf-green); position: relative;">
+                            <span
+                                style="background: red; width: 6px; height: 6px; border-radius: 50%; position: absolute; top: 0; right: 0;"></span>
+                        </i>
+                        <i class="fa-solid fa-circle-user"
+                            style="font-size: 1.5rem; margin-left: 15px; color: var(--text-secondary);"></i>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Dashboard Grid -->
+            <div class="dashboard-grid">
+                <!-- Task Board -->
+                <section class="task-board">
+                    <div class="job-section">
+                        <h3>First Jobs</h3>
+                        <div class="job-grid">
+                            <article class="job-card">
+                                <div class="job-card-header">
+                                    <span>Mow Greens</span>
+                                    <i class="fa-solid fa-xmark"></i>
+                                </div>
+                                <div class="job-card-body">
+                                    <div class="job-detail"><label>Mow Direction:</label> Left to Right (8-2)</div>
+                                    <div class="job-detail"><label>Clean Up:</label> Clockwise</div>
+                                    <div class="job-detail"><label>HOC:</label> 0.125"</div>
+                                    <div class="job-crew-needed">Crew Needed: 3</div>
+                                    <div class="staff-schedule" style="margin-top: 5px;">Assign Crew</div>
+                                </div>
+                            </article>
+
+                            <article class="job-card">
+                                <div class="job-card-header">
+                                    <span>Mow Fairways</span>
+                                    <i class="fa-solid fa-xmark"></i>
+                                </div>
+                                <div class="job-card-body">
+                                    <div class="job-detail"><label>Mow Direction:</label> 50:50 Split (Tuxedo)</div>
+                                    <div class="job-detail"><label>Clean Up:</label> Clockwise (Tan & Black)</div>
+                                    <div class="job-crew-needed">Crew Needed: 4</div>
+                                    <div class="staff-schedule" style="margin-top: 5px;">Assign Crew</div>
+                                </div>
+                            </article>
+
+                            <article class="job-card">
+                                <div class="job-card-header">
+                                    <span>Mow Approaches</span>
+                                    <i class="fa-solid fa-xmark"></i>
+                                </div>
+                                <div class="job-card-body">
+                                    <div class="job-detail"><label>Mow Direction:</label> Side to Side (3-9)</div>
+                                    <div class="job-detail"><label>Clean Up:</label> Clockwise</div>
+                                    <div class="job-crew-needed">Crew Needed: 2</div>
+                                    <div class="staff-schedule" style="margin-top: 5px;">Assign Crew</div>
+                                </div>
+                            </article>
+
+                            <article class="job-card">
+                                <div class="job-card-header">
+                                    <span>Roll Greens</span>
+                                    <i class="fa-solid fa-xmark"></i>
+                                </div>
+                                <div class="job-card-body">
+                                    <div class="job-crew-needed">Crew Needed: 2</div>
+                                    <div class="staff-schedule" style="margin-top: 5px;">Assign Crew</div>
+                                </div>
+                            </article>
+                        </div>
+                    </div>
+
+                    <div class="job-section">
+                        <h3>Second Jobs</h3>
+                        <div class="job-grid">
+                            <article class="job-card">
+                                <div class="job-card-header">
+                                    <span>Change Cups</span>
+                                    <i class="fa-solid fa-xmark"></i>
+                                </div>
+                                <div class="job-card-body">
+                                    <div class="job-detail"><label>Notes:</label> Pin Sheet 4</div>
+                                    <div class="job-crew-needed">Crew Needed: 1</div>
+                                    <div class="staff-schedule" style="margin-top: 5px;">Assign Crew</div>
+                                </div>
+                            </article>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Side Panel -->
+                <aside class="side-panel">
+                    <div class="btn-panel">
+                        <button class="btn btn-orange">Help</button>
+                        <button class="btn btn-grey">Display Mode</button>
+                        <button class="btn btn-green">Add A Job</button>
+                        <button class="btn btn-grey">Add & Manage Equipment</button>
+                        <button class="btn btn-green">Add Staff</button>
+                    </div>
+
+                    <div class="staff-section">
+                        <h4>Staff (Mon Feb 3, 2025 - Sun Feb 9, 2025)</h4>
+                        <div class="staff-item">
+                            <div class="staff-name">Doug Soldat</div>
+                            <div class="staff-schedule">Enter Weekly Schedule Here</div>
+                        </div>
+                        <div class="staff-item">
+                            <div class="staff-name">John User</div>
+                            <div class="staff-schedule">Enter Weekly Schedule Here</div>
+                        </div>
+                        <div class="staff-item">
+                            <div class="staff-name">Tony Smith</div>
+                            <div class="staff-schedule">Enter Weekly Schedule Here</div>
+                        </div>
+                        <div class="staff-item">
+                            <div class="staff-name">Peter Jackson</div>
+                            <div class="staff-schedule">Enter Weekly Schedule Here</div>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+        </main>
+    </div>
+    <script src="app.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,294 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700&display=swap');
+
+:root {
+    /* Color Palette */
+    --turf-green: #73A657;
+    --turf-green-dark: #5D8A46;
+    --turf-green-light: #E8F0E4;
+    --bg-main: #F4F6F8;
+    --bg-white: #FFFFFF;
+    --text-primary: #2C3E50;
+    --text-secondary: #7F8C8D;
+    --text-muted: #BDC3C7;
+    --border-color: #E0E4E8;
+    --accent-orange: #F39C12;
+    --accent-grey: #95A5A6;
+    
+    /* Spacing */
+    --sidebar-width: 60px;
+    --header-height: 60px;
+    --side-panel-width: 300px;
+    
+    /* Shadows */
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.12);
+    --shadow-md: 0 4px 6px rgba(0,0,0,0.08);
+    --shadow-lg: 0 10px 15px rgba(0,0,0,0.05);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    overflow: hidden; /* Main app container handles scroll */
+    height: 100vh;
+}
+
+h1, h2, h3 {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+}
+
+/* Layout Structure */
+.app-container {
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+}
+
+/* Sidebar */
+.sidebar {
+    width: var(--sidebar-width);
+    background-color: var(--turf-green);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 0;
+    color: white;
+    z-index: 100;
+}
+
+.sidebar-logo {
+    width: 32px;
+    height: 32px;
+    background-color: white;
+    border-radius: 50%;
+    margin-bottom: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--turf-green);
+    font-weight: bold;
+}
+
+.nav-item {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.nav-item:hover {
+    background-color: rgba(255,255,255,0.2);
+}
+
+.nav-item.active {
+    background-color: white;
+    color: var(--turf-green);
+}
+
+/* Content Area */
+.main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Header */
+.header {
+    height: var(--header-height);
+    background-color: var(--bg-white);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+}
+
+.header-title {
+    font-size: 1.2rem;
+    color: var(--text-primary);
+    letter-spacing: -0.5px;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.date-selector {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--bg-main);
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-weight: 500;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+/* Dashboard Layout */
+.dashboard-grid {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+}
+
+.task-board {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.side-panel {
+    width: var(--side-panel-width);
+    background-color: var(--bg-white);
+    border-left: 1px solid var(--border-color);
+    padding: 20px;
+    overflow-y: auto;
+}
+
+/* Components */
+.job-section {
+    margin-bottom: 30px;
+}
+
+.job-section h3 {
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-bottom: 15px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 8px;
+}
+
+.job-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+}
+
+.job-card {
+    background: var(--bg-white);
+    border: 1px solid var(--border-color);
+    border-radius: 4px; /* Squared off as per screenshot */
+    overflow: hidden;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    cursor: pointer;
+    position: relative;
+}
+
+.job-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.job-card-header {
+    background: var(--turf-green);
+    color: white;
+    padding: 8px 12px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.job-card-body {
+    padding: 12px;
+}
+
+.job-detail {
+    font-size: 0.85rem;
+    margin-bottom: 4px;
+}
+
+.job-detail label {
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.job-crew-needed {
+    color: var(--turf-green);
+    font-weight: 700;
+    margin-top: 8px;
+    font-size: 0.8rem;
+}
+
+/* Right Panel Buttons */
+.btn-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 24px;
+}
+
+.btn {
+    padding: 10px;
+    border-radius: 4px;
+    border: none;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    text-align: center;
+    transition: opacity 0.2s;
+}
+
+.btn-orange { background-color: #EAB35E; color: white; }
+.btn-grey { background-color: #95A5A6; color: white; }
+.btn-green { background-color: var(--turf-green); color: white; }
+
+.btn:hover {
+    opacity: 0.9;
+}
+
+/* Staff List */
+.staff-section h4 {
+    font-size: 0.85rem;
+    margin-bottom: 12px;
+}
+
+.staff-item {
+    border-bottom: 1px solid var(--bg-main);
+    padding: 10px 0;
+}
+
+.staff-name {
+    font-weight: 600;
+    font-size: 0.85rem;
+    margin-bottom: 4px;
+}
+
+.staff-schedule {
+    color: var(--turf-green);
+    font-size: 0.75rem;
+    cursor: pointer;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: #D1D5DB;
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #9CA3AF;
+}
