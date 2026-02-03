@@ -75,94 +75,93 @@ export default function WeatherDisplay() {
   const isRainy = precipitation > 50;
 
   return (
-    <div className="bg-white rounded shadow border border-border-color overflow-hidden">
-      {/* Header with Weather Icon */}
-      <div className="bg-gradient-to-r from-turf-green to-turf-green-dark p-4 text-white">
+    <div className="bg-white border border-border-color overflow-hidden font-sans shadow-sm">
+      {/* Header with Weather Icon - SHARP */}
+      <div className="bg-gradient-to-r from-turf-green to-turf-green-dark p-6 text-white">
         <div className="flex items-start justify-between">
           <div>
-            <h3 className="text-xs font-heading font-bold uppercase tracking-wide">
-              Current Weather
+            <h3 className="text-[0.7rem] font-heading font-black uppercase tracking-[0.2em] text-white/90">
+              Current Conditions
             </h3>
-            <p className="text-xs text-white text-opacity-80 mt-1">Golf Course Conditions</p>
+            <p className="text-[0.65rem] font-sans font-bold text-white/60 mt-1 uppercase tracking-widest">Banbury Golf Course</p>
           </div>
           <div className="flex items-center">
             {isRainy ? (
-              <CloudRain size={32} className="text-blue-300" />
+              <CloudRain size={32} className="text-blue-100 opacity-80" />
             ) : (
-              <Sun size={32} className="text-yellow-300" />
+              <Sun size={32} className="text-yellow-100 opacity-80" />
             )}
           </div>
         </div>
       </div>
 
       {/* Temperature Section */}
-      <div className="p-4 border-b border-border-color">
+      <div className="px-6 py-5 border-b border-dashboard-bg bg-white">
         <div className="flex items-baseline gap-2">
-          <span className="text-4xl font-bold text-gray-900">{temp}</span>
-          <span className="text-xl text-text-secondary">°F</span>
+          <span className="text-4xl font-heading font-black text-text-primary tracking-tighter">{temp}</span>
+          <span className="text-xl font-heading font-black text-text-secondary">°F</span>
         </div>
-        <p className="text-xs text-text-secondary mt-1">
-          {isRainy ? 'Rainy conditions expected' : 'Clear skies'}
+        <p className="text-[0.75rem] font-sans font-black text-text-secondary/60 mt-2 uppercase tracking-widest">
+          {isRainy ? 'Rain likely' : 'Clear & Sunny'}
         </p>
       </div>
 
-      {/* Weather Details Grid */}
-      <div className="grid grid-cols-2 gap-3 p-4 border-b border-border-color">
+      {/* Weather Details Grid - SHARP & WELL SPACED */}
+      <div className="grid grid-cols-2 gap-x-8 gap-y-6 p-6 border-b border-dashboard-bg bg-white">
         {/* Humidity */}
-        <div className="flex items-center gap-2">
-          <div className="p-2 bg-blue-50 rounded">
-            <Droplets size={16} className="text-blue-600" />
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 flex items-center justify-center bg-blue-50">
+            <Droplets size={16} className="text-blue-500" />
           </div>
           <div>
-            <p className="text-xs text-text-secondary">Humidity</p>
-            <p className="text-sm font-semibold text-gray-900">{humidity}%</p>
+            <p className="text-[0.6rem] font-heading font-black text-text-muted uppercase tracking-widest">Humidity</p>
+            <p className="text-xs font-sans font-black text-text-primary">{humidity}%</p>
           </div>
         </div>
 
         {/* Wind Speed */}
-        <div className="flex items-center gap-2">
-          <div className="p-2 bg-cyan-50 rounded">
-            <Wind size={16} className="text-cyan-600" />
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 flex items-center justify-center bg-cyan-50">
+            <Wind size={16} className="text-cyan-500" />
           </div>
           <div>
-            <p className="text-xs text-text-secondary">Wind</p>
-            <p className="text-sm font-semibold text-gray-900">{windSpeed} mph</p>
+            <p className="text-[0.6rem] font-heading font-black text-text-muted uppercase tracking-widest">Wind</p>
+            <p className="text-xs font-sans font-black text-text-primary">{windSpeed} mph</p>
           </div>
         </div>
 
         {/* Precipitation */}
-        <div className="flex items-center gap-2">
-          <div className="p-2 bg-purple-50 rounded">
-            <Cloud size={16} className="text-purple-600" />
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 flex items-center justify-center bg-purple-50">
+            <Cloud size={16} className="text-purple-500" />
           </div>
           <div>
-            <p className="text-xs text-text-secondary">Precipitation</p>
-            <p className="text-sm font-semibold text-gray-900">{precipitation}%</p>
+            <p className="text-[0.6rem] font-heading font-black text-text-muted uppercase tracking-widest">Precip</p>
+            <p className="text-xs font-sans font-black text-text-primary">{precipitation}%</p>
           </div>
         </div>
 
         {/* Sun Times */}
-        <div className="flex items-center gap-2">
-          <div className="p-2 bg-amber-50 rounded">
-            <Sun size={16} className="text-amber-600" />
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 flex items-center justify-center bg-amber-50">
+            <Sun size={16} className="text-amber-500" />
           </div>
           <div>
-            <p className="text-xs text-text-secondary">Sunrise</p>
-            <p className="text-sm font-semibold text-gray-900">{sunriseTime}</p>
+            <p className="text-[0.6rem] font-heading font-black text-text-muted uppercase tracking-widest">Sunrise</p>
+            <p className="text-xs font-sans font-black text-text-primary">{sunriseTime}</p>
           </div>
         </div>
       </div>
 
       {/* Sunset Time */}
-      <div className="p-4">
+      <div className="px-6 py-4 bg-dashboard-bg/20">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs text-text-secondary">Sunset</p>
-            <p className="text-sm font-semibold text-gray-900">{sunsetTime}</p>
+            <p className="text-[0.6rem] font-heading font-black text-text-muted uppercase tracking-widest">Sunset</p>
+            <p className="text-xs font-sans font-black text-text-primary">{sunsetTime}</p>
           </div>
           <div className="text-right">
-            <p className="text-xs text-text-secondary text-opacity-75">Last updated</p>
-            <p className="text-xs font-semibold text-turf-green">{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+            <p className="text-[0.55rem] font-sans font-bold text-text-muted uppercase tracking-tighter opacity-50">Updated {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
           </div>
         </div>
       </div>
