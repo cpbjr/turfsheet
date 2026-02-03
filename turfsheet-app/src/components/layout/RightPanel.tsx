@@ -1,56 +1,29 @@
 import WeatherDisplay from '../WeatherDisplay';
+import { Plus } from 'lucide-react';
 
 export default function RightPanel() {
-  const staffMembers = [
-    { id: 1, name: 'Doug Soldat', schedule: 'Enter Weekly Schedule Here' },
-    { id: 2, name: 'John User', schedule: 'Enter Weekly Schedule Here' },
-    { id: 3, name: 'Tony Smith', schedule: 'Enter Weekly Schedule Here' },
-    { id: 4, name: 'Peter Jackson', schedule: 'Enter Weekly Schedule Here' },
-  ];
-
-  const buttons = [
-    { id: 1, label: 'Help', color: 'bg-accent-orange' },
-    { id: 2, label: 'Display Mode', color: 'bg-accent-grey' },
-    { id: 3, label: 'Add A Job', color: 'bg-turf-green' },
-    { id: 4, label: 'Add & Manage Equipment', color: 'bg-accent-grey' },
-    { id: 5, label: 'Add Staff', color: 'bg-turf-green' },
-  ];
-
   return (
     <aside className="w-side-panel bg-white border-l border-border-color overflow-y-auto flex flex-col">
+      {/* Location Info */}
+      <div className="p-5 border-b border-bg-main">
+        <h2 className="text-sm font-bold text-gray-900 mb-1">Banbury Golf Course</h2>
+        <p className="text-xs text-gray-600">Eagle, ID</p>
+      </div>
+
       {/* Weather Display */}
       <div className="p-5 border-b border-bg-main">
         <WeatherDisplay />
       </div>
 
-      {/* Button Panel */}
-      <div className="flex flex-col gap-2 p-5 border-b border-bg-main">
-        {buttons.map((btn) => (
-          <button
-            key={btn.id}
-            className={`${btn.color} text-white py-2.5 px-3 rounded text-sm font-semibold transition-opacity hover:opacity-90`}
-          >
-            {btn.label}
+      {/* Staff Section - EMPTY STATE */}
+      <div className="flex-1 p-5 overflow-y-auto flex flex-col">
+        <h4 className="text-xs font-semibold text-text-secondary mb-4">Staff</h4>
+        <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center flex-1 flex flex-col items-center justify-center">
+          <p className="text-gray-500 mb-4 text-sm">No employees added yet</p>
+          <button className="bg-turf-green text-white px-4 py-2 rounded-lg flex items-center gap-2 mx-auto text-sm hover:bg-turf-green-dark transition-colors">
+            <Plus className="w-4 h-4" />
+            Add Employee
           </button>
-        ))}
-      </div>
-
-      {/* Staff Section */}
-      <div className="flex-1 p-5 overflow-y-auto">
-        <h4 className="text-xs font-semibold text-text-secondary mb-3">
-          Staff (Mon Feb 3, 2025 - Sun Feb 9, 2025)
-        </h4>
-        <div className="space-y-0.5">
-          {staffMembers.map((staff) => (
-            <div key={staff.id} className="border-b border-bg-main pb-2.5">
-              <div className="font-semibold text-xs text-gray-800 mb-1">
-                {staff.name}
-              </div>
-              <button className="text-turf-green text-xs cursor-pointer hover:text-turf-green-dark transition">
-                {staff.schedule}
-              </button>
-            </div>
-          ))}
         </div>
       </div>
     </aside>
