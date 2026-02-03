@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Calendar } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, addDays, subDays } from 'date-fns';
 
 export function DateSelector() {
   const [currentDate, setCurrentDate] = useState(new Date());

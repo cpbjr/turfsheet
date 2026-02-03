@@ -19,7 +19,7 @@ function App() {
             <div className="space-y-6">
               {/* First Jobs Section - EMPTY STATE */}
               <div>
-                <h3 className="text-xs font-heading font-bold text-text-secondary uppercase mb-4 pb-2 border-b border-border-color">
+                <h3 className="text-[0.9rem] font-heading font-bold text-text-secondary uppercase mb-4 pb-2 border-b border-border-color">
                   First Jobs
                 </h3>
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
@@ -33,7 +33,7 @@ function App() {
 
               {/* Second Jobs Section - EMPTY STATE */}
               <div>
-                <h3 className="text-xs font-heading font-bold text-text-secondary uppercase mb-4 pb-2 border-b border-border-color">
+                <h3 className="text-[0.9rem] font-heading font-bold text-text-secondary uppercase mb-4 pb-2 border-b border-border-color">
                   Second Jobs
                 </h3>
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
