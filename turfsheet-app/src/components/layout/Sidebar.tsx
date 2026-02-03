@@ -1,58 +1,70 @@
 import { useState } from 'react';
+import {
+  Flag, House, Calendar, Users, Briefcase,
+  BarChart3, MapPin, MessageSquare, FileText,
+  CreditCard, History, GraduationCap, Settings,
+  Package, LogOut
+} from 'lucide-react';
 
 export default function Sidebar() {
   const [activeNav, setActiveNav] = useState('dashboard');
 
-  const navItems = [
-    { id: 'dashboard', icon: 'fa-house', label: 'Dashboard' },
-    { id: 'calendar', icon: 'fa-calendar', label: 'Calendar' },
-    { id: 'staff', icon: 'fa-users', label: 'Staff' },
-    { id: 'jobs', icon: 'fa-briefcase', label: 'Jobs' },
-    { id: 'analytics', icon: 'fa-chart-line', label: 'Analytics' },
-    { id: 'maps', icon: 'fa-map-location-dot', label: 'Maps' },
-    { id: 'messages', icon: 'fa-message', label: 'Messaging' },
-    { id: 'documents', icon: 'fa-file-invoice', label: 'Documents' },
-    { id: 'billing', icon: 'fa-credit-card', label: 'Billing' },
-    { id: 'settings', icon: 'fa-gear', label: 'Settings' },
+  const topNav = [
+    { id: 'home', icon: Flag, label: 'Home' },
+    { id: 'dashboard', icon: House, label: 'Dashboard' },
+    { id: 'calendar', icon: Calendar, label: 'Calendar' },
+    { id: 'staff', icon: Users, label: 'Staff' },
+    { id: 'jobs', icon: Briefcase, label: 'Jobs' },
+    { id: 'analytics', icon: BarChart3, label: 'Analytics' },
+    { id: 'maps', icon: MapPin, label: 'Maps' },
+    { id: 'messages', icon: MessageSquare, label: 'Messaging' },
+  ];
+
+  const bottomNav = [
+    { id: 'history', icon: History, label: 'History' },
+    { id: 'docs', icon: FileText, label: 'Documents' },
+    { id: 'training', icon: GraduationCap, label: 'Training' },
+    { id: 'inventory', icon: Package, label: 'Inventory' },
+    { id: 'settings', icon: Settings, label: 'Settings' },
+    { id: 'logout', icon: LogOut, label: 'Logout' },
   ];
 
   return (
-    <aside className="w-[80px] bg-turf-green flex flex-col items-center py-12 h-screen z-100 shrink-0">
-      {/* Logo Container - Sharp */}
-      <div className="mb-20">
-        <div className="w-14 h-14 bg-white flex items-center justify-center overflow-hidden shadow-sm hover:scale-110 transition-transform duration-500 cursor-pointer">
-          <img src="/logo.png" alt="T" className="w-full h-full object-cover scale-110" />
-        </div>
-      </div>
-
-      {/* Navigation - Spaced Out Vertically */}
-      <nav className="flex flex-col justify-between flex-1 pb-16 w-full items-center">
-        <div className="flex flex-col gap-10">
-          {navItems.slice(0, 9).map((item) => (
+    <aside className="w-[48px] bg-turf-green flex flex-col items-center py-4 h-screen z-100 shrink-0 shadow-lg">
+      <nav className="flex flex-col justify-between h-full w-full">
+        {/* Top Section */}
+        <div className="flex flex-col items-center gap-4">
+          {topNav.map((item) => (
             <button
               key={item.id}
               onClick={() => setActiveNav(item.id)}
-              className={`w-14 h-14 flex items-center justify-center transition-all duration-300 transform hover:scale-110 hover:brightness-110 ${activeNav === item.id
-                  ? 'bg-white text-turf-green shadow-md translate-x-1'
-                  : 'bg-transparent text-white hover:bg-white/10'
+              className={`w-10 h-10 flex items-center justify-center transition-all duration-200 ${activeNav === item.id
+                  ? 'text-white bg-white/20'
+                  : 'text-white/80 hover:text-white hover:bg-white/10'
                 }`}
               title={item.label}
             >
-              <i className={`fa-solid ${item.icon} text-[1.3rem]`}></i>
+              <item.icon className="w-5 h-5 stroke-[1.5]" />
             </button>
           ))}
         </div>
-        {/* Settings at the very bottom */}
-        <button
-          onClick={() => setActiveNav('settings')}
-          className={`w-14 h-14 flex items-center justify-center transition-all duration-300 transform hover:scale-110 hover:brightness-110 ${activeNav === 'settings'
-              ? 'bg-white text-turf-green shadow-md translate-x-1'
-              : 'bg-transparent text-white hover:bg-white/10'
-            }`}
-          title="Settings"
-        >
-          <i className="fa-solid fa-gear text-[1.3rem]"></i>
-        </button>
+
+        {/* Bottom Section */}
+        <div className="flex flex-col items-center gap-4 mb-2">
+          {bottomNav.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setActiveNav(item.id)}
+              className={`w-10 h-10 flex items-center justify-center transition-all duration-200 ${activeNav === item.id
+                  ? 'text-white bg-white/20'
+                  : 'text-white/80 hover:text-white hover:bg-white/10'
+                }`}
+              title={item.label}
+            >
+              <item.icon className="w-5 h-5 stroke-[1.5]" />
+            </button>
+          ))}
+        </div>
       </nav>
     </aside>
   );
