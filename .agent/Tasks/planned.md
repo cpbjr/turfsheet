@@ -11,3 +11,6 @@
 
 ## Task 4 - Equipment Management
 - [ ] Integration with Toro myTurf (Phase 2+)
+
+## Task 5 - DB Refinement
+- [ ] Jobs will need to be refined so fields match which type of jobs. Mowing jobs will need specialized fields: direction, HOC, cleanup, etc. 

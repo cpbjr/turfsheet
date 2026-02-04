@@ -8,25 +8,27 @@ Last Updated: 2026-02-04
 ## Active Tasks
 
 ### 1. Fix Supabase API Key Configuration
-**Status:** In Progress
+**Status:** ✅ Completed (2026-02-04)
 **Priority:** High (Blocks database functionality)
-**Description:** Frontend cannot authenticate with Supabase due to invalid API key error.
 
-**Errors:**
-```
-Error fetching staff:
-  { message: "Invalid API key",
-    hint: "Double check your Supabase `anon` or `service_role` API key." }
-Error fetching jobs:
-  { message: "Invalid API key",
-    hint: "Double check your Supabase `anon` or `service_role` API key." }
-```
+**Root Causes Found & Fixed:**
+1. ✅ **Incorrect API Key** - Updated `.env.local` with correct `VITE_SUPABASE_ANON_KEY` (new key expires 2072)
+2. ✅ **Schema Not Exposed** - Tables in custom `turfsheet` schema, but REST API only exposes `public` schema
+   - Solution: Migrated all tables to `public.jobs` and `public.staff`
+3. ✅ **Missing RLS Permissions** - Anonymous users lacked table SELECT permissions
+   - Solution: Added RLS policies and granted `SELECT` permission to `anon` role
 
-**Root Cause:** `.env.local` has incorrect Supabase API key configuration
-**Next Steps:**
-1. Verify correct `VITE_SUPABASE_ANON_KEY` from Supabase project
-2. Update `.env.local` with correct credentials
-3. Test that JobsPage and StaffPage can fetch data
+**Migrations Applied:**
+- Schema migration (dropped turfsheet, moved tables to public)
+- RLS enable policies
+- Table-level grants for anon role
+- All 8 migrations applied successfully to remote database
+
+**Verification Results:**
+- ✅ JobsPage loads without API errors
+- ✅ StaffPage loads without API errors
+- ✅ Data displays correctly in both pages
+- ✅ No Supabase errors in browser console
 
 ---
 
