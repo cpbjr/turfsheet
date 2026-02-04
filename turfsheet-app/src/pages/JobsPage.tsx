@@ -1,17 +1,37 @@
+import { useState, useEffect } from 'react';
 import { Search, Plus, Filter, LayoutGrid, List } from 'lucide-react';
 import JobCard from '../components/jobs/JobCard';
+import { supabase } from '../lib/supabase';
+import type { Job } from '../types';
 
 export default function JobsPage() {
-    const jobTemplates = [
-        { id: 1, title: 'Mow Greens', direction: '8-2 (L to R)', cleanup: 'Clockwise', hoc: '0.125"', crewNeeded: 3 },
-        { id: 2, title: 'Mow Fairways', direction: '50:50 Tuxedo', cleanup: 'Tan & Black', crewNeeded: 4 },
-        { id: 3, title: 'Mow Approaches', direction: '3-9 (Side to Side)', cleanup: 'Clockwise', crewNeeded: 2 },
-        { id: 4, title: 'Roll Greens', crewNeeded: 2 },
-        { id: 5, title: 'Change Cups', hoc: 'Pin Sheet 4', crewNeeded: 1 },
-        { id: 6, title: 'Bunker Raking', crewNeeded: 5 },
-        { id: 7, title: 'Fairway Aerification', crewNeeded: 8, priority: 'High' },
-        { id: 8, title: 'Irrigation Repair', crewNeeded: 1, priority: 'Urgent' },
-    ];
+    const [jobTemplates, setJobTemplates] = useState<Job[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        const fetchJobs = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+                const { data, error: fetchError } = await supabase
+                    .from('jobs')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (fetchError) throw fetchError;
+                setJobTemplates(data || []);
+            } catch (err) {
+                const message = err instanceof Error ? err.message : 'Failed to fetch jobs';
+                setError(message);
+                console.error('Error fetching jobs:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchJobs();
+    }, []);
 
     const inputClasses = "bg-panel-white border border-border-color px-4 py-2 text-sm focus:border-turf-green outline-none transition-colors font-sans";
 
@@ -66,11 +86,34 @@ export default function JobsPage() {
 
             {/* Jobs Grid */}
             <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-8 pb-12">
-                    {jobTemplates.map((job) => (
-                        <JobCard key={job.id} {...job} />
-                    ))}
-                </div>
+                {loading && (
+                    <div className="flex items-center justify-center h-64">
+                        <p className="text-text-secondary">Loading jobs...</p>
+                    </div>
+                )}
+                {error && (
+                    <div className="flex items-center justify-center h-64">
+                        <p className="text-red-500">Error: {error}</p>
+                    </div>
+                )}
+                {!loading && !error && jobTemplates.length === 0 && (
+                    <div className="h-64 flex flex-col items-center justify-center bg-panel-white border border-border-color border-dashed rounded-sm">
+                        <p className="text-text-secondary font-sans text-sm">No jobs in your library yet.</p>
+                    </div>
+                )}
+                {!loading && !error && jobTemplates.length > 0 && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-8 pb-12">
+                        {jobTemplates.map((job) => (
+                            <JobCard
+                                key={job.id}
+                                title={job.title}
+                                crewNeeded={job.crew_needed}
+                                priority={job.priority}
+                                description={job.description}
+                            />
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     );

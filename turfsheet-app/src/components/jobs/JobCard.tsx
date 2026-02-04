@@ -2,14 +2,12 @@ import { X } from 'lucide-react';
 
 interface JobCardProps {
     title: string;
-    direction?: string;
-    cleanup?: string;
-    hoc?: string;
     crewNeeded: number;
     priority?: string;
+    description?: string;
 }
 
-export default function JobCard({ title, direction, cleanup, hoc, crewNeeded, priority }: JobCardProps) {
+export default function JobCard({ title, crewNeeded, priority, description }: JobCardProps) {
     return (
         <article className="bg-panel-white border border-border-color shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 group cursor-pointer">
             <div className="bg-turf-green px-4 py-3 flex items-center justify-between">
@@ -27,19 +25,9 @@ export default function JobCard({ title, direction, cleanup, hoc, crewNeeded, pr
                     </div>
                 )}
 
-                {direction && (
+                {description && (
                     <div className="text-[0.8rem] text-text-primary">
-                        <span className="font-bold">Mow Direction:</span> {direction}
-                    </div>
-                )}
-                {cleanup && (
-                    <div className="text-[0.8rem] text-text-primary">
-                        <span className="font-bold">Clean Up:</span> {cleanup}
-                    </div>
-                )}
-                {hoc && (
-                    <div className="text-[0.8rem] text-text-primary">
-                        <span className="font-bold">HOC:</span> {hoc}
+                        {description}
                     </div>
                 )}
 

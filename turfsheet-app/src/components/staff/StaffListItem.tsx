@@ -6,7 +6,7 @@ interface StaffListItemProps {
     telephone: string;
     telegramId: string;
     onManageSchedule: () => void;
-    notes?: string;
+    notes?: string | null;
 }
 
 export default function StaffListItem({ role, name, telephone, telegramId, onManageSchedule, notes }: StaffListItemProps) {
@@ -45,7 +45,7 @@ export default function StaffListItem({ role, name, telephone, telegramId, onMan
             </div>
 
             {/* Notes */}
-            <div className="text-[0.65rem] font-sans text-text-muted truncate italic" title={notes}>
+            <div className="text-[0.65rem] font-sans text-text-muted truncate italic" title={notes || undefined}>
                 {notes || 'No notes...'}
             </div>
 

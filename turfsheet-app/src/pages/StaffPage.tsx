@@ -1,15 +1,41 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Plus, Filter, List as ListIcon, LayoutGrid } from 'lucide-react';
 import StaffListItem from '../components/staff/StaffListItem';
 import Modal from '../components/ui/Modal';
 import ScheduleForm from '../components/staff/ScheduleForm';
+import { supabase } from '../lib/supabase';
+import type { Staff } from '../types';
 
 export default function StaffPage() {
     const [selectedStaff, setSelectedStaff] = useState<any>(null);
     const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+    const [staffMembers, setStaffMembers] = useState<Staff[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    // Clean state - no staff members
-    const [staffMembers] = useState<any[]>([]);
+    useEffect(() => {
+        const fetchStaff = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+                const { data, error: fetchError } = await supabase
+                    .from('staff')
+                    .select('*')
+                    .order('created_at', { ascending: true });
+
+                if (fetchError) throw fetchError;
+                setStaffMembers(data || []);
+            } catch (err) {
+                const message = err instanceof Error ? err.message : 'Failed to fetch staff';
+                setError(message);
+                console.error('Error fetching staff:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchStaff();
+    }, []);
 
     const handleManageSchedule = (staff: any) => {
         setSelectedStaff(staff);
@@ -81,17 +107,31 @@ export default function StaffPage() {
 
             {/* Staff List Area */}
             <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-                {staffMembers.length > 0 ? (
+                {loading && (
+                    <div className="flex items-center justify-center h-64">
+                        <p className="text-text-secondary">Loading staff...</p>
+                    </div>
+                )}
+                {error && (
+                    <div className="flex items-center justify-center h-64">
+                        <p className="text-red-500">Error: {error}</p>
+                    </div>
+                )}
+                {!loading && !error && staffMembers.length > 0 ? (
                     <div className="flex flex-col border-b border-border-color">
-                        {staffMembers.map((staff, idx) => (
+                        {staffMembers.map((staff) => (
                             <StaffListItem
-                                key={staff.id || idx}
-                                {...staff}
+                                key={staff.id}
+                                role={staff.role}
+                                name={staff.name}
+                                telephone={staff.telephone}
+                                telegramId={staff.telegram_id}
+                                notes={staff.notes}
                                 onManageSchedule={() => handleManageSchedule(staff)}
                             />
                         ))}
                     </div>
-                ) : (
+                ) : !loading && !error && (
                     <div className="h-64 flex flex-col items-center justify-center bg-panel-white border border-border-color border-dashed rounded-sm">
                         <p className="text-text-secondary font-sans text-sm">No staff members in your library yet.</p>
                     </div>

@@ -6,14 +6,14 @@ interface DashboardPageProps {
 }
 
 export default function DashboardPage({ onCreateJob }: DashboardPageProps) {
-    // Sample active jobs
+    // Sample active jobs - using only JobCard compatible props
     const firstJobs = [
-        { id: 1, title: 'Mow Greens', direction: '8-2 (L to R)', cleanup: 'Clockwise', hoc: '0.125"', crewNeeded: 3 },
-        { id: 2, title: 'Mow Fairways', direction: '50:50 Tuxedo', cleanup: 'Tan & Black', crewNeeded: 4 },
+        { title: 'Mow Greens', crewNeeded: 3, description: 'Direction: 8-2 (L to R), Cleanup: Clockwise, HOC: 0.125"' },
+        { title: 'Mow Fairways', crewNeeded: 4, description: 'Direction: 50:50 Tuxedo, Cleanup: Tan & Black' },
     ];
 
     const secondJobs = [
-        { id: 3, title: 'Change Cups', hoc: 'Pin Sheet 4', crewNeeded: 1 },
+        { title: 'Change Cups', crewNeeded: 1, description: 'Pin Sheet 4' },
     ];
 
     return (
@@ -24,8 +24,8 @@ export default function DashboardPage({ onCreateJob }: DashboardPageProps) {
                     First Jobs Portfolio
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-8">
-                    {firstJobs.map(job => (
-                        <JobCard key={job.id} {...job} />
+                    {firstJobs.map((job, idx) => (
+                        <JobCard key={idx} {...job} />
                     ))}
                     <button
                         onClick={onCreateJob}
@@ -56,8 +56,8 @@ export default function DashboardPage({ onCreateJob }: DashboardPageProps) {
                     Second Jobs Portfolio
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-8">
-                    {secondJobs.map(job => (
-                        <JobCard key={job.id} {...job} />
+                    {secondJobs.map((job, idx) => (
+                        <JobCard key={idx} {...job} />
                     ))}
                     <button
                         onClick={onCreateJob}
