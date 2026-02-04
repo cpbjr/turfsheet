@@ -6,14 +6,16 @@ TurfSheet is a web application for managing golf courses and their staff. It is 
 Last Updated: 2026-02-03
 1. Create a site style guide. 
 
-2. Move implemented plans from Implemented/ to completed/ as of yesterday. 
+2. Create a site on whitepine-tech.com for TurfSheet. 
 
-3. 
+3. Move implemented plans from Implemented/ to completed/ as of yesterday. 
+
+4. 
 - [x] Implement Site Style Guide [style-guide.md](file:///home/cpbjr/WhitePineTech/Projects/TurfSheet/.agent/System/style-guide.md) <!-- id: 1 -->
 - [x] Verify Style Guide coverage <!-- id: 2 -->
+- [x] Implement Jobs Page and Dashboard Popup <!-- id: 3 -->
 
-3.1 now on to the Jobs page. See image SiteExamples/Examples/IMG_4369.jpg and SiteExamples/Examples/IMG_4370.jpg for reference. 
-3.2 Equipment page
+3.1 Equipment page <!-- id: 4 -->
 
 ## No active tasks.
 See [planned.md](file:///home/cpbjr/WhitePineTech/Projects/TurfSheet/.agent/Tasks/planned.md) for upcoming work.
