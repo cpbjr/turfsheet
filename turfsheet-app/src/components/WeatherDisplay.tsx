@@ -83,7 +83,6 @@ export default function WeatherDisplay() {
             <h3 className="text-[0.7rem] font-heading font-black uppercase tracking-[0.2em] text-white/90">
               Current Conditions
             </h3>
-            <p className="text-[0.65rem] font-sans font-bold text-white/60 mt-1 uppercase tracking-widest">Banbury Golf Course</p>
           </div>
           <div className="flex items-center">
             {isRainy ? (

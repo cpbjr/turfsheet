@@ -3,6 +3,7 @@ import { Routes, Route } from 'react-router-dom';
 import { Sidebar, Header, RightPanel } from './components/layout';
 import DashboardPage from './pages/DashboardPage';
 import JobsPage from './pages/JobsPage';
+import StaffPage from './pages/StaffPage';
 import Modal from './components/ui/Modal';
 import JobForm from './components/jobs/JobForm';
 
@@ -35,6 +36,7 @@ function App() {
                 element={<DashboardPage onCreateJob={() => setIsAddJobModalOpen(true)} />}
               />
               <Route path="/jobs" element={<JobsPage />} />
+              <Route path="/staff" element={<StaffPage />} />
               {/* Fallback to Dashboard */}
               <Route
                 path="*"

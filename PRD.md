@@ -28,8 +28,10 @@ Main components of the app are the following, each of which will have it's own s
         8.1 Agronomic Planning
         8.2 Tournament Planning
         8.3 Other Planning
-    9. Settings
-    10. Help
+    9. Messaging
+    10. Training
+    11. Settings
+    12. Help
 ** Note: This has been added subsequent to PRD production. ** 
 
 ### Key Differentiators

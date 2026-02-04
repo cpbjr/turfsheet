@@ -9,7 +9,6 @@ export default function RightPanel() {
       <div className="p-10 space-y-8 border-b border-dashboard-bg bg-panel-white">
         <div className="flex flex-col">
           <h2 className="text-[1.3rem] font-heading font-black text-text-primary tracking-tighter leading-tight uppercase">Banbury Golf Course</h2>
-          <p className="text-[0.8rem] font-sans font-bold text-text-secondary mt-2 uppercase tracking-widest opacity-60">Eagle, ID</p>
         </div>
         <WeatherDisplay />
       </div>
