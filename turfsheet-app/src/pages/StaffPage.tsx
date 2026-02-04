@@ -9,7 +9,7 @@ export default function StaffPage() {
     const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
 
     // Clean state - no staff members
-    const [staffMembers, setStaffMembers] = useState<any[]>([]);
+    const [staffMembers] = useState<any[]>([]);
 
     const handleManageSchedule = (staff: any) => {
         setSelectedStaff(staff);
