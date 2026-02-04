@@ -11,6 +11,27 @@
 
 TurfSheet is a comprehensive task management application designed specifically for golf course maintenance operations. The system enables superintendents and managers to assign daily tasks to grounds crew members based on their availability, complex rotation schedules, skills, and current conditions. Workers receive assignments on mobile devices while managers coordinate from a desktop dashboard.
 
+### Developer's Plan 
+Main components of the app are the following, each of which will have it's own separate page and will be accessible via the main left navigation bar. 
+    1. Dashboard
+    2. Jobs. Users can create their own custom jobs, or use pre-defined jobs. 
+    3. Equipment. Users can create their own custom equipment, or use pre-defined equipment. Ability to integrate with manufacturer APIs for real-time data (future)
+    4. Staff
+    5. Irrigation
+    6. Reports
+        6.1 Irrigation Reports
+        6.2 Job Reports
+        6.3 Equipment Reports
+        6.4 Staff Reports
+    7. Inventory, primarily of chemicals. 
+    8. Planning 
+        8.1 Agronomic Planning
+        8.2 Tournament Planning
+        8.3 Other Planning
+    9. Settings
+    10. Help
+** Note: This has been added subsequent to PRD production. ** 
+
 ### Key Differentiators
 
 - **Golf-Specific Scheduling:** Blue/Orange 19-day rotation system proven at Banbury Golf Course
@@ -22,9 +43,8 @@ TurfSheet is a comprehensive task management application designed specifically f
 ### Success Metrics
 
 - Replace physical whiteboards and paper logs
-- Reduce task assignment time by 75%
-- 100% crew adoption within 2 weeks
-- Eliminate missed tasks due to scheduling conflicts
+- Reduce task assignment time 
+- Eliminate missed tasks or plans, due to poor record keeping. 
 - Historical data capture for compliance and planning
 
 ---
