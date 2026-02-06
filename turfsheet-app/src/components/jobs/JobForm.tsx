@@ -9,7 +9,7 @@ export default function JobForm({ onSubmit, onCancel }: JobFormProps) {
     const [formData, setFormData] = useState({
         title: '',
         description: '',
-        crewNeeded: 1,
+        crew_needed: 1,
         priority: 'Normal',
         section: 'First Jobs'
     });
@@ -53,8 +53,8 @@ export default function JobForm({ onSubmit, onCancel }: JobFormProps) {
                         type="number"
                         min="1"
                         className={inputClasses}
-                        value={formData.crewNeeded}
-                        onChange={(e) => setFormData({ ...formData, crewNeeded: parseInt(e.target.value) })}
+                        value={formData.crew_needed}
+                        onChange={(e) => setFormData({ ...formData, crew_needed: parseInt(e.target.value) })}
                     />
                 </div>
                 <div>
