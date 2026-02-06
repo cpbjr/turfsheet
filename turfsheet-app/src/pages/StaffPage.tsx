@@ -3,12 +3,14 @@ import { Search, Plus, Filter, List as ListIcon, LayoutGrid } from 'lucide-react
 import StaffListItem from '../components/staff/StaffListItem';
 import Modal from '../components/ui/Modal';
 import ScheduleForm from '../components/staff/ScheduleForm';
+import StaffForm from '../components/staff/StaffForm';
 import { supabase } from '../lib/supabase';
 import type { Staff } from '../types';
 
 export default function StaffPage() {
     const [selectedStaff, setSelectedStaff] = useState<any>(null);
     const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+    const [isAddStaffModalOpen, setIsAddStaffModalOpen] = useState(false);
     const [staffMembers, setStaffMembers] = useState<Staff[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -47,6 +49,27 @@ export default function StaffPage() {
         setIsScheduleModalOpen(false);
     };
 
+    const handleSaveStaff = async (formData: any) => {
+        try {
+            setError(null);
+            console.log('Inserting staff member:', formData);
+            const { data, error: insertError } = await supabase
+                .from('staff')
+                .insert([formData])
+                .select();
+
+            if (insertError) throw insertError;
+
+            console.log('Staff member created successfully:', data);
+            setStaffMembers([...staffMembers, ...(data || [])]);
+            setIsAddStaffModalOpen(false);
+        } catch (err) {
+            const message = err instanceof Error ? err.message : 'Failed to create staff member';
+            setError(message);
+            console.error('Error creating staff member:', err);
+        }
+    };
+
     const inputClasses = "bg-panel-white border border-border-color px-4 py-2 text-sm focus:border-turf-green outline-none transition-colors font-sans";
 
     return (
@@ -61,7 +84,7 @@ export default function StaffPage() {
                         Manage your crew members, roles, contact information, and weekly schedules.
                     </p>
                 </div>
-                <button className="bg-turf-green text-white px-8 py-4 shadow-sm flex items-center gap-3 font-heading font-black hover:bg-turf-green-dark hover:-translate-y-1 transition-all duration-300 text-[0.75rem] uppercase tracking-[0.2em]">
+                <button onClick={() => setIsAddStaffModalOpen(true)} className="bg-turf-green text-white px-8 py-4 shadow-sm flex items-center gap-3 font-heading font-black hover:bg-turf-green-dark hover:-translate-y-1 transition-all duration-300 text-[0.75rem] uppercase tracking-[0.2em]">
                     <Plus className="w-5 h-5" />
                     Add Staff Member
                 </button>
@@ -150,6 +173,18 @@ export default function StaffPage() {
                         onSave={handleSaveSchedule}
                     />
                 )}
+            </Modal>
+
+            {/* Add Staff Modal */}
+            <Modal
+                isOpen={isAddStaffModalOpen}
+                onClose={() => setIsAddStaffModalOpen(false)}
+                title="Add Staff Member"
+            >
+                <StaffForm
+                    onSubmit={handleSaveStaff}
+                    onCancel={() => setIsAddStaffModalOpen(false)}
+                />
             </Modal>
         </div>
     );

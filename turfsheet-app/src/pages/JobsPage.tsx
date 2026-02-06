@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Search, Plus, Filter, LayoutGrid, List } from 'lucide-react';
 import JobCard from '../components/jobs/JobCard';
+import Modal from '../components/ui/Modal';
+import JobForm from '../components/jobs/JobForm';
 import { supabase } from '../lib/supabase';
 import type { Job } from '../types';
 
@@ -8,6 +10,7 @@ export default function JobsPage() {
     const [jobTemplates, setJobTemplates] = useState<Job[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [isAddJobModalOpen, setIsAddJobModalOpen] = useState(false);
 
     useEffect(() => {
         const fetchJobs = async () => {
@@ -35,6 +38,27 @@ export default function JobsPage() {
 
     const inputClasses = "bg-panel-white border border-border-color px-4 py-2 text-sm focus:border-turf-green outline-none transition-colors font-sans";
 
+    const handleSaveJob = async (formData: any) => {
+        try {
+            setError(null);
+            console.log('Inserting job template:', formData);
+            const { data, error: insertError } = await supabase
+                .from('jobs')
+                .insert([formData])
+                .select();
+
+            if (insertError) throw insertError;
+
+            console.log('Job template created successfully:', data);
+            setJobTemplates([...(data || []), ...jobTemplates]);
+            setIsAddJobModalOpen(false);
+        } catch (err) {
+            const message = err instanceof Error ? err.message : 'Failed to create job template';
+            setError(message);
+            console.error('Error creating job template:', err);
+        }
+    };
+
     return (
         <div className="space-y-12 h-full flex flex-col">
             {/* Page Header */}
@@ -47,7 +71,7 @@ export default function JobsPage() {
                         Manage your standing job templates and specialized maintenance routines.
                     </p>
                 </div>
-                <button className="bg-turf-green text-white px-8 py-4 shadow-sm flex items-center gap-3 font-heading font-black hover:bg-turf-green-dark hover:-translate-y-1 transition-all duration-300 text-[0.75rem] uppercase tracking-[0.2em]">
+                <button onClick={() => setIsAddJobModalOpen(true)} className="bg-turf-green text-white px-8 py-4 shadow-sm flex items-center gap-3 font-heading font-black hover:bg-turf-green-dark hover:-translate-y-1 transition-all duration-300 text-[0.75rem] uppercase tracking-[0.2em]">
                     <Plus className="w-5 h-5" />
                     Add Job Template
                 </button>
@@ -115,6 +139,18 @@ export default function JobsPage() {
                     </div>
                 )}
             </div>
+
+            {/* Add Job Modal */}
+            <Modal
+                isOpen={isAddJobModalOpen}
+                onClose={() => setIsAddJobModalOpen(false)}
+                title="Add Job Template"
+            >
+                <JobForm
+                    onSubmit={handleSaveJob}
+                    onCancel={() => setIsAddJobModalOpen(false)}
+                />
+            </Modal>
         </div>
     );
 }

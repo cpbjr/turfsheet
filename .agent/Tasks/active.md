@@ -3,7 +3,7 @@ TurfSheet is a web application for managing golf courses and their staff. It is 
 
 # Active Tasks
 
-Last Updated: 2026-02-05
+Last Updated: 2026-02-05 14:25 UTC
 
 ## Active Tasks
 
@@ -28,6 +28,7 @@ None of the "sha512" hashes in the integrity attribute match the content of the 
 ## Recently Completed ✅
 
 See `completed/2026-02/` for completed tasks including:
+- ✅ Make Site Actionable: Add Staff & Jobs (2026-02-05)
 - ✅ Staff Whiteboard Dashboard (2026-02-05)
 - ✅ Fix Supabase API Key Configuration (2026-02-04)
 - ✅ Database Setup - Jobs & Staff Tables (2026-02-04)
