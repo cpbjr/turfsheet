@@ -1,3 +1,24 @@
+import { useState } from 'react';
+import StaffWhiteboardView from '../components/whiteboard/StaffWhiteboardView';
+
+interface DashboardPageProps {
+    onCreateJob?: () => void;
+}
+
+export default function DashboardPage(_props: DashboardPageProps) {
+    const [selectedDate, setSelectedDate] = useState(new Date());
+
+    return (
+        <div className="flex flex-col h-full">
+            <StaffWhiteboardView
+                selectedDate={selectedDate}
+                onDateChange={setSelectedDate}
+            />
+        </div>
+    );
+}
+
+/* COMMENTED OUT - Original Portfolio View
 import { Plus } from 'lucide-react';
 import JobCard from '../components/jobs/JobCard';
 
@@ -18,7 +39,7 @@ export default function DashboardPage({ onCreateJob }: DashboardPageProps) {
 
     return (
         <div className="flex flex-col space-y-24">
-            {/* First Jobs Section */}
+            {/* First Jobs Section *//*}
             <section>
                 <h3 className="text-[0.75rem] font-heading font-black text-text-secondary uppercase px-10 py-6 border-b border-border-color tracking-[0.3em] mb-8 bg-panel-white border border-border-color">
                     First Jobs Portfolio
@@ -39,7 +60,7 @@ export default function DashboardPage({ onCreateJob }: DashboardPageProps) {
                 </div>
             </section>
 
-            {/* Accent Divider - Medium Thickness Line */}
+            {/* Accent Divider - Medium Thickness Line *//*}
             <div className="flex items-center gap-6">
                 <div className="flex-1 h-[2px] bg-turf-green/20"></div>
                 <div className="flex gap-4">
@@ -50,7 +71,7 @@ export default function DashboardPage({ onCreateJob }: DashboardPageProps) {
                 <div className="flex-1 h-[2px] bg-turf-green/20"></div>
             </div>
 
-            {/* Second Jobs Section */}
+            {/* Second Jobs Section *//*}
             <section>
                 <h3 className="text-[0.75rem] font-heading font-black text-text-secondary uppercase px-10 py-6 border-b border-border-color tracking-[0.3em] mb-8 bg-panel-white border border-border-color">
                     Second Jobs Portfolio
@@ -73,3 +94,4 @@ export default function DashboardPage({ onCreateJob }: DashboardPageProps) {
         </div>
     );
 }
+*/
