@@ -2,6 +2,9 @@
 -- Date: 2026-02-11
 -- Rollback: DROP TABLE IF EXISTS turfsheet.daily_board;
 
+-- Drop if exists (handles re-run after partial push)
+DROP TABLE IF EXISTS turfsheet.daily_board CASCADE;
+
 CREATE TABLE turfsheet.daily_board (
   id SERIAL PRIMARY KEY,
   board_date DATE NOT NULL UNIQUE,
