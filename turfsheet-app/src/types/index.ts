@@ -51,6 +51,7 @@ export interface DailyAssignment {
   job_id: string;
   assignment_date: string; // ISO date YYYY-MM-DD
   notes?: string;
+  completed_at?: string; // ISO timestamp, null = in progress
   created_at: string;
   updated_at: string;
 }
