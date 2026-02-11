@@ -1,4 +1,7 @@
-// Job types
+// ============================================================
+// Job Templates (primary jobs library)
+// ============================================================
+
 export interface Job {
   id: string;
   title: string;
@@ -10,7 +13,10 @@ export interface Job {
   updated_at: string;
 }
 
-// Staff types
+// ============================================================
+// Staff
+// ============================================================
+
 export interface Staff {
   id: string;
   role: string;
@@ -22,66 +28,78 @@ export interface Staff {
   updated_at: string;
 }
 
-// Daily Assignment types
-export type JobOrder = 1 | 2;
-export type Priority = string; // Single letter A-Z (validated in DB)
+// ============================================================
+// Daily Board (metadata for the day)
+// ============================================================
+
+export interface DailyBoard {
+  id: string;
+  board_date: string; // ISO date YYYY-MM-DD
+  sunrise_time?: string; // HH:MM format
+  announcements?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// ============================================================
+// Daily Assignments (one primary job per staff per date)
+// ============================================================
 
 export interface DailyAssignment {
   id: string;
   staff_id: string;
   job_id: string;
-  assignment_date: string; // ISO date (YYYY-MM-DD)
-  job_order: JobOrder;
-  priority?: Priority; // Single uppercase letter A-Z
+  assignment_date: string; // ISO date YYYY-MM-DD
   notes?: string;
   created_at: string;
   updated_at: string;
 }
 
-// For display with joined job details
 export interface DailyAssignmentWithDetails extends DailyAssignment {
   job: Job;
 }
 
-// Whiteboard row (one per staff member)
+// One row on the whiteboard: staff + their one primary job
 export interface WhiteboardRow {
   staff: Staff;
-  job1?: DailyAssignmentWithDetails;
-  job2?: DailyAssignmentWithDetails;
+  primaryJob?: DailyAssignmentWithDetails;
 }
 
-// Second Job Board types
-export type BoardItemStatus = 'pending' | 'assigned';
+// ============================================================
+// Second Job Board (free-text daily task list)
+// ============================================================
 
-export interface SecondJobBoard {
+export interface SecondJobBoardItem {
   id: string;
-  job_id: string;
-  board_date: string; // ISO date (YYYY-MM-DD)
-  rank: number;
-  status: BoardItemStatus;
+  board_date: string; // ISO date YYYY-MM-DD
+  description: string; // Free text as the super writes it
+  sort_order: number;
+  priority?: string; // Single letter A-Z, null = not yet prioritized
+  grabbed_by?: string; // staff_id who grabbed it, null = available
+  grabbed_at?: string; // ISO timestamp, null = available
+  carried_from?: string; // ISO date if carried over, null = new today
   created_at: string;
   updated_at: string;
 }
 
-// With joined job details
-export interface SecondJobBoardWithDetails extends SecondJobBoard {
-  job: Job;
+// With joined staff details for display
+export interface SecondJobBoardItemWithStaff extends SecondJobBoardItem {
+  staff?: Staff; // The person who grabbed it (null if ungrabbed)
 }
 
-// Second Job Assignment (links board items to staff)
-export interface SecondJobAssignment {
+// ============================================================
+// Staff Skills (capability tracking)
+// ============================================================
+
+export type SkillSource = 'hardcoded' | 'learned';
+
+export interface StaffSkill {
   id: string;
-  board_item_id: string;
   staff_id: string;
+  skill_name: string;
+  source: SkillSource;
+  times_completed: number;
+  last_completed_at?: string;
   created_at: string;
-}
-
-// With joined staff details
-export interface SecondJobAssignmentWithStaff extends SecondJobAssignment {
-  staff: Staff;
-}
-
-// Full board item with job + assignments
-export interface SecondJobBoardFull extends SecondJobBoardWithDetails {
-  assignments: SecondJobAssignmentWithStaff[];
+  updated_at: string;
 }
