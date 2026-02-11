@@ -3,9 +3,9 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import Modal from '../ui/Modal';
 import JobForm from '../jobs/JobForm';
-import JobAssignmentCell from './JobAssignmentCell';
-import PriorityCell from './PriorityCell';
-import type { Job, WhiteboardRow, DailyAssignmentWithDetails } from '../../types';
+import StaffRow from './StaffRow';
+import SecondJobsBoardPanel from './SecondJobsBoardPanel';
+import type { Job, Staff, WhiteboardRow, DailyAssignmentWithDetails, SecondJobBoardFull } from '../../types';
 
 interface StaffWhiteboardViewProps {
   selectedDate: Date;
@@ -17,7 +17,9 @@ export default function StaffWhiteboardView({
   onDateChange,
 }: StaffWhiteboardViewProps) {
   const [whiteboardRows, setWhiteboardRows] = useState<WhiteboardRow[]>([]);
+  const [staffList, setStaffList] = useState<Staff[]>([]);
   const [availableJobs, setAvailableJobs] = useState<Job[]>([]);
+  const [secondJobAssignments, setSecondJobAssignments] = useState<SecondJobBoardFull[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isJobModalOpen, setIsJobModalOpen] = useState(false);
@@ -34,7 +36,7 @@ export default function StaffWhiteboardView({
       setError(null);
 
       // 1. Fetch all staff
-      const { data: staffList, error: staffError } = await supabase
+      const { data: staffData, error: staffError } = await supabase
         .from('staff')
         .select('*')
         .order('created_at', { ascending: true });
@@ -49,21 +51,35 @@ export default function StaffWhiteboardView({
 
       if (jobsError) throw jobsError;
 
-      // 3. Fetch assignments for date with job details (JOIN)
+      // 3. Fetch daily assignments for date with job details
       const { data: assignments, error: assignmentsError } = await supabase
         .from('daily_assignments')
-        .select(
-          `
+        .select(`
           *,
           job:job_id(*)
-        `
-        )
+        `)
         .eq('assignment_date', dateString);
 
       if (assignmentsError) throw assignmentsError;
 
-      // 4. Transform to WhiteboardRow[]
-      const rows = (staffList || []).map((staff) => {
+      // 4. Fetch second job board items with assignments for chip display
+      const { data: boardData, error: boardError } = await supabase
+        .from('second_job_board')
+        .select(`
+          *,
+          job:job_id(*),
+          assignments:second_job_assignments(
+            *,
+            staff:staff_id(*)
+          )
+        `)
+        .eq('board_date', dateString)
+        .order('rank', { ascending: true });
+
+      if (boardError) throw boardError;
+
+      // 5. Transform to WhiteboardRow[]
+      const rows = (staffData || []).map((staff) => {
         const job1 = (assignments || []).find(
           (a) => a.staff_id === staff.id && a.job_order === 1
         ) as DailyAssignmentWithDetails | undefined;
@@ -74,13 +90,74 @@ export default function StaffWhiteboardView({
       });
 
       setWhiteboardRows(rows);
+      setStaffList(staffData || []);
       setAvailableJobs(jobsList || []);
+      setSecondJobAssignments((boardData as SecondJobBoardFull[]) || []);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to fetch data';
       setError(message);
       console.error('Error fetching whiteboard data:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Build a map of staff_id -> their second job chips
+  const getSecondJobChipsForStaff = (staffId: string) => {
+    const chips: { id: string; jobTitle: string; assignmentId: string }[] = [];
+    for (const boardItem of secondJobAssignments) {
+      for (const assignment of boardItem.assignments) {
+        if (String(assignment.staff_id) === String(staffId)) {
+          chips.push({
+            id: `${boardItem.id}-${assignment.id}`,
+            jobTitle: boardItem.job.title,
+            assignmentId: assignment.id,
+          });
+        }
+      }
+    }
+    return chips;
+  };
+
+  const handleUnassignSecondJob = async (assignmentId: string) => {
+    try {
+      // Get the board_item_id before deleting
+      const { data: assignmentData, error: fetchError } = await supabase
+        .from('second_job_assignments')
+        .select('board_item_id')
+        .eq('id', assignmentId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      const boardItemId = assignmentData.board_item_id;
+
+      // Delete the assignment
+      const { error: deleteError } = await supabase
+        .from('second_job_assignments')
+        .delete()
+        .eq('id', assignmentId);
+
+      if (deleteError) throw deleteError;
+
+      // Check remaining assignments
+      const { data: remaining, error: countError } = await supabase
+        .from('second_job_assignments')
+        .select('id')
+        .eq('board_item_id', boardItemId);
+
+      if (countError) throw countError;
+
+      if (!remaining || remaining.length === 0) {
+        await supabase
+          .from('second_job_board')
+          .update({ status: 'pending' })
+          .eq('id', boardItemId);
+      }
+
+      await fetchData();
+    } catch (err) {
+      console.error('Error unassigning second job:', err);
     }
   };
 
@@ -128,7 +205,6 @@ export default function StaffWhiteboardView({
       if (error) throw error;
 
       setIsJobModalOpen(false);
-      // Refresh jobs list and data
       await fetchData();
     } catch (err) {
       console.error('Error creating job:', err);
@@ -166,81 +242,73 @@ export default function StaffWhiteboardView({
         </div>
       </div>
 
-      {/* Header Row */}
-      <div className="grid grid-cols-[2fr_3fr_1fr_3fr] gap-4 px-6 py-3 bg-turf-green border-x border-t border-turf-green/20 shadow-sm">
-        <span className="text-[0.6rem] font-heading font-black text-white uppercase tracking-[0.2em]">
-          Staff Name
-        </span>
-        <span className="text-[0.6rem] font-heading font-black text-white uppercase tracking-[0.2em]">
-          Job 1
-        </span>
-        <span className="text-[0.6rem] font-heading font-black text-white uppercase tracking-[0.2em]">
-          Priority
-        </span>
-        <span className="text-[0.6rem] font-heading font-black text-white uppercase tracking-[0.2em]">
-          Job 2
-        </span>
-      </div>
+      {/* Two-Panel Layout */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Left Panel: Staff + Jobs */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Header Row */}
+          <div className="grid grid-cols-[2fr_3fr_3fr] gap-4 px-6 py-3 bg-turf-green border-x border-t border-turf-green/20 shadow-sm">
+            <span className="text-[0.6rem] font-heading font-black text-white uppercase tracking-[0.2em]">
+              Staff Name
+            </span>
+            <span className="text-[0.6rem] font-heading font-black text-white uppercase tracking-[0.2em]">
+              Job 1
+            </span>
+            <span className="text-[0.6rem] font-heading font-black text-white uppercase tracking-[0.2em]">
+              Job 2
+            </span>
+          </div>
 
-      {/* Body Content */}
-      {loading && (
-        <div className="flex items-center justify-center flex-1">
-          <p className="text-text-secondary">Loading whiteboard...</p>
-        </div>
-      )}
+          {/* Body Content */}
+          {loading && (
+            <div className="flex items-center justify-center flex-1">
+              <p className="text-text-secondary">Loading whiteboard...</p>
+            </div>
+          )}
 
-      {error && (
-        <div className="flex items-center justify-center flex-1">
-          <p className="text-red-500">Error: {error}</p>
-        </div>
-      )}
+          {error && (
+            <div className="flex items-center justify-center flex-1">
+              <p className="text-red-500">Error: {error}</p>
+            </div>
+          )}
 
-      {!loading && !error && (
-        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-          {whiteboardRows.length > 0 ? (
-            whiteboardRows.map((row, idx) => (
-              <div
-                key={row.staff.id}
-                className={`grid grid-cols-[2fr_3fr_1fr_3fr] gap-4 px-6 py-4 border-x border-b border-border-color ${
-                  idx % 2 === 0 ? 'bg-panel-white' : 'bg-dashboard-bg/30'
-                }`}
-              >
-                <div className="font-heading font-bold text-text-primary">
-                  {row.staff.name}
+          {!loading && !error && (
+            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+              {whiteboardRows.length > 0 ? (
+                whiteboardRows.map((row, idx) => (
+                  <StaffRow
+                    key={row.staff.id}
+                    row={row}
+                    dateString={dateString}
+                    availableJobs={availableJobs}
+                    secondJobChips={getSecondJobChipsForStaff(String(row.staff.id))}
+                    onUpdate={fetchData}
+                    onCreateJob={handleCreateJob}
+                    onUnassignSecondJob={handleUnassignSecondJob}
+                    isEven={idx % 2 === 0}
+                  />
+                ))
+              ) : (
+                <div className="flex items-center justify-center h-64 bg-panel-white border border-border-color border-dashed rounded-sm m-6">
+                  <p className="text-text-secondary font-sans text-sm">
+                    No staff members in your library yet.
+                  </p>
                 </div>
-                <JobAssignmentCell
-                  staffId={String(row.staff.id)}
-                  date={dateString}
-                  jobOrder={1}
-                  currentAssignment={row.job1}
-                  availableJobs={availableJobs}
-                  onUpdate={fetchData}
-                  onCreateJob={handleCreateJob}
-                />
-                <PriorityCell
-                  assignment={row.job2}
-                  onUpdate={fetchData}
-                />
-                <JobAssignmentCell
-                  staffId={String(row.staff.id)}
-                  date={dateString}
-                  jobOrder={2}
-                  currentAssignment={row.job2}
-                  availableJobs={availableJobs}
-                  onUpdate={fetchData}
-                  onCreateJob={handleCreateJob}
-                />
-              </div>
-            ))
-          ) : (
-            <div className="flex items-center justify-center h-64 bg-panel-white border border-border-color border-dashed rounded-sm m-6">
-              <p className="text-text-secondary font-sans text-sm">
-                No staff members in your library yet.
-              </p>
+              )}
             </div>
           )}
         </div>
-      )}
+
+        {/* Right Panel: Second Jobs Board */}
+        <div className="w-80 flex-shrink-0">
+          <SecondJobsBoardPanel
+            date={dateString}
+            allStaff={staffList}
+            availableJobs={availableJobs}
+            onAssignmentChange={fetchData}
+          />
+        </div>
+      </div>
 
       {/* Job Creation Modal */}
       <Modal

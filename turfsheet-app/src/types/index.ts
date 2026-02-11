@@ -49,3 +49,39 @@ export interface WhiteboardRow {
   job1?: DailyAssignmentWithDetails;
   job2?: DailyAssignmentWithDetails;
 }
+
+// Second Job Board types
+export type BoardItemStatus = 'pending' | 'assigned';
+
+export interface SecondJobBoard {
+  id: string;
+  job_id: string;
+  board_date: string; // ISO date (YYYY-MM-DD)
+  rank: number;
+  status: BoardItemStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+// With joined job details
+export interface SecondJobBoardWithDetails extends SecondJobBoard {
+  job: Job;
+}
+
+// Second Job Assignment (links board items to staff)
+export interface SecondJobAssignment {
+  id: string;
+  board_item_id: string;
+  staff_id: string;
+  created_at: string;
+}
+
+// With joined staff details
+export interface SecondJobAssignmentWithStaff extends SecondJobAssignment {
+  staff: Staff;
+}
+
+// Full board item with job + assignments
+export interface SecondJobBoardFull extends SecondJobBoardWithDetails {
+  assignments: SecondJobAssignmentWithStaff[];
+}
