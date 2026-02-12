@@ -4,6 +4,7 @@ import { Sidebar, Header, RightPanel } from './components/layout';
 import DashboardPage from './pages/DashboardPage';
 import JobsPage from './pages/JobsPage';
 import StaffPage from './pages/StaffPage';
+import ProjectsPage from './pages/ProjectsPage';
 import Modal from './components/ui/Modal';
 import JobForm from './components/jobs/JobForm';
 
@@ -37,6 +38,7 @@ function App() {
               />
               <Route path="/jobs" element={<JobsPage />} />
               <Route path="/staff" element={<StaffPage />} />
+              <Route path="/projects" element={<ProjectsPage />} />
               {/* Fallback to Dashboard */}
               <Route
                 path="*"

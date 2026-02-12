@@ -3,7 +3,7 @@
 
 # Active Tasks
 
-Last Updated: 2026-02-11 19:30 UTC
+Last Updated: 2026-02-11 21:00 UTC
 
 
 ## Active Tasks
@@ -29,6 +29,7 @@ None of the "sha512" hashes in the integrity attribute match the content of the 
 ## Recently Completed ✅
 
 See `completed/2026-02/` for completed tasks including:
+- ✅ Projects Page — Inline-editable project board with sections and detail modal (2026-02-11)
 - ✅ Whiteboard Frontend Realignment — All 7 components updated for new schema (2026-02-11)
 - ✅ Whiteboard Backend Realignment — Schema restructured for real workflow (2026-02-11)
 - ✅ Whiteboard Dashboard Redesign — Two-panel layout (2026-02-11)

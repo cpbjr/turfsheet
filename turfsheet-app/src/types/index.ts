@@ -104,3 +104,36 @@ export interface StaffSkill {
   created_at: string;
   updated_at: string;
 }
+
+// ============================================================
+// Project Board (superintendent's project backlog)
+// ============================================================
+
+export interface ProjectSection {
+  id: string;
+  name: string;
+  sort_order: number;
+  created_at: string;
+}
+
+export type ProjectStatus = 'active' | 'completed' | 'on_hold';
+
+export interface Project {
+  id: string;
+  section_id: number;
+  title: string;
+  priority?: string; // Single letter A-Z (matches whiteboard)
+  description?: string;
+  status: ProjectStatus;
+  estimated_start_date?: string;
+  estimated_end_date?: string;
+  estimated_hours?: number;
+  estimated_cost?: number;
+  actual_cost?: number;
+  estimated_crew_size?: number;
+  required_roles?: string;
+  notes?: string;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
