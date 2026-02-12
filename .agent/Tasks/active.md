@@ -3,40 +3,12 @@
 
 # Active Tasks
 
-Last Updated: 2026-02-11 17:15 UTC
+Last Updated: 2026-02-11 19:30 UTC
 
 
 ## Active Tasks
 
-### 1. Whiteboard Frontend Realignment
-**Status:** Ready to implement
-**Priority:** Critical (app will not render with current components)
-**Plan:** [Implementation/whiteboard-frontend-realignment.md](Implementation/whiteboard-frontend-realignment.md)
-**Depends on:** Backend realignment (completed — all migrations applied)
-
-**Description:** Update 8 frontend components to work with the realigned backend schema. The backend now uses one primary job per staff (not two), free-text second jobs (not template FK), grab-to-complete semantics (not separate assignments table), and priority letters on second jobs only.
-
-**Components to update (by severity):**
-
-**Critical — broken queries/imports:**
-- `StaffWhiteboardView.tsx` — queries deleted table, wrong imports, wrong column refs
-- `SecondJobsBoardPanel.tsx` — same query issues, inserts deleted columns
-- `SecondJobBoardItem.tsx` — expects nested structure that no longer exists
-
-**High — wrong column/type references:**
-- `StaffRow.tsx` — accesses `row.job1`/`row.job2` (now `row.primaryJob`)
-- `JobAssignmentCell.tsx` — uses deleted `JobOrder` type, inserts `job_order`
-- `PriorityCell.tsx` — updates deleted `priority` column on wrong table
-
-**Medium — functional change:**
-- `AddSecondJobDropdown.tsx` — needs to become free-text input, not template selector
-
-**Compatible (no changes needed):**
-- `SecondJobChip.tsx`, `AssignStaffDropdown.tsx`, `DashboardPage.tsx`, `JobForm.tsx`
-
----
-
-### 2. Fix Font Awesome Integrity Hash Issue
+### 1. Fix Font Awesome Integrity Hash Issue
 **Status:** Pending
 **Priority:** Medium (Dev warning, non-blocking)
 **Description:** Font Awesome CSS has integrity hash mismatch.
@@ -57,6 +29,7 @@ None of the "sha512" hashes in the integrity attribute match the content of the 
 ## Recently Completed ✅
 
 See `completed/2026-02/` for completed tasks including:
+- ✅ Whiteboard Frontend Realignment — All 7 components updated for new schema (2026-02-11)
 - ✅ Whiteboard Backend Realignment — Schema restructured for real workflow (2026-02-11)
 - ✅ Whiteboard Dashboard Redesign — Two-panel layout (2026-02-11)
 - ✅ Fix Staff & Jobs Creation — Sequence permissions (2026-02-11)

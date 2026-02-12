@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import { Plus, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import type { Job, DailyAssignmentWithDetails, JobOrder } from '../../types';
+import type { Job, DailyAssignmentWithDetails } from '../../types';
 
 interface JobAssignmentCellProps {
   staffId: string;
   date: string;
-  jobOrder: JobOrder;
   currentAssignment?: DailyAssignmentWithDetails;
   availableJobs: Job[];
   onUpdate: () => void;
@@ -16,7 +15,6 @@ interface JobAssignmentCellProps {
 export default function JobAssignmentCell({
   staffId,
   date,
-  jobOrder,
   currentAssignment,
   availableJobs,
   onUpdate,
@@ -32,11 +30,10 @@ export default function JobAssignmentCell({
           {
             staff_id: staffId,
             assignment_date: date,
-            job_order: jobOrder,
             job_id: jobId,
           },
           {
-            onConflict: 'staff_id,assignment_date,job_order',
+            onConflict: 'staff_id,assignment_date',
           }
         );
       setIsEditing(false);
@@ -88,7 +85,7 @@ export default function JobAssignmentCell({
             {job.title}
           </option>
         ))}
-        <option value="add-new">➕ Add New Job</option>
+        <option value="add-new">+ Add New Job</option>
       </select>
     );
   }

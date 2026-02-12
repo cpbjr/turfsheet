@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { Staff, Job, SecondJobBoardFull } from '../../types';
+import type { Staff, SecondJobBoardItemWithStaff } from '../../types';
 import { supabase } from '../../lib/supabase';
 import SecondJobBoardItem from './SecondJobBoardItem';
 import AddSecondJobDropdown from './AddSecondJobDropdown';
@@ -7,17 +7,15 @@ import AddSecondJobDropdown from './AddSecondJobDropdown';
 interface SecondJobsBoardPanelProps {
   date: string;
   allStaff: Staff[];
-  availableJobs: Job[];
   onAssignmentChange: () => void;
 }
 
 export default function SecondJobsBoardPanel({
   date,
   allStaff,
-  availableJobs,
   onAssignmentChange,
 }: SecondJobsBoardPanelProps) {
-  const [boardItems, setBoardItems] = useState<SecondJobBoardFull[]>([]);
+  const [boardItems, setBoardItems] = useState<SecondJobBoardItemWithStaff[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -29,19 +27,12 @@ export default function SecondJobsBoardPanel({
       setLoading(true);
       const { data, error } = await supabase
         .from('second_job_board')
-        .select(`
-          *,
-          job:job_id(*),
-          assignments:second_job_assignments(
-            *,
-            staff:staff_id(*)
-          )
-        `)
+        .select(`*, staff:grabbed_by(*)`)
         .eq('board_date', date)
-        .order('rank', { ascending: true });
+        .order('sort_order', { ascending: true });
 
       if (error) throw error;
-      setBoardItems((data as SecondJobBoardFull[]) || []);
+      setBoardItems((data as SecondJobBoardItemWithStaff[]) || []);
     } catch (error) {
       console.error('Error fetching second job board data:', error);
       setBoardItems([]);
@@ -50,15 +41,15 @@ export default function SecondJobsBoardPanel({
     }
   }
 
-  async function handleAddToBoard(jobId: string) {
+  async function handleAddToBoard(description: string) {
     try {
-      const nextRank = boardItems.length > 0
-        ? Math.max(...boardItems.map((i) => i.rank)) + 1
+      const nextSortOrder = boardItems.length > 0
+        ? Math.max(...boardItems.map((i) => i.sort_order)) + 1
         : 1;
 
       const { error } = await supabase
         .from('second_job_board')
-        .insert({ job_id: jobId, board_date: date, rank: nextRank });
+        .insert({ description, board_date: date, sort_order: nextSortOrder });
 
       if (error) throw error;
       await fetchBoardData();
@@ -84,18 +75,12 @@ export default function SecondJobsBoardPanel({
 
   async function handleAssignStaff(boardItemId: string, staffId: string) {
     try {
-      const { error: assignError } = await supabase
-        .from('second_job_assignments')
-        .insert({ board_item_id: boardItemId, staff_id: staffId });
-
-      if (assignError) throw assignError;
-
-      const { error: updateError } = await supabase
+      const { error } = await supabase
         .from('second_job_board')
-        .update({ status: 'assigned' })
+        .update({ grabbed_by: staffId, grabbed_at: new Date().toISOString() })
         .eq('id', boardItemId);
 
-      if (updateError) throw updateError;
+      if (error) throw error;
 
       await fetchBoardData();
       onAssignmentChange();
@@ -104,40 +89,14 @@ export default function SecondJobsBoardPanel({
     }
   }
 
-  async function handleUnassignStaff(assignmentId: string) {
+  async function handleUnassignStaff(boardItemId: string) {
     try {
-      const { data: assignmentData, error: fetchError } = await supabase
-        .from('second_job_assignments')
-        .select('board_item_id')
-        .eq('id', assignmentId)
-        .single();
+      const { error } = await supabase
+        .from('second_job_board')
+        .update({ grabbed_by: null, grabbed_at: null })
+        .eq('id', boardItemId);
 
-      if (fetchError) throw fetchError;
-
-      const boardItemId = assignmentData.board_item_id;
-
-      const { error: deleteError } = await supabase
-        .from('second_job_assignments')
-        .delete()
-        .eq('id', assignmentId);
-
-      if (deleteError) throw deleteError;
-
-      const { data: remainingAssignments, error: countError } = await supabase
-        .from('second_job_assignments')
-        .select('id')
-        .eq('board_item_id', boardItemId);
-
-      if (countError) throw countError;
-
-      if (!remainingAssignments || remainingAssignments.length === 0) {
-        const { error: updateError } = await supabase
-          .from('second_job_board')
-          .update({ status: 'pending' })
-          .eq('id', boardItemId);
-
-        if (updateError) throw updateError;
-      }
+      if (error) throw error;
 
       await fetchBoardData();
       onAssignmentChange();
@@ -156,14 +115,14 @@ export default function SecondJobsBoardPanel({
 
       const { error: error1 } = await supabase
         .from('second_job_board')
-        .update({ rank: aboveItem.rank })
+        .update({ sort_order: aboveItem.sort_order })
         .eq('id', currentItem.id);
 
       if (error1) throw error1;
 
       const { error: error2 } = await supabase
         .from('second_job_board')
-        .update({ rank: currentItem.rank })
+        .update({ sort_order: currentItem.sort_order })
         .eq('id', aboveItem.id);
 
       if (error2) throw error2;
@@ -184,14 +143,14 @@ export default function SecondJobsBoardPanel({
 
       const { error: error1 } = await supabase
         .from('second_job_board')
-        .update({ rank: belowItem.rank })
+        .update({ sort_order: belowItem.sort_order })
         .eq('id', currentItem.id);
 
       if (error1) throw error1;
 
       const { error: error2 } = await supabase
         .from('second_job_board')
-        .update({ rank: currentItem.rank })
+        .update({ sort_order: currentItem.sort_order })
         .eq('id', belowItem.id);
 
       if (error2) throw error2;
@@ -202,11 +161,6 @@ export default function SecondJobsBoardPanel({
     }
   }
 
-  // Expose fetchBoardData for parent to call
-  // The parent can trigger this via onAssignmentChange callback pattern
-
-  const existingJobIds = boardItems.map((item) => String(item.job_id));
-
   return (
     <div className="flex flex-col h-full border-l border-border-color bg-panel-white">
       {/* Header */}
@@ -214,11 +168,7 @@ export default function SecondJobsBoardPanel({
         <h2 className="text-[0.6rem] font-heading font-black text-white uppercase tracking-[0.2em]">
           Second Jobs Board
         </h2>
-        <AddSecondJobDropdown
-          availableJobs={availableJobs}
-          existingJobIds={existingJobIds}
-          onAdd={handleAddToBoard}
-        />
+        <AddSecondJobDropdown onAdd={handleAddToBoard} />
       </div>
 
       {/* Board Items */}
@@ -237,7 +187,6 @@ export default function SecondJobsBoardPanel({
               <SecondJobBoardItem
                 key={item.id}
                 boardItem={item}
-                rank={index + 1}
                 allStaff={allStaff}
                 onAssignStaff={handleAssignStaff}
                 onUnassignStaff={handleUnassignStaff}

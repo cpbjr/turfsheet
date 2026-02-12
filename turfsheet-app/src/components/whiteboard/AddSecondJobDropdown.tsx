@@ -1,29 +1,28 @@
 import { useState, useRef, useEffect } from 'react';
 import { Plus } from 'lucide-react';
-import type { Job } from '../../types';
 
 interface AddSecondJobDropdownProps {
-  availableJobs: Job[];
-  existingJobIds: string[];
-  onAdd: (jobId: string) => void;
+  onAdd: (description: string) => void;
 }
 
 export default function AddSecondJobDropdown({
-  availableJobs,
-  existingJobIds,
   onAdd,
 }: AddSecondJobDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [text, setText] = useState('');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  const filteredJobs = availableJobs
-    .filter((job) => !existingJobIds.includes(job.id))
-    .sort((a, b) => a.title.localeCompare(b.title));
+  useEffect(() => {
+    if (isOpen && textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        handleSubmit();
       }
     }
 
@@ -31,38 +30,59 @@ export default function AddSecondJobDropdown({
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
-  }, [isOpen]);
+  }, [isOpen, text]);
+
+  const handleSubmit = () => {
+    const lines = text
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 0);
+
+    for (const line of lines) {
+      onAdd(line);
+    }
+
+    setText('');
+    setIsOpen(false);
+  };
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative" ref={containerRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-1 px-2 py-1 text-xs font-sans text-white/80 hover:text-white border border-white/30 rounded hover:bg-white/10 transition-colors"
       >
         <Plus size={14} />
-        Add Job
+        Add Jobs
       </button>
 
       {isOpen && (
-        <div className="absolute z-10 mt-1 right-0 bg-panel-white border border-border-color shadow-lg max-h-48 overflow-y-auto w-64">
-          {filteredJobs.length === 0 ? (
-            <div className="px-4 py-2 text-sm font-sans text-text-muted">
-              No jobs available
-            </div>
-          ) : (
-            filteredJobs.map((job) => (
-              <div
-                key={job.id}
-                onClick={() => {
-                  onAdd(job.id);
-                  setIsOpen(false);
-                }}
-                className="px-4 py-2 text-sm font-sans text-text-primary hover:bg-turf-green-light cursor-pointer"
-              >
-                {job.title}
-              </div>
-            ))
-          )}
+        <div className="absolute z-10 mt-1 right-0 bg-panel-white border border-border-color shadow-lg w-72 p-3">
+          <p className="text-[0.65rem] font-sans text-text-muted mb-1.5">
+            One job per line
+          </p>
+          <textarea
+            ref={textareaRef}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                setText('');
+                setIsOpen(false);
+              }
+            }}
+            rows={5}
+            placeholder={"Mow fairway 3\nRake bunkers 7-9\nFill divots driving range"}
+            className="w-full px-2 py-1.5 text-sm font-sans border border-border-color focus:border-turf-green outline-none transition-colors resize-none"
+          />
+          <div className="flex justify-end mt-2">
+            <button
+              onClick={handleSubmit}
+              className="px-3 py-1 text-xs font-sans font-bold bg-turf-green text-white hover:bg-turf-green-dark transition-colors"
+            >
+              Add to Board
+            </button>
+          </div>
         </div>
       )}
     </div>

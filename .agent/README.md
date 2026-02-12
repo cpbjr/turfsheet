@@ -11,3 +11,31 @@ Comprehensive task management and agronomic intelligence platform for golf cours
 
 ## Development Workflow
 Use `npm run dev` to start the local development server in turfsheet-app. Prefer port 5179. 
+
+## References
+- "active" = .agent/Tasks/active.md
+- "planned" = .agent/Tasks/planned.md
+- "blocked" = .agent/Tasks/blocked.md
+- "implementation" = .agent/Tasks/Implementation/
+- "completed" = .agent/Tasks/completed/
+- "prd" = PRD.md
+- "style-guide" = .agent/System/style-guide.md
+
+## Rules
+- ALWAYS use subagents to search/explore when the file is not known. 
+
+- ALWAYS write implementation plans to .agent/Tasks/Implementation/ before coding.
+
+- ALWAYS use the style-guide for visual and component standards.
+
+- ALWAYS use the PRD for product requirements.
+
+- ALWAYS use the active tasks file for current development focus.
+
+- ALWAYS use the planned tasks file for future development focus.
+
+- ALWAYS use the blocked tasks file for tasks that are blocked.
+
+- ALWAYS use the completed tasks file for tasks that are completed.
+
+- ALWAYS use the UI Prototypes for reference when developing the UI.

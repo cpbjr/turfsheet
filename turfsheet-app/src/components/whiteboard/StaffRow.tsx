@@ -15,7 +15,7 @@ interface StaffRowProps {
   secondJobChips: SecondJobChipData[];
   onUpdate: () => void;
   onCreateJob: () => void;
-  onUnassignSecondJob: (assignmentId: string) => void;
+  onUnassignSecondJob: (boardItemId: string) => void;
   isEven: boolean;
 }
 
@@ -31,7 +31,7 @@ export default function StaffRow({
 }: StaffRowProps) {
   return (
     <div
-      className={`grid grid-cols-[2fr_3fr_3fr] gap-4 px-6 py-4 border-x border-b border-border-color ${
+      className={`grid grid-cols-[2fr_3fr] gap-4 px-6 py-4 border-x border-b border-border-color ${
         isEven ? 'bg-panel-white' : 'bg-dashboard-bg/30'
       }`}
     >
@@ -53,23 +53,11 @@ export default function StaffRow({
         )}
       </div>
 
-      {/* Job 1 */}
+      {/* Primary Job */}
       <JobAssignmentCell
         staffId={String(row.staff.id)}
         date={dateString}
-        jobOrder={1}
-        currentAssignment={row.job1}
-        availableJobs={availableJobs}
-        onUpdate={onUpdate}
-        onCreateJob={onCreateJob}
-      />
-
-      {/* Job 2 */}
-      <JobAssignmentCell
-        staffId={String(row.staff.id)}
-        date={dateString}
-        jobOrder={2}
-        currentAssignment={row.job2}
+        currentAssignment={row.primaryJob}
         availableJobs={availableJobs}
         onUpdate={onUpdate}
         onCreateJob={onCreateJob}

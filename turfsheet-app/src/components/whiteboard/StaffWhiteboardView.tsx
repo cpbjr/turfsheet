@@ -5,7 +5,7 @@ import Modal from '../ui/Modal';
 import JobForm from '../jobs/JobForm';
 import StaffRow from './StaffRow';
 import SecondJobsBoardPanel from './SecondJobsBoardPanel';
-import type { Job, Staff, WhiteboardRow, DailyAssignmentWithDetails, SecondJobBoardFull } from '../../types';
+import type { Job, Staff, WhiteboardRow, DailyAssignmentWithDetails, SecondJobBoardItemWithStaff } from '../../types';
 
 interface StaffWhiteboardViewProps {
   selectedDate: Date;
@@ -19,7 +19,7 @@ export default function StaffWhiteboardView({
   const [whiteboardRows, setWhiteboardRows] = useState<WhiteboardRow[]>([]);
   const [staffList, setStaffList] = useState<Staff[]>([]);
   const [availableJobs, setAvailableJobs] = useState<Job[]>([]);
-  const [secondJobAssignments, setSecondJobAssignments] = useState<SecondJobBoardFull[]>([]);
+  const [secondJobAssignments, setSecondJobAssignments] = useState<SecondJobBoardItemWithStaff[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isJobModalOpen, setIsJobModalOpen] = useState(false);
@@ -62,37 +62,27 @@ export default function StaffWhiteboardView({
 
       if (assignmentsError) throw assignmentsError;
 
-      // 4. Fetch second job board items with assignments for chip display
+      // 4. Fetch second job board items with grabbed staff details
       const { data: boardData, error: boardError } = await supabase
         .from('second_job_board')
-        .select(`
-          *,
-          job:job_id(*),
-          assignments:second_job_assignments(
-            *,
-            staff:staff_id(*)
-          )
-        `)
+        .select(`*, staff:grabbed_by(*)`)
         .eq('board_date', dateString)
-        .order('rank', { ascending: true });
+        .order('sort_order', { ascending: true });
 
       if (boardError) throw boardError;
 
-      // 5. Transform to WhiteboardRow[]
+      // 5. Transform to WhiteboardRow[] — one primary job per staff
       const rows = (staffData || []).map((staff) => {
-        const job1 = (assignments || []).find(
-          (a) => a.staff_id === staff.id && a.job_order === 1
+        const primaryJob = (assignments || []).find(
+          (a) => a.staff_id === staff.id
         ) as DailyAssignmentWithDetails | undefined;
-        const job2 = (assignments || []).find(
-          (a) => a.staff_id === staff.id && a.job_order === 2
-        ) as DailyAssignmentWithDetails | undefined;
-        return { staff, job1, job2 };
+        return { staff, primaryJob };
       });
 
       setWhiteboardRows(rows);
       setStaffList(staffData || []);
       setAvailableJobs(jobsList || []);
-      setSecondJobAssignments((boardData as SecondJobBoardFull[]) || []);
+      setSecondJobAssignments((boardData as SecondJobBoardItemWithStaff[]) || []);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to fetch data';
       setError(message);
@@ -104,56 +94,23 @@ export default function StaffWhiteboardView({
 
   // Build a map of staff_id -> their second job chips
   const getSecondJobChipsForStaff = (staffId: string) => {
-    const chips: { id: string; jobTitle: string; assignmentId: string }[] = [];
-    for (const boardItem of secondJobAssignments) {
-      for (const assignment of boardItem.assignments) {
-        if (String(assignment.staff_id) === String(staffId)) {
-          chips.push({
-            id: `${boardItem.id}-${assignment.id}`,
-            jobTitle: boardItem.job.title,
-            assignmentId: assignment.id,
-          });
-        }
-      }
-    }
-    return chips;
+    return secondJobAssignments
+      .filter(item => String(item.grabbed_by) === String(staffId))
+      .map(item => ({
+        id: String(item.id),
+        jobTitle: item.description,
+        assignmentId: String(item.id),
+      }));
   };
 
-  const handleUnassignSecondJob = async (assignmentId: string) => {
+  const handleUnassignSecondJob = async (boardItemId: string) => {
     try {
-      // Get the board_item_id before deleting
-      const { data: assignmentData, error: fetchError } = await supabase
-        .from('second_job_assignments')
-        .select('board_item_id')
-        .eq('id', assignmentId)
-        .single();
+      const { error } = await supabase
+        .from('second_job_board')
+        .update({ grabbed_by: null, grabbed_at: null })
+        .eq('id', boardItemId);
 
-      if (fetchError) throw fetchError;
-
-      const boardItemId = assignmentData.board_item_id;
-
-      // Delete the assignment
-      const { error: deleteError } = await supabase
-        .from('second_job_assignments')
-        .delete()
-        .eq('id', assignmentId);
-
-      if (deleteError) throw deleteError;
-
-      // Check remaining assignments
-      const { data: remaining, error: countError } = await supabase
-        .from('second_job_assignments')
-        .select('id')
-        .eq('board_item_id', boardItemId);
-
-      if (countError) throw countError;
-
-      if (!remaining || remaining.length === 0) {
-        await supabase
-          .from('second_job_board')
-          .update({ status: 'pending' })
-          .eq('id', boardItemId);
-      }
+      if (error) throw error;
 
       await fetchData();
     } catch (err) {
@@ -247,15 +204,12 @@ export default function StaffWhiteboardView({
         {/* Left Panel: Staff + Jobs */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Header Row */}
-          <div className="grid grid-cols-[2fr_3fr_3fr] gap-4 px-6 py-3 bg-turf-green border-x border-t border-turf-green/20 shadow-sm">
+          <div className="grid grid-cols-[2fr_3fr] gap-4 px-6 py-3 bg-turf-green border-x border-t border-turf-green/20 shadow-sm">
             <span className="text-[0.6rem] font-heading font-black text-white uppercase tracking-[0.2em]">
               Staff Name
             </span>
             <span className="text-[0.6rem] font-heading font-black text-white uppercase tracking-[0.2em]">
-              Job 1
-            </span>
-            <span className="text-[0.6rem] font-heading font-black text-white uppercase tracking-[0.2em]">
-              Job 2
+              Primary Job
             </span>
           </div>
 
@@ -304,7 +258,6 @@ export default function StaffWhiteboardView({
           <SecondJobsBoardPanel
             date={dateString}
             allStaff={staffList}
-            availableJobs={availableJobs}
             onAssignmentChange={fetchData}
           />
         </div>
