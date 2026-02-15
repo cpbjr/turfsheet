@@ -1,6 +1,7 @@
 # Task 10 - Projects Page ✅
 
 **Completed**: 2026-02-11
+**Polished & Merged**: 2026-02-15
 
 ## What Was Done
 Added a Projects page that mimics the superintendent's physical whiteboard — a prioritized task backlog organized by sections (Projects, Irrigation, etc.) with inline editing and optional detail popups for time/cost/staffing estimators.
@@ -10,6 +11,7 @@ Added a Projects page that mimics the superintendent's physical whiteboard — a
 - Built inline-editable project board: click priority letter or title to edit in place, add items from bottom of each section
 - Project detail modal provides time/cost/staffing estimator fields accessible via chevron link
 - Added `/projects` route and FolderKanban sidebar icon
+- **Polish improvements (2026-02-15)**: Fixed type consistency, added client-side validation for dates/numbers, implemented loading states, added migration idempotency
 
 ## Files Created/Modified
 - `supabase/migrations/20260211180000_create_project_sections.sql`
