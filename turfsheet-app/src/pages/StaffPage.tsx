@@ -23,7 +23,8 @@ export default function StaffPage() {
                 const { data, error: fetchError } = await supabase
                     .from('staff')
                     .select('*')
-                    .order('created_at', { ascending: true });
+                    .order('rank', { ascending: true })
+                    .order('name', { ascending: true });
 
                 if (fetchError) throw fetchError;
                 setStaffMembers(data || []);
@@ -44,9 +45,64 @@ export default function StaffPage() {
         setIsScheduleModalOpen(true);
     };
 
-    const handleSaveSchedule = (data: any) => {
-        console.log('Saved schedule for:', selectedStaff?.name, data);
-        setIsScheduleModalOpen(false);
+    const handleSaveSchedule = async (scheduleData: any) => {
+        try {
+            setError(null);
+
+            // Convert UI format to database format
+            const dbSchedule = {
+                staff_id: selectedStaff.id,
+                monday_on: scheduleData[0].isOn,
+                monday_start: formatTime24Hour(scheduleData[0].startTime),
+                monday_end: formatTime24Hour(scheduleData[0].endTime),
+                tuesday_on: scheduleData[1].isOn,
+                tuesday_start: formatTime24Hour(scheduleData[1].startTime),
+                tuesday_end: formatTime24Hour(scheduleData[1].endTime),
+                wednesday_on: scheduleData[2].isOn,
+                wednesday_start: formatTime24Hour(scheduleData[2].startTime),
+                wednesday_end: formatTime24Hour(scheduleData[2].endTime),
+                thursday_on: scheduleData[3].isOn,
+                thursday_start: formatTime24Hour(scheduleData[3].startTime),
+                thursday_end: formatTime24Hour(scheduleData[3].endTime),
+                friday_on: scheduleData[4].isOn,
+                friday_start: formatTime24Hour(scheduleData[4].startTime),
+                friday_end: formatTime24Hour(scheduleData[4].endTime),
+                saturday_on: scheduleData[5].isOn,
+                saturday_start: formatTime24Hour(scheduleData[5].startTime),
+                saturday_end: formatTime24Hour(scheduleData[5].endTime),
+                sunday_on: scheduleData[6].isOn,
+                sunday_start: formatTime24Hour(scheduleData[6].startTime),
+                sunday_end: formatTime24Hour(scheduleData[6].endTime),
+            };
+
+            const { error: upsertError } = await supabase
+                .from('staff_schedules')
+                .upsert(dbSchedule, { onConflict: 'staff_id' });
+
+            if (upsertError) throw upsertError;
+
+            console.log('Schedule saved successfully for:', selectedStaff?.name);
+            setIsScheduleModalOpen(false);
+        } catch (err) {
+            const message = err instanceof Error ? err.message : 'Failed to save schedule';
+            setError(message);
+            console.error('Error saving schedule:', err);
+        }
+    };
+
+    // Convert 12h time (HH:MM AM/PM) to 24h format (HH:MM:SS)
+    const formatTime24Hour = (time12: string): string => {
+        const match = time12.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+        if (!match) return '07:30:00';
+
+        let hours = parseInt(match[1]);
+        const minutes = match[2];
+        const period = match[3].toUpperCase();
+
+        if (period === 'PM' && hours !== 12) hours += 12;
+        if (period === 'AM' && hours === 12) hours = 0;
+
+        return `${String(hours).padStart(2, '0')}:${minutes}:00`;
     };
 
     const handleSaveStaff = async (formData: any) => {

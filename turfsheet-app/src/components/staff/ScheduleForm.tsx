@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '../../lib/supabase';
 
 interface DaySchedule {
     day: string;
@@ -27,6 +28,7 @@ export default function ScheduleForm({ staff, onSave }: { staff: any, onSave: (d
             endTime: d.day === 'Sat' || d.day === 'Sun' ? '09:30 AM' : '02:30 PM'
         }))
     );
+    const [loading, setLoading] = useState(false);
 
     const toggleDay = (idx: number) => {
         const newSchedule = [...schedule];
@@ -38,6 +40,100 @@ export default function ScheduleForm({ staff, onSave }: { staff: any, onSave: (d
         const newSchedule = [...schedule];
         newSchedule[idx][field] = value;
         setSchedule(newSchedule);
+    };
+
+    // Load existing schedule or default on mount
+    useEffect(() => {
+        loadStaffSchedule();
+    }, [staff.id]);
+
+    const loadStaffSchedule = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('staff_schedules')
+                .select('*')
+                .eq('staff_id', staff.id)
+                .single();
+
+            if (error && error.code !== 'PGRST116') {
+                console.error('Error loading schedule:', error);
+                return;
+            }
+
+            if (data) {
+                // Convert database format to UI format
+                setSchedule(DAYS.map((d, idx) => {
+                    const dayName = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'][idx];
+                    return {
+                        ...d,
+                        isOn: data[`${dayName}_on`],
+                        startTime: formatTime12Hour(data[`${dayName}_start`]),
+                        endTime: formatTime12Hour(data[`${dayName}_end`])
+                    };
+                }));
+            }
+        } catch (err) {
+            console.error('Failed to load schedule:', err);
+        }
+    };
+
+    const copyFromDefault = async () => {
+        try {
+            setLoading(true);
+            const { data, error } = await supabase
+                .from('default_schedule')
+                .select('*')
+                .eq('id', 1)
+                .single();
+
+            if (error) {
+                console.error('Error loading default schedule:', error);
+                alert('Failed to load default schedule');
+                return;
+            }
+
+            if (data) {
+                // Convert database format to UI format
+                setSchedule(DAYS.map((d, idx) => {
+                    const dayName = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'][idx];
+                    return {
+                        ...d,
+                        isOn: data[`${dayName}_on`],
+                        startTime: formatTime12Hour(data[`${dayName}_start`]),
+                        endTime: formatTime12Hour(data[`${dayName}_end`])
+                    };
+                }));
+            }
+        } catch (err) {
+            console.error('Failed to copy default schedule:', err);
+            alert('Failed to copy default schedule');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Convert 24h time (HH:MM:SS or HH:MM) to 12h format (HH:MM AM/PM)
+    const formatTime12Hour = (time24: string): string => {
+        if (!time24) return '07:30 AM';
+        const [hours, minutes] = time24.split(':').map(Number);
+        const period = hours >= 12 ? 'PM' : 'AM';
+        const hours12 = hours % 12 || 12;
+        return `${String(hours12).padStart(2, '0')}:${String(minutes).padStart(2, '0')} ${period}`;
+    };
+
+    // Convert 12h time (HH:MM AM/PM) to 24h format (HH:MM:SS)
+    const formatTime24Hour = (time12: string): string => {
+        const match = time12.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+        if (!match) return '07:30:00';
+
+        let hours = parseInt(match[1]);
+        const minutes = match[2];
+        const period = match[3].toUpperCase();
+
+        if (period === 'PM' && hours !== 12) hours += 12;
+        if (period === 'AM' && hours === 12) hours = 0;
+
+        return `${String(hours).padStart(2, '0')}:${minutes}:00`;
     };
 
     return (
@@ -113,6 +209,13 @@ export default function ScheduleForm({ staff, onSave }: { staff: any, onSave: (d
 
             {/* Actions */}
             <div className="pt-6 border-t border-border-color flex gap-4">
+                <button
+                    onClick={copyFromDefault}
+                    disabled={loading}
+                    className="flex-1 bg-dashboard-bg border border-border-color text-text-primary py-4 font-heading font-black text-[0.8rem] uppercase tracking-[0.25em] hover:bg-white transition-all disabled:opacity-50"
+                >
+                    {loading ? 'Loading...' : 'Copy from Default'}
+                </button>
                 <button
                     onClick={() => onSave(schedule)}
                     className="flex-1 bg-turf-green text-white py-4 font-heading font-black text-[0.8rem] uppercase tracking-[0.25em] hover:brightness-110 transition-all shadow-md"

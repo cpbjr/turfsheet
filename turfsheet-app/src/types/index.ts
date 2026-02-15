@@ -20,6 +20,7 @@ export interface Job {
 export interface Staff {
   id: string;
   role: string;
+  rank: number; // Hierarchical rank for display order (1=highest)
   name: string;
   telephone: string;
   telegram_id: string;
@@ -101,6 +102,41 @@ export interface StaffSkill {
   source: SkillSource;
   times_completed: number;
   last_completed_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// ============================================================
+// Schedules (default and staff-specific)
+// ============================================================
+
+export interface DaySchedule {
+  isOn: boolean;
+  startTime: string; // HH:MM format (e.g., "07:30")
+  endTime: string;   // HH:MM format (e.g., "14:30")
+}
+
+export interface WeeklySchedule {
+  monday: DaySchedule;
+  tuesday: DaySchedule;
+  wednesday: DaySchedule;
+  thursday: DaySchedule;
+  friday: DaySchedule;
+  saturday: DaySchedule;
+  sunday: DaySchedule;
+}
+
+// Global default schedule (single row in database)
+export interface DefaultSchedule extends WeeklySchedule {
+  id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// Staff-specific schedule (one per staff member)
+export interface StaffSchedule extends WeeklySchedule {
+  id: string;
+  staff_id: string;
   created_at: string;
   updated_at: string;
 }

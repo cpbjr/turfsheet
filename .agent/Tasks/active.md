@@ -3,32 +3,19 @@
 
 # Active Tasks
 
-Last Updated: 2026-02-13 02:05 UTC
+Last Updated: 2026-02-14 UTC
 
 
 ## Active Tasks
 
-### 1. Fix Font Awesome Integrity Hash Issue
-**Status:** Pending
-**Priority:** Medium (Dev warning, non-blocking)
-**Description:** Font Awesome CSS has integrity hash mismatch.
-
-**Error:**
-```
-None of the "sha512" hashes in the integrity attribute match the content of the subresource at
-"https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-```
-
-**Next Steps:**
-1. Update Font Awesome CDN integrity hash or remove SRI check
-2. Verify latest Font Awesome version and hash
-3. Test that icons display correctly
+_No active tasks currently._
 
 ---
 
 ## Recently Completed ✅
 
 See `completed/2026-02/` for completed tasks including:
+- ✅ Fix Font Awesome Integrity Hash Issue — Updated to v6.7.2 with correct SHA-512 hash (2026-02-14)
 - ✅ Whiteboard Frontend Realignment — All 7 components updated for new schema (2026-02-11)
 - ✅ Whiteboard Backend Realignment — Schema restructured for real workflow (2026-02-11)
 - ✅ Whiteboard Dashboard Redesign — Two-panel layout (2026-02-11)
@@ -44,7 +31,7 @@ See `completed/2026-02/` for completed tasks including:
 
 See [planned.md](file:///home/cpbjr/WhitePineTech/Projects/TurfSheet/.agent/Tasks/planned.md) for upcoming work.
 
-1. Create a site style guide. (Archived)
+1. Create a site style guide. (Completed)
 2. Create a site on whitepine-tech.com for TurfSheet. (On Hold)
 3. Move implemented plans from Implemented/ to completed/ as of yesterday. (On Hold)
 3.2 Equipment page (On Hold)

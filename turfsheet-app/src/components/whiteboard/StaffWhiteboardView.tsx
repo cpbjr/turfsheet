@@ -35,11 +35,12 @@ export default function StaffWhiteboardView({
       setLoading(true);
       setError(null);
 
-      // 1. Fetch all staff
+      // 1. Fetch all staff (ordered by rank, then name)
       const { data: staffData, error: staffError } = await supabase
         .from('staff')
         .select('*')
-        .order('created_at', { ascending: true });
+        .order('rank', { ascending: true })
+        .order('name', { ascending: true });
 
       if (staffError) throw staffError;
 
