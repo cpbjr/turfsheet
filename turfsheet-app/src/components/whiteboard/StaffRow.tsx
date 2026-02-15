@@ -14,6 +14,7 @@ interface StaffRowProps {
   availableJobs: Job[];
   secondJobChips: SecondJobChipData[];
   onUpdate: () => void;
+  onOptimisticUpdate: (staffId: string, jobId: string | null) => void;
   onCreateJob: () => void;
   onUnassignSecondJob: (boardItemId: string) => void;
   isEven: boolean;
@@ -25,6 +26,7 @@ export default function StaffRow({
   availableJobs,
   secondJobChips,
   onUpdate,
+  onOptimisticUpdate,
   onCreateJob,
   onUnassignSecondJob,
   isEven,
@@ -60,6 +62,7 @@ export default function StaffRow({
         currentAssignment={row.primaryJob}
         availableJobs={availableJobs}
         onUpdate={onUpdate}
+        onOptimisticUpdate={onOptimisticUpdate}
         onCreateJob={onCreateJob}
       />
     </div>

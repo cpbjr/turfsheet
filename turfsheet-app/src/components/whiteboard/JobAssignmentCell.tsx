@@ -9,6 +9,7 @@ interface JobAssignmentCellProps {
   currentAssignment?: DailyAssignmentWithDetails;
   availableJobs: Job[];
   onUpdate: () => void;
+  onOptimisticUpdate: (staffId: string, jobId: string | null) => void;
   onCreateJob: () => void;
 }
 
@@ -18,13 +19,20 @@ export default function JobAssignmentCell({
   currentAssignment,
   availableJobs,
   onUpdate,
+  onOptimisticUpdate,
   onCreateJob,
 }: JobAssignmentCellProps) {
   const [isEditing, setIsEditing] = useState(false);
 
   const handleSelectJob = async (jobId: string) => {
+    setIsEditing(false);
+
+    // 1. Optimistically update UI immediately
+    onOptimisticUpdate(staffId, jobId);
+
     try {
-      await supabase
+      // 2. Save to database in background
+      const { error } = await supabase
         .from('daily_assignments')
         .upsert(
           {
@@ -36,23 +44,39 @@ export default function JobAssignmentCell({
             onConflict: 'staff_id,assignment_date',
           }
         );
-      setIsEditing(false);
+
+      if (error) throw error;
+
+      // 3. Confirm with real data from database
       onUpdate();
     } catch (err) {
       console.error('Error assigning job:', err);
+      // 4. Rollback on error - refetch to restore correct state
+      onUpdate();
     }
   };
 
   const handleDelete = async () => {
     if (!currentAssignment) return;
+
+    // 1. Optimistically update UI immediately
+    onOptimisticUpdate(staffId, null);
+
     try {
-      await supabase
+      // 2. Delete from database in background
+      const { error } = await supabase
         .from('daily_assignments')
         .delete()
         .eq('id', currentAssignment.id);
+
+      if (error) throw error;
+
+      // 3. Confirm with real data from database
       onUpdate();
     } catch (err) {
       console.error('Error deleting assignment:', err);
+      // 4. Rollback on error - refetch to restore correct state
+      onUpdate();
     }
   };
 

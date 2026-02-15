@@ -26,11 +26,20 @@ export default function StaffWhiteboardView({
 
   const dateString = selectedDate.toISOString().split('T')[0];
 
+  // Fetch static data (staff & jobs) only on mount
   useEffect(() => {
-    fetchData();
-  }, [selectedDate]);
+    fetchStaticData();
+  }, []);
 
-  const fetchData = async () => {
+  // Fetch dynamic data (assignments) when date changes
+  useEffect(() => {
+    if (staffList.length > 0 && availableJobs.length > 0) {
+      fetchAssignmentsForDate();
+    }
+  }, [selectedDate, staffList.length, availableJobs.length]);
+
+  // Fetch staff and jobs once (they rarely change)
+  const fetchStaticData = async () => {
     try {
       setLoading(true);
       setError(null);
@@ -51,6 +60,22 @@ export default function StaffWhiteboardView({
         .order('title', { ascending: true });
 
       if (jobsError) throw jobsError;
+
+      setStaffList(staffData || []);
+      setAvailableJobs(jobsList || []);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to fetch static data';
+      setError(message);
+      console.error('Error fetching static data:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch assignments only (date-dependent data)
+  const fetchAssignmentsForDate = async () => {
+    try {
+      setError(null);
 
       // 3. Fetch daily assignments for date with job details
       const { data: assignments, error: assignmentsError } = await supabase
@@ -73,7 +98,7 @@ export default function StaffWhiteboardView({
       if (boardError) throw boardError;
 
       // 5. Transform to WhiteboardRow[] — one primary job per staff
-      const rows = (staffData || []).map((staff) => {
+      const rows = staffList.map((staff) => {
         const primaryJob = (assignments || []).find(
           (a) => a.staff_id === staff.id
         ) as DailyAssignmentWithDetails | undefined;
@@ -81,16 +106,42 @@ export default function StaffWhiteboardView({
       });
 
       setWhiteboardRows(rows);
-      setStaffList(staffData || []);
-      setAvailableJobs(jobsList || []);
       setSecondJobAssignments((boardData as SecondJobBoardItemWithStaff[]) || []);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to fetch data';
+      const message = err instanceof Error ? err.message : 'Failed to fetch assignments';
       setError(message);
-      console.error('Error fetching whiteboard data:', err);
-    } finally {
-      setLoading(false);
+      console.error('Error fetching assignments:', err);
     }
+  };
+
+  // Optimistically update a primary job assignment
+  const handleOptimisticJobUpdate = (staffId: string, jobId: string | null) => {
+    setWhiteboardRows(prevRows =>
+      prevRows.map(row => {
+        if (row.staff.id === staffId) {
+          if (jobId === null) {
+            // Removing assignment
+            return { ...row, primaryJob: undefined };
+          } else {
+            // Adding/updating assignment
+            const job = availableJobs.find(j => j.id === jobId);
+            if (job) {
+              return {
+                ...row,
+                primaryJob: {
+                  id: `temp-${Date.now()}`, // Temporary ID until confirmed
+                  staff_id: staffId,
+                  assignment_date: dateString,
+                  job_id: jobId,
+                  job: job,
+                } as DailyAssignmentWithDetails
+              };
+            }
+          }
+        }
+        return row;
+      })
+    );
   };
 
   // Build a map of staff_id -> their second job chips
@@ -113,7 +164,7 @@ export default function StaffWhiteboardView({
 
       if (error) throw error;
 
-      await fetchData();
+      await fetchAssignmentsForDate();
     } catch (err) {
       console.error('Error unassigning second job:', err);
     }
@@ -163,7 +214,8 @@ export default function StaffWhiteboardView({
       if (error) throw error;
 
       setIsJobModalOpen(false);
-      await fetchData();
+      // Refetch jobs since we just added a new one
+      await fetchStaticData();
     } catch (err) {
       console.error('Error creating job:', err);
     }
@@ -237,7 +289,8 @@ export default function StaffWhiteboardView({
                     dateString={dateString}
                     availableJobs={availableJobs}
                     secondJobChips={getSecondJobChipsForStaff(String(row.staff.id))}
-                    onUpdate={fetchData}
+                    onUpdate={fetchAssignmentsForDate}
+                    onOptimisticUpdate={handleOptimisticJobUpdate}
                     onCreateJob={handleCreateJob}
                     onUnassignSecondJob={handleUnassignSecondJob}
                     isEven={idx % 2 === 0}
@@ -259,7 +312,7 @@ export default function StaffWhiteboardView({
           <SecondJobsBoardPanel
             date={dateString}
             allStaff={staffList}
-            onAssignmentChange={fetchData}
+            onAssignmentChange={fetchAssignmentsForDate}
           />
         </div>
       </div>
