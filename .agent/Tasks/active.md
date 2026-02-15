@@ -8,7 +8,42 @@ Last Updated: 2026-02-14 UTC
 
 ## Active Tasks
 
-_No active tasks currently._
+### Fix Job Template Section Field Usage
+
+**Issue**: The `section` field ('First Jobs' vs 'Second Jobs') in the `jobs` table is stored but never used functionally.
+
+**Current Behavior**:
+- ✅ UI toggle works and saves to database
+- ❌ No filtering: All jobs appear in all dropdowns regardless of section
+- ❌ No visual indication: Jobs Library doesn't show which section jobs belong to
+- ❌ No validation: System allows mixing first/second job templates without enforcement
+
+**Required Fixes**:
+1. **Filter job dropdowns by section**:
+   - Staff Whiteboard primary assignment dropdown should only show `section = 'First Jobs'`
+   - Clarify if Second Job Board should use templates or remain free-text only
+
+2. **Display section in Jobs Library UI**:
+   - Add badge/label showing "FIRST" or "SECOND" on JobCard components
+   - Pass `section` prop to JobCard component
+   - Consider adding filter/grouping by section
+
+3. **Make section required in TypeScript**:
+   - Change `section?: string` to `section: 'First Jobs' | 'Second Jobs'` in types
+
+4. **Add validation**:
+   - Prevent assigning "Second Job" templates to primary assignment slots
+   - Consider preventing duplicate job titles across sections
+
+**Priority**: Medium (functional but not critical for current manual workflow; becomes important for future AI automation)
+
+**Related Files**:
+- `turfsheet-app/src/components/whiteboard/StaffWhiteboardView.tsx` (line 56-60)
+- `turfsheet-app/src/components/whiteboard/JobAssignmentCell.tsx` (line 88-91)
+- `turfsheet-app/src/pages/JobsPage.tsx` (line 128-139)
+- `turfsheet-app/src/types/index.ts` (line 11)
+
+**Investigation**: See Explore agent report (2026-02-14) for full analysis
 
 ---
 
