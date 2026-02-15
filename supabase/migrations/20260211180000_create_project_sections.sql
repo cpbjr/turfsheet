@@ -21,6 +21,8 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON turfsheet.project_sections TO anon, auth
 GRANT USAGE, SELECT ON SEQUENCE turfsheet.project_sections_id_seq TO anon, authenticated;
 
 -- Seed with sections from the physical whiteboard
+-- Use ON CONFLICT to make idempotent (safe to re-run)
 INSERT INTO turfsheet.project_sections (name, sort_order) VALUES
   ('Projects', 1),
-  ('Irrigation', 2);
+  ('Irrigation', 2)
+ON CONFLICT (name) DO NOTHING;

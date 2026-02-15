@@ -8,7 +8,7 @@ interface ProjectSectionProps {
   projects: Project[];
   onUpdateProject: (id: string, fields: Partial<Project>) => void;
   onClickProject: (project: Project) => void;
-  onAddProject: (sectionId: number, title: string) => void;
+  onAddProject: (sectionId: string, title: string) => void;
 }
 
 export default function ProjectSection({
@@ -19,6 +19,7 @@ export default function ProjectSection({
   onAddProject,
 }: ProjectSectionProps) {
   const [isAdding, setIsAdding] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -26,23 +27,33 @@ export default function ProjectSection({
     if (isAdding && inputRef.current) inputRef.current.focus();
   }, [isAdding]);
 
-  const commitNew = () => {
+  const commitNew = async () => {
     const trimmed = newTitle.trim();
-    if (trimmed) {
-      onAddProject(Number(section.id), trimmed);
+    if (trimmed && !isSaving) {
+      setIsSaving(true);
+      try {
+        await onAddProject(section.id, trimmed);
+        setNewTitle('');
+        setIsAdding(false);
+      } finally {
+        setIsSaving(false);
+      }
     }
-    setNewTitle('');
-    setIsAdding(false);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = async (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       const trimmed = newTitle.trim();
-      if (trimmed) {
-        onAddProject(Number(section.id), trimmed);
-        setNewTitle('');
-        // Keep input open for rapid entry
+      if (trimmed && !isSaving) {
+        setIsSaving(true);
+        try {
+          await onAddProject(section.id, trimmed);
+          setNewTitle('');
+          // Keep input open for rapid entry
+        } finally {
+          setIsSaving(false);
+        }
       }
     }
     if (e.key === 'Escape') {
@@ -95,8 +106,9 @@ export default function ProjectSection({
               onChange={(e) => setNewTitle(e.target.value)}
               onBlur={commitNew}
               onKeyDown={handleKeyDown}
-              placeholder="New project name..."
-              className="flex-1 text-sm font-sans text-text-primary bg-dashboard-bg border border-border-color px-2 py-0.5 outline-none focus:border-turf-green transition-colors"
+              placeholder={isSaving ? "Saving..." : "New project name..."}
+              disabled={isSaving}
+              className="flex-1 text-sm font-sans text-text-primary bg-dashboard-bg border border-border-color px-2 py-0.5 outline-none focus:border-turf-green transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             />
           </div>
         ) : (

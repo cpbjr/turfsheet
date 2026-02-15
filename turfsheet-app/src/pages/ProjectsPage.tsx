@@ -77,10 +77,10 @@ export default function ProjectsPage() {
 
   // --- Handlers ---
 
-  const handleAddProject = async (sectionId: number, title: string) => {
+  const handleAddProject = async (sectionId: string, title: string) => {
     try {
       const maxSort = projects
-        .filter(p => p.section_id === sectionId)
+        .filter(p => String(p.section_id) === String(sectionId))
         .reduce((max, p) => Math.max(max, p.sort_order), 0);
 
       const { data, error: insertError } = await supabase

@@ -120,7 +120,7 @@ export type ProjectStatus = 'active' | 'completed' | 'on_hold';
 
 export interface Project {
   id: string;
-  section_id: number;
+  section_id: string;
   title: string;
   priority?: string; // Single letter A-Z (matches whiteboard)
   description?: string;

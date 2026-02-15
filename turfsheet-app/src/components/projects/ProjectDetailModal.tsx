@@ -17,6 +17,7 @@ export default function ProjectDetailModal({
   onUpdate,
   onDelete,
 }: ProjectDetailModalProps) {
+  const [isSaving, setIsSaving] = useState(false);
   const [form, setForm] = useState({
     title: '',
     description: '',
@@ -62,27 +63,71 @@ export default function ProjectDetailModal({
 
   if (!isOpen || !project) return null;
 
-  const handleSave = () => {
-    onUpdate(project.id, {
-      title: form.title,
-      description: form.description || undefined,
-      priority: form.priority.length === 1 ? form.priority.toUpperCase() : undefined,
-      status: form.status,
-      estimated_start_date: form.estimated_start_date || undefined,
-      estimated_end_date: form.estimated_end_date || undefined,
-      estimated_hours: form.estimated_hours ? parseFloat(form.estimated_hours) : undefined,
-      estimated_cost: form.estimated_cost ? parseFloat(form.estimated_cost) : undefined,
-      actual_cost: form.actual_cost ? parseFloat(form.actual_cost) : undefined,
-      estimated_crew_size: form.estimated_crew_size ? parseInt(form.estimated_crew_size) : undefined,
-      required_roles: form.required_roles || undefined,
-      notes: form.notes || undefined,
-    });
-    onClose();
+  const handleSave = async () => {
+    // Validate title
+    if (!form.title.trim()) {
+      alert('Project title is required');
+      return;
+    }
+
+    // Validate dates
+    if (form.estimated_start_date && form.estimated_end_date) {
+      if (form.estimated_end_date < form.estimated_start_date) {
+        alert('End date cannot be before start date');
+        return;
+      }
+    }
+
+    // Validate numeric fields are positive
+    const estimatedHours = form.estimated_hours ? parseFloat(form.estimated_hours) : undefined;
+    const estimatedCost = form.estimated_cost ? parseFloat(form.estimated_cost) : undefined;
+    const estimatedCrewSize = form.estimated_crew_size ? parseInt(form.estimated_crew_size) : undefined;
+
+    if (estimatedHours !== undefined && estimatedHours <= 0) {
+      alert('Estimated hours must be positive');
+      return;
+    }
+
+    if (estimatedCost !== undefined && estimatedCost < 0) {
+      alert('Estimated cost cannot be negative');
+      return;
+    }
+
+    if (estimatedCrewSize !== undefined && estimatedCrewSize <= 0) {
+      alert('Estimated crew size must be positive');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await onUpdate(project.id, {
+        title: form.title.trim(),
+        description: form.description || undefined,
+        priority: form.priority.length === 1 ? form.priority.toUpperCase() : undefined,
+        status: form.status,
+        estimated_start_date: form.estimated_start_date || undefined,
+        estimated_end_date: form.estimated_end_date || undefined,
+        estimated_hours: estimatedHours,
+        estimated_cost: estimatedCost,
+        actual_cost: form.actual_cost ? parseFloat(form.actual_cost) : undefined,
+        estimated_crew_size: estimatedCrewSize,
+        required_roles: form.required_roles || undefined,
+        notes: form.notes || undefined,
+      });
+      onClose();
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleDelete = () => {
-    onDelete(project.id);
-    onClose();
+  const handleDelete = async () => {
+    setIsSaving(true);
+    try {
+      await onDelete(project.id);
+      onClose();
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const inputClasses = "w-full bg-dashboard-bg border border-border-color px-3 py-2 text-sm focus:border-turf-green outline-none transition-colors font-sans";
@@ -233,22 +278,25 @@ export default function ProjectDetailModal({
         <div className="px-6 py-4 border-t border-border-color flex items-center gap-3 shrink-0">
           <button
             onClick={handleDelete}
-            className="px-4 py-2 text-red-500 border border-red-200 text-[0.65rem] font-heading font-black uppercase tracking-widest hover:bg-red-50 transition-colors"
+            disabled={isSaving}
+            className="px-4 py-2 text-red-500 border border-red-200 text-[0.65rem] font-heading font-black uppercase tracking-widest hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Delete
           </button>
           <div className="flex-1" />
           <button
             onClick={onClose}
-            className="px-4 py-2 border border-border-color text-text-secondary text-[0.65rem] font-heading font-black uppercase tracking-widest hover:bg-dashboard-bg transition-colors"
+            disabled={isSaving}
+            className="px-4 py-2 border border-border-color text-text-secondary text-[0.65rem] font-heading font-black uppercase tracking-widest hover:bg-dashboard-bg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
-            className="px-6 py-2 bg-turf-green text-white text-[0.65rem] font-heading font-black uppercase tracking-widest hover:bg-turf-green-dark transition-colors"
+            disabled={isSaving}
+            className="px-6 py-2 bg-turf-green text-white text-[0.65rem] font-heading font-black uppercase tracking-widest hover:bg-turf-green-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Save
+            {isSaving ? 'Saving...' : 'Save'}
           </button>
         </div>
       </div>
