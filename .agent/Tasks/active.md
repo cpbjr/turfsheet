@@ -3,7 +3,7 @@
 
 # Active Tasks
 
-Last Updated: 2026-02-14 UTC
+Last Updated: 2026-02-15 UTC
 
 
 ## Active Tasks
@@ -50,6 +50,7 @@ Last Updated: 2026-02-14 UTC
 ## Recently Completed ✅
 
 See `completed/2026-02/` for completed tasks including:
+- ✅ Projects Page — Inline-editable project board with sections and detail modal (2026-02-11)
 - ✅ Fix Font Awesome Integrity Hash Issue — Updated to v6.7.2 with correct SHA-512 hash (2026-02-14)
 - ✅ Whiteboard Frontend Realignment — All 7 components updated for new schema (2026-02-11)
 - ✅ Whiteboard Backend Realignment — Schema restructured for real workflow (2026-02-11)

@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import {
-  Flag, House, Calendar, Users, Briefcase,
+  Flag, House, Calendar, Users, Briefcase, FolderKanban,
   BarChart3, MapPin, MessageSquare, History, FileText,
   GraduationCap, Settings, Package, LogOut
 } from 'lucide-react';
@@ -14,6 +14,7 @@ export default function Sidebar() {
     { id: 'calendar', icon: Calendar, label: 'Calendar', path: '/calendar' },
     { id: 'staff', icon: Users, label: 'Staff', path: '/staff' },
     { id: 'jobs', icon: Briefcase, label: 'Jobs', path: '/jobs' },
+    { id: 'projects', icon: FolderKanban, label: 'Projects', path: '/projects' },
     { id: 'analytics', icon: BarChart3, label: 'Analytics', path: '/analytics' },
     { id: 'maps', icon: MapPin, label: 'Maps', path: '/maps' },
     { id: 'messages', icon: MessageSquare, label: 'Messaging', path: '/messages' },
