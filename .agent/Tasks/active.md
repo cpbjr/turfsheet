@@ -3,7 +3,7 @@
 
 # Active Tasks
 
-Last Updated: 2026-02-16 09:42 UTC
+Last Updated: 2026-02-16 14:30 UTC
 
 ## Active Tasks
 
@@ -15,6 +15,7 @@ Last Updated: 2026-02-16 09:42 UTC
 ## Recently Completed ✅
 
 See `completed/2026-02/` for completed tasks including:
+- ✅ Demo Day Fixes — UI improvements, working staff filtering, header weather widget (2026-02-16)
 - ✅ Equipment Page Fixes — Card expansion, batch CSV upload, status color fix (2026-02-16)
 - ✅ Demo Preparation Work — Equipment page, Settings enhancements, job section filtering (2026-02-16)
 - ✅ Projects Page — Inline-editable project board with sections and detail modal (2026-02-11)
