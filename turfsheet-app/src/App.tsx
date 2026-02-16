@@ -8,6 +8,7 @@ import JobsPage from './pages/JobsPage';
 import StaffPage from './pages/StaffPage';
 import Settings from './pages/Settings';
 import ProjectsPage from './pages/ProjectsPage';
+import EquipmentPage from './pages/EquipmentPage';
 import Modal from './components/ui/Modal';
 import JobForm from './components/jobs/JobForm';
 
@@ -51,6 +52,7 @@ function App() {
                 <Route path="/jobs" element={<JobsPage />} />
                 <Route path="/staff" element={<StaffPage />} />
                 <Route path="/projects" element={<ProjectsPage />} />
+                <Route path="/equipment" element={<EquipmentPage />} />
                 <Route path="/settings" element={<Settings />} />
                 {/* Fallback to Dashboard */}
                 <Route

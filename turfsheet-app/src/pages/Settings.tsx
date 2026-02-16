@@ -103,6 +103,119 @@ export default function Settings() {
             </div>
           </div>
 
+          {/* Organization Profile */}
+          <div className="p-6 border-b border-border-color">
+            <h2 className="text-lg font-heading font-bold text-text-primary mb-4">
+              Organization Profile
+            </h2>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-sans font-medium text-text-primary mb-2">
+                    Organization Name
+                  </label>
+                  <input
+                    type="text"
+                    value={settings.organizationName}
+                    onChange={(e) => {
+                      updateSettings({ organizationName: e.target.value });
+                      handleSave();
+                    }}
+                    placeholder="e.g. White Pine Management"
+                    className="w-full px-4 py-2 border border-border-color rounded font-sans focus:outline-none focus:border-turf-green"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-sans font-medium text-text-primary mb-2">
+                    Course Name
+                  </label>
+                  <input
+                    type="text"
+                    value={settings.courseName}
+                    onChange={(e) => {
+                      updateSettings({ courseName: e.target.value });
+                      handleSave();
+                    }}
+                    placeholder="e.g. Banbury Golf Course"
+                    className="w-full px-4 py-2 border border-border-color rounded font-sans focus:outline-none focus:border-turf-green"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-sans font-medium text-text-primary mb-2">
+                  Location
+                </label>
+                <input
+                  type="text"
+                  value={settings.location}
+                  onChange={(e) => {
+                    updateSettings({ location: e.target.value });
+                    handleSave();
+                  }}
+                  placeholder="e.g. Eagle, ID 83616"
+                  className="w-full px-4 py-2 border border-border-color rounded font-sans focus:outline-none focus:border-turf-green"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-sans font-medium text-text-primary mb-2">
+                    Contact Email
+                  </label>
+                  <input
+                    type="email"
+                    value={settings.contactEmail}
+                    onChange={(e) => {
+                      updateSettings({ contactEmail: e.target.value });
+                      handleSave();
+                    }}
+                    placeholder="contact@example.com"
+                    className="w-full px-4 py-2 border border-border-color rounded font-sans focus:outline-none focus:border-turf-green"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-sans font-medium text-text-primary mb-2">
+                    Contact Phone
+                  </label>
+                  <input
+                    type="tel"
+                    value={settings.contactPhone}
+                    onChange={(e) => {
+                      updateSettings({ contactPhone: e.target.value });
+                      handleSave();
+                    }}
+                    placeholder="(208) 555-1234"
+                    className="w-full px-4 py-2 border border-border-color rounded font-sans focus:outline-none focus:border-turf-green"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-sans font-medium text-text-primary mb-2">
+                  Timezone
+                </label>
+                <select
+                  value={settings.timezone}
+                  onChange={(e) => {
+                    updateSettings({ timezone: e.target.value });
+                    handleSave();
+                  }}
+                  className="w-full px-4 py-2 border border-border-color rounded font-sans focus:outline-none focus:border-turf-green"
+                >
+                  <option value="America/New_York">Eastern Time</option>
+                  <option value="America/Chicago">Central Time</option>
+                  <option value="America/Denver">Mountain Time</option>
+                  <option value="America/Phoenix">Arizona Time</option>
+                  <option value="America/Los_Angeles">Pacific Time</option>
+                  <option value="America/Anchorage">Alaska Time</option>
+                  <option value="Pacific/Honolulu">Hawaii Time</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
           {/* Work Hours */}
           <div className="p-6 border-b border-border-color">
             <h2 className="text-lg font-heading font-bold text-text-primary mb-4">
@@ -145,6 +258,115 @@ export default function Settings() {
                   Currently: {formatTimeForDisplay(settings.workdayEndTime)}
                 </p>
               </div>
+            </div>
+          </div>
+
+          {/* User Preferences */}
+          <div className="p-6 border-b border-border-color">
+            <h2 className="text-lg font-heading font-bold text-text-primary mb-4">
+              User Preferences
+            </h2>
+
+            <div className="space-y-4">
+              <label className="flex items-center justify-between p-3 border border-border-color rounded hover:bg-dashboard-bg/30 cursor-pointer">
+                <div>
+                  <div className="font-sans font-medium text-text-primary">
+                    Enable Notifications
+                  </div>
+                  <div className="text-sm text-text-secondary">
+                    Receive in-app notifications for important events
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={settings.enableNotifications}
+                  onChange={(e) => {
+                    updateSettings({ enableNotifications: e.target.checked });
+                    handleSave();
+                  }}
+                  className="w-5 h-5 text-turf-green rounded focus:ring-turf-green"
+                />
+              </label>
+
+              <label className="flex items-center justify-between p-3 border border-border-color rounded hover:bg-dashboard-bg/30 cursor-pointer">
+                <div>
+                  <div className="font-sans font-medium text-text-primary">
+                    Email Alerts
+                  </div>
+                  <div className="text-sm text-text-secondary">
+                    Receive email notifications for task assignments
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={settings.enableEmailAlerts}
+                  onChange={(e) => {
+                    updateSettings({ enableEmailAlerts: e.target.checked });
+                    handleSave();
+                  }}
+                  className="w-5 h-5 text-turf-green rounded focus:ring-turf-green"
+                />
+              </label>
+
+              <label className="flex items-center justify-between p-3 border border-border-color rounded hover:bg-dashboard-bg/30 cursor-pointer">
+                <div>
+                  <div className="font-sans font-medium text-text-primary">
+                    Sound Alerts
+                  </div>
+                  <div className="text-sm text-text-secondary">
+                    Play sounds for notifications and alerts
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={settings.enableSoundAlerts}
+                  onChange={(e) => {
+                    updateSettings({ enableSoundAlerts: e.target.checked });
+                    handleSave();
+                  }}
+                  className="w-5 h-5 text-turf-green rounded focus:ring-turf-green"
+                />
+              </label>
+
+              <label className="flex items-center justify-between p-3 border border-border-color rounded hover:bg-dashboard-bg/30 cursor-pointer">
+                <div>
+                  <div className="font-sans font-medium text-text-primary">
+                    Weather Alerts
+                  </div>
+                  <div className="text-sm text-text-secondary">
+                    Show alerts for severe weather conditions
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={settings.showWeatherAlerts}
+                  onChange={(e) => {
+                    updateSettings({ showWeatherAlerts: e.target.checked });
+                    handleSave();
+                  }}
+                  className="w-5 h-5 text-turf-green rounded focus:ring-turf-green"
+                />
+              </label>
+
+              <label className="flex items-center justify-between p-3 border border-border-color rounded hover:bg-dashboard-bg/30 cursor-pointer">
+                <div>
+                  <div className="font-sans font-medium text-text-primary">
+                    Auto-save Drafts
+                  </div>
+                  <div className="text-sm text-text-secondary">
+                    Automatically save form drafts as you type
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={settings.autoSaveDrafts}
+                  onChange={(e) => {
+                    updateSettings({ autoSaveDrafts: e.target.checked });
+                    handleSave();
+                  }}
+                  className="w-5 h-5 text-turf-green rounded focus:ring-turf-green"
+                />
+              </label>
             </div>
           </div>
 

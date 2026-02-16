@@ -172,3 +172,23 @@ export interface Project {
   created_at: string;
   updated_at: string;
 }
+
+// ============================================================
+// Equipment (inventory management)
+// ============================================================
+
+export interface Equipment {
+  id: string;
+  name: string;
+  category: 'Mowers' | 'Carts' | 'Tools' | 'Other';
+  model?: string;
+  manufacturer?: string;
+  description?: string;
+  status: 'Active' | 'Maintenance' | 'Retired';
+  purchase_date?: string;
+  purchase_cost?: number;
+  maintenance_notes?: string;
+  last_serviced_date?: string;
+  created_at: string;
+  updated_at: string;
+}
