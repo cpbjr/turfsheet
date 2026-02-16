@@ -2,12 +2,18 @@
 
 Comprehensive task management and agronomic intelligence platform for golf course maintenance.
 
+## 🚀 Quick Start
+
+**NEW AI ASSISTANTS:** Read [CLAUDE.md](file:///home/cpbjr/WhitePineTech/Projects/TurfSheet/CLAUDE.md) FIRST for project structure, workflows, and guidelines.
+
 ## Documentation Index
 
-- [PRD.md](file:///home/cpbjr/WhitePineTech/Projects/TurfSheet/PRD.md): Product Requirements.
-- [Active Tasks](file:///home/cpbjr/WhitePineTech/Projects/TurfSheet/.agent/Tasks/active.md): Current development focus.
-- [Style Guide](file:///home/cpbjr/WhitePineTech/Projects/TurfSheet/.agent/System/style-guide.md): Visual and component standards.
-- [UI Prototypes](file:///home/cpbjr/WhitePineTech/Projects/TurfSheet/index.html): Main Dashboard High-Fidelity Mockup.
+- **[CLAUDE.md](file:///home/cpbjr/WhitePineTech/Projects/TurfSheet/CLAUDE.md)**: AI assistant configuration and project structure (START HERE)
+- [PRD.md](file:///home/cpbjr/WhitePineTech/Projects/TurfSheet/PRD.md): Product Requirements
+- [Active Tasks](file:///home/cpbjr/WhitePineTech/Projects/TurfSheet/.agent/Tasks/active.md): Current development focus
+- [Style Guide](file:///home/cpbjr/WhitePineTech/Projects/TurfSheet/.agent/System/style-guide.md): Visual and component standards
+- [UI Prototypes](file:///home/cpbjr/WhitePineTech/Projects/TurfSheet/index.html): Main Dashboard High-Fidelity Mockup
+- [Knowledge Base](file:///home/cpbjr/WhitePineTech/Projects/TurfSheet/.agent/Knowledge/): Golf course domain expertise and lessons learned
 
 ## Development Workflow
 Use `npm run dev` to start the local development server in turfsheet-app. Prefer port 5179. 
