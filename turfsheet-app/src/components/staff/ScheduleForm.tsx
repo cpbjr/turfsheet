@@ -121,21 +121,6 @@ export default function ScheduleForm({ staff, onSave }: { staff: any, onSave: (d
         return `${String(hours12).padStart(2, '0')}:${String(minutes).padStart(2, '0')} ${period}`;
     };
 
-    // Convert 12h time (HH:MM AM/PM) to 24h format (HH:MM:SS)
-    const formatTime24Hour = (time12: string): string => {
-        const match = time12.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
-        if (!match) return '07:30:00';
-
-        let hours = parseInt(match[1]);
-        const minutes = match[2];
-        const period = match[3].toUpperCase();
-
-        if (period === 'PM' && hours !== 12) hours += 12;
-        if (period === 'AM' && hours === 12) hours = 0;
-
-        return `${String(hours).padStart(2, '0')}:${minutes}:00`;
-    };
-
     return (
         <div className="space-y-8">
             {/* Header Info */}

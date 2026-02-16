@@ -24,7 +24,7 @@ export default function Sidebar() {
     { id: 'history', icon: History, label: 'History', path: '/history' },
     { id: 'docs', icon: FileText, label: 'Documents', path: '/docs' },
     { id: 'training', icon: GraduationCap, label: 'Training', path: '/training' },
-    { id: 'inventory', icon: Package, label: 'Inventory', path: '/inventory' },
+    { id: 'equipment', icon: Package, label: 'Equipment', path: '/equipment' },
     { id: 'settings', icon: Settings, label: 'Settings', path: '/settings' },
     { id: 'logout', icon: LogOut, label: 'Logout', path: '/logout' },
   ];
