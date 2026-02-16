@@ -18,6 +18,7 @@ interface StaffRowProps {
   onCreateJob: () => void;
   onUnassignSecondJob: (boardItemId: string) => void;
   isEven: boolean;
+  isWorking?: boolean;
 }
 
 export default function StaffRow({
@@ -30,12 +31,13 @@ export default function StaffRow({
   onCreateJob,
   onUnassignSecondJob,
   isEven,
+  isWorking = true,
 }: StaffRowProps) {
   return (
     <div
       className={`grid grid-cols-[2fr_3fr] gap-4 px-6 py-4 border-x border-b border-border-color ${
         isEven ? 'bg-panel-white' : 'bg-dashboard-bg/30'
-      }`}
+      } ${!isWorking ? 'opacity-40 pointer-events-none' : ''}`}
     >
       {/* Staff Name + Second Job Chips */}
       <div className="flex flex-col gap-1">

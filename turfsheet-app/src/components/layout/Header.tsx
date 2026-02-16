@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { LayoutGrid, List } from 'lucide-react';
 import { DateSelector } from '../DateSelector';
+import { CompactWeather } from '../CompactWeather';
 
 export default function Header() {
   const location = useLocation();
@@ -49,6 +50,9 @@ export default function Header() {
       <div className="flex items-center gap-5">
         {/* Date Selector Component */}
         <DateSelector />
+
+        {/* Compact Weather */}
+        <CompactWeather />
 
         {/* User Profile Area */}
         <div className="flex items-center gap-4 ml-4">

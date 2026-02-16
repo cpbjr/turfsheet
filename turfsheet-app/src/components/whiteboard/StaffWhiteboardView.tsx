@@ -23,6 +23,7 @@ export default function StaffWhiteboardView({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isJobModalOpen, setIsJobModalOpen] = useState(false);
+  const [workingStaffIds, setWorkingStaffIds] = useState<Set<string>>(new Set());
 
   const dateString = selectedDate.toISOString().split('T')[0];
 
@@ -73,10 +74,37 @@ export default function StaffWhiteboardView({
     }
   };
 
+  // Fetch working staff for the selected date
+  const fetchWorkingStaffIds = async () => {
+    const dayOfWeek = selectedDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+    const dayColumn = `${dayOfWeek}_on`;
+
+    const { data, error } = await supabase
+      .from('staff_schedules')
+      .select('staff_id');
+
+    if (error) {
+      // Table may not exist yet - treat all staff as working
+      console.warn('Staff schedules table not available:', error.message);
+      setWorkingStaffIds(new Set(staffList.map(s => String(s.id))));
+      return;
+    }
+
+    if (data) {
+      const workingIds = data
+        .filter((schedule: any) => schedule[dayColumn])
+        .map((schedule: any) => String(schedule.staff_id));
+      setWorkingStaffIds(new Set(workingIds));
+    }
+  };
+
   // Fetch assignments only (date-dependent data)
   const fetchAssignmentsForDate = async () => {
     try {
       setError(null);
+
+      // Fetch working staff for this date
+      await fetchWorkingStaffIds();
 
       // 3. Fetch daily assignments for date with job details
       const { data: assignments, error: assignmentsError } = await supabase
@@ -295,6 +323,7 @@ export default function StaffWhiteboardView({
                     onCreateJob={handleCreateJob}
                     onUnassignSecondJob={handleUnassignSecondJob}
                     isEven={idx % 2 === 0}
+                    isWorking={workingStaffIds.has(String(row.staff.id))}
                   />
                 ))
               ) : (
