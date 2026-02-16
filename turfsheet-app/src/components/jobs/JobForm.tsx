@@ -6,7 +6,13 @@ interface JobFormProps {
 }
 
 export default function JobForm({ onSubmit, onCancel }: JobFormProps) {
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<{
+        title: string;
+        description: string;
+        crew_needed: number;
+        priority: string;
+        section: 'First Jobs' | 'Second Jobs';
+    }>({
         title: '',
         description: '',
         crew_needed: 1,
@@ -75,7 +81,7 @@ export default function JobForm({ onSubmit, onCancel }: JobFormProps) {
             <div>
                 <label className={labelClasses}>Dashboard Section</label>
                 <div className="flex gap-4">
-                    {['First Jobs', 'Second Jobs'].map((s) => (
+                    {(['First Jobs', 'Second Jobs'] as const).map((s) => (
                         <label key={s} className="flex-1 flex items-center justify-center border border-border-color p-3 bg-dashboard-bg cursor-pointer hover:border-turf-green transition-colors">
                             <input
                                 type="radio"

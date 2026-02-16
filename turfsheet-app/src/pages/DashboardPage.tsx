@@ -1,11 +1,7 @@
 import { useState } from 'react';
 import StaffWhiteboardView from '../components/whiteboard/StaffWhiteboardView';
 
-interface DashboardPageProps {
-  onCreateJob?: () => void;
-}
-
-export default function DashboardPage(_props: DashboardPageProps) {
+export default function DashboardPage() {
   const [selectedDate, setSelectedDate] = useState(new Date());
 
   return (

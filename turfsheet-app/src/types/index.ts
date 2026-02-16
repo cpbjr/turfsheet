@@ -8,7 +8,7 @@ export interface Job {
   description?: string;
   crew_needed: number;
   priority?: 'Low' | 'Normal' | 'High' | 'Urgent';
-  section?: string;
+  section: 'First Jobs' | 'Second Jobs';
   created_at: string;
   updated_at: string;
 }

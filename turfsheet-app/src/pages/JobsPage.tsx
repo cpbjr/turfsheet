@@ -95,7 +95,7 @@ export default function JobsPage() {
                     </div>
                     <div className="flex items-center gap-2 px-3 py-2 border border-border-color text-text-secondary text-xs font-heading font-black uppercase tracking-widest cursor-pointer hover:bg-dashboard-bg">
                         <Filter className="w-4 h-4" />
-                        Priotity
+                        Priority
                     </div>
                     <div className="ml-auto lg:ml-4 flex border border-border-color">
                         <button className="p-2 bg-dashboard-bg border-r border-border-color text-turf-green">
@@ -134,6 +134,7 @@ export default function JobsPage() {
                                 crewNeeded={job.crew_needed}
                                 priority={job.priority}
                                 description={job.description}
+                                section={job.section}
                             />
                         ))}
                     </div>

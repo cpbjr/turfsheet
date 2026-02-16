@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import {
-  Flag, House, Calendar, Users, Briefcase, FolderKanban,
+  House, Calendar, Users, Briefcase, FolderKanban,
   BarChart3, MapPin, MessageSquare, History, FileText,
   GraduationCap, Settings, Package, LogOut
 } from 'lucide-react';
@@ -9,7 +9,6 @@ export default function Sidebar() {
   const location = useLocation();
 
   const topNav = [
-    { id: 'home', icon: Flag, label: 'Home', path: '/home' },
     { id: 'dashboard', icon: House, label: 'Dashboard', path: '/' },
     { id: 'calendar', icon: Calendar, label: 'Calendar', path: '/calendar' },
     { id: 'staff', icon: Users, label: 'Staff', path: '/staff' },

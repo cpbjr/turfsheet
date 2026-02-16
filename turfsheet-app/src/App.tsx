@@ -38,11 +38,11 @@ function App() {
               <Routes>
                 <Route
                   path="/"
-                  element={<DashboardPage onCreateJob={() => setIsAddJobModalOpen(true)} />}
+                  element={<DashboardPage />}
                 />
                 <Route
                   path="/whiteboard"
-                  element={<DashboardPage onCreateJob={() => setIsAddJobModalOpen(true)} />}
+                  element={<DashboardPage />}
                 />
                 <Route
                   path="/classic"
@@ -55,7 +55,7 @@ function App() {
                 {/* Fallback to Dashboard */}
                 <Route
                   path="*"
-                  element={<DashboardPage onCreateJob={() => setIsAddJobModalOpen(true)} />}
+                  element={<DashboardPage />}
                 />
               </Routes>
             </section>

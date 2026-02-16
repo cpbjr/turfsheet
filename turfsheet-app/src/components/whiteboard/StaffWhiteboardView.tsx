@@ -53,10 +53,11 @@ export default function StaffWhiteboardView({
 
       if (staffError) throw staffError;
 
-      // 2. Fetch all jobs for dropdowns
+      // 2. Fetch all jobs for dropdowns (only First Jobs for primary assignments)
       const { data: jobsList, error: jobsError } = await supabase
         .from('jobs')
         .select('*')
+        .eq('section', 'First Jobs')
         .order('title', { ascending: true });
 
       if (jobsError) throw jobsError;

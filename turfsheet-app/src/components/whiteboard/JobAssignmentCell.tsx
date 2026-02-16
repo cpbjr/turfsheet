@@ -25,6 +25,14 @@ export default function JobAssignmentCell({
   const [isEditing, setIsEditing] = useState(false);
 
   const handleSelectJob = async (jobId: string) => {
+    const selectedJob = availableJobs.find(j => j.id === jobId);
+
+    // Validate section
+    if (selectedJob?.section === 'Second Jobs') {
+      alert('Second Job templates cannot be assigned as primary jobs.');
+      return;
+    }
+
     setIsEditing(false);
 
     // 1. Optimistically update UI immediately
