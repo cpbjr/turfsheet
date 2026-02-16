@@ -12,6 +12,7 @@ export default function Sidebar() {
     { id: 'dashboard', icon: House, label: 'Dashboard', path: '/' },
     { id: 'calendar', icon: Calendar, label: 'Calendar', path: '/calendar' },
     { id: 'staff', icon: Users, label: 'Staff', path: '/staff' },
+    { id: 'equipment', icon: Package, label: 'Equipment', path: '/equipment' },
     { id: 'jobs', icon: Briefcase, label: 'Jobs', path: '/jobs' },
     { id: 'projects', icon: FolderKanban, label: 'Projects', path: '/projects' },
     { id: 'analytics', icon: BarChart3, label: 'Analytics', path: '/analytics' },
@@ -23,7 +24,6 @@ export default function Sidebar() {
     { id: 'history', icon: History, label: 'History', path: '/history' },
     { id: 'docs', icon: FileText, label: 'Documents', path: '/docs' },
     { id: 'training', icon: GraduationCap, label: 'Training', path: '/training' },
-    { id: 'equipment', icon: Package, label: 'Equipment', path: '/equipment' },
     { id: 'settings', icon: Settings, label: 'Settings', path: '/settings' },
     { id: 'logout', icon: LogOut, label: 'Logout', path: '/logout' },
   ];

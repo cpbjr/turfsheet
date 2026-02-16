@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Search, Plus, LayoutGrid, List } from 'lucide-react';
+import { Search, Plus, LayoutGrid, List, Upload } from 'lucide-react';
 import EquipmentCard from '../components/equipment/EquipmentCard';
 import Modal from '../components/ui/Modal';
 import EquipmentForm from '../components/equipment/EquipmentForm';
+import EquipmentBatchUpload from '../components/equipment/EquipmentBatchUpload';
 import { supabase } from '../lib/supabase';
 import type { Equipment } from '../types';
 
@@ -11,6 +12,9 @@ export default function EquipmentPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isAddEquipmentModalOpen, setIsAddEquipmentModalOpen] = useState(false);
+    const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+    const [isBatchUploadModalOpen, setIsBatchUploadModalOpen] = useState(false);
+    const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
     const [statusFilter, setStatusFilter] = useState<string | null>(null);
@@ -60,6 +64,11 @@ export default function EquipmentPage() {
         }
     };
 
+    const handleViewEquipment = (item: Equipment) => {
+        setSelectedEquipment(item);
+        setIsDetailModalOpen(true);
+    };
+
     const handleDeleteEquipment = async (id: string) => {
         if (!window.confirm('Are you sure you want to delete this equipment?')) return;
 
@@ -73,10 +82,32 @@ export default function EquipmentPage() {
             if (deleteError) throw deleteError;
 
             setEquipment(equipment.filter(e => e.id !== id));
+            setIsDetailModalOpen(false);
         } catch (err) {
             const message = err instanceof Error ? err.message : 'Failed to delete equipment';
             setError(message);
             console.error('Error deleting equipment:', err);
+        }
+    };
+
+    const handleBatchUpload = async (equipmentList: Partial<Equipment>[]) => {
+        try {
+            setError(null);
+            const { data, error: insertError } = await supabase
+                .from('equipment')
+                .insert(equipmentList)
+                .select();
+
+            if (insertError) throw insertError;
+
+            console.log('Batch upload successful:', data);
+            await fetchEquipment(); // Refresh the list
+            setIsBatchUploadModalOpen(false);
+        } catch (err) {
+            const message = err instanceof Error ? err.message : 'Failed to upload equipment';
+            setError(message);
+            console.error('Error uploading equipment:', err);
+            throw err;
         }
     };
 
@@ -104,13 +135,22 @@ export default function EquipmentPage() {
                         Manage your equipment inventory, maintenance records, and asset tracking.
                     </p>
                 </div>
-                <button
-                    onClick={() => setIsAddEquipmentModalOpen(true)}
-                    className="bg-turf-green text-white px-8 py-4 shadow-sm flex items-center gap-3 font-heading font-black hover:bg-turf-green-dark hover:-translate-y-1 transition-all duration-300 text-[0.75rem] uppercase tracking-[0.2em]"
-                >
-                    <Plus className="w-5 h-5" />
-                    Add Equipment
-                </button>
+                <div className="flex gap-3">
+                    <button
+                        onClick={() => setIsBatchUploadModalOpen(true)}
+                        className="bg-panel-white border border-border-color text-text-primary px-6 py-4 shadow-sm flex items-center gap-3 font-heading font-black hover:bg-dashboard-bg hover:-translate-y-1 transition-all duration-300 text-[0.75rem] uppercase tracking-[0.2em]"
+                    >
+                        <Upload className="w-5 h-5" />
+                        Batch Upload
+                    </button>
+                    <button
+                        onClick={() => setIsAddEquipmentModalOpen(true)}
+                        className="bg-turf-green text-white px-8 py-4 shadow-sm flex items-center gap-3 font-heading font-black hover:bg-turf-green-dark hover:-translate-y-1 transition-all duration-300 text-[0.75rem] uppercase tracking-[0.2em]"
+                    >
+                        <Plus className="w-5 h-5" />
+                        Add Equipment
+                    </button>
+                </div>
             </div>
 
             {/* Control Bar */}
@@ -192,7 +232,7 @@ export default function EquipmentPage() {
                                 model={item.model}
                                 manufacturer={item.manufacturer}
                                 description={item.description}
-                                onDelete={() => handleDeleteEquipment(item.id)}
+                                onClick={() => handleViewEquipment(item)}
                             />
                         ))}
                     </div>
@@ -208,6 +248,166 @@ export default function EquipmentPage() {
                 <EquipmentForm
                     onSubmit={handleSaveEquipment}
                     onCancel={() => setIsAddEquipmentModalOpen(false)}
+                />
+            </Modal>
+
+            {/* Equipment Detail Modal */}
+            <Modal
+                isOpen={isDetailModalOpen}
+                onClose={() => setIsDetailModalOpen(false)}
+                title="Equipment Details"
+            >
+                {selectedEquipment && (
+                    <div className="space-y-6 font-sans">
+                        {/* Header Section */}
+                        <div className="pb-4 border-b border-border-color">
+                            <h3 className="text-2xl font-heading font-black text-text-primary uppercase tracking-tight">
+                                {selectedEquipment.name}
+                            </h3>
+                            {selectedEquipment.equipment_number && (
+                                <p className="text-text-secondary text-sm mt-1">
+                                    Equipment #{selectedEquipment.equipment_number}
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Status and Category */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="text-xs font-heading font-black uppercase tracking-wider text-text-secondary block mb-2">
+                                    Status
+                                </label>
+                                <span className={`inline-block px-3 py-1 text-xs font-bold uppercase tracking-wider ${
+                                    selectedEquipment.status === 'Active' ? 'bg-turf-green' :
+                                    selectedEquipment.status === 'Maintenance' ? 'bg-accent-orange' :
+                                    'bg-accent-grey'
+                                } text-white`}>
+                                    {selectedEquipment.status}
+                                </span>
+                            </div>
+                            <div>
+                                <label className="text-xs font-heading font-black uppercase tracking-wider text-text-secondary block mb-2">
+                                    Category
+                                </label>
+                                <p className="text-sm text-text-primary">{selectedEquipment.category}</p>
+                            </div>
+                        </div>
+
+                        {/* Manufacturer and Model */}
+                        {(selectedEquipment.manufacturer || selectedEquipment.model) && (
+                            <div className="grid grid-cols-2 gap-4">
+                                {selectedEquipment.manufacturer && (
+                                    <div>
+                                        <label className="text-xs font-heading font-black uppercase tracking-wider text-text-secondary block mb-2">
+                                            Manufacturer
+                                        </label>
+                                        <p className="text-sm text-text-primary">{selectedEquipment.manufacturer}</p>
+                                    </div>
+                                )}
+                                {selectedEquipment.model && (
+                                    <div>
+                                        <label className="text-xs font-heading font-black uppercase tracking-wider text-text-secondary block mb-2">
+                                            Model
+                                        </label>
+                                        <p className="text-sm text-text-primary">{selectedEquipment.model}</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Description */}
+                        {selectedEquipment.description && (
+                            <div>
+                                <label className="text-xs font-heading font-black uppercase tracking-wider text-text-secondary block mb-2">
+                                    Description
+                                </label>
+                                <p className="text-sm text-text-primary">{selectedEquipment.description}</p>
+                            </div>
+                        )}
+
+                        {/* Purchase Information */}
+                        {(selectedEquipment.purchase_date || selectedEquipment.purchase_cost) && (
+                            <div className="grid grid-cols-2 gap-4">
+                                {selectedEquipment.purchase_date && (
+                                    <div>
+                                        <label className="text-xs font-heading font-black uppercase tracking-wider text-text-secondary block mb-2">
+                                            Purchase Date
+                                        </label>
+                                        <p className="text-sm text-text-primary">
+                                            {new Date(selectedEquipment.purchase_date).toLocaleDateString()}
+                                        </p>
+                                    </div>
+                                )}
+                                {selectedEquipment.purchase_cost && (
+                                    <div>
+                                        <label className="text-xs font-heading font-black uppercase tracking-wider text-text-secondary block mb-2">
+                                            Purchase Cost
+                                        </label>
+                                        <p className="text-sm text-text-primary">
+                                            ${selectedEquipment.purchase_cost.toLocaleString()}
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Maintenance Information */}
+                        {(selectedEquipment.last_serviced_date || selectedEquipment.maintenance_notes) && (
+                            <div className="border-t border-border-color pt-4">
+                                <h4 className="text-xs font-heading font-black uppercase tracking-wider text-text-secondary mb-3">
+                                    Maintenance
+                                </h4>
+                                {selectedEquipment.last_serviced_date && (
+                                    <div className="mb-3">
+                                        <label className="text-xs font-heading font-black uppercase tracking-wider text-text-secondary block mb-1">
+                                            Last Serviced
+                                        </label>
+                                        <p className="text-sm text-text-primary">
+                                            {new Date(selectedEquipment.last_serviced_date).toLocaleDateString()}
+                                        </p>
+                                    </div>
+                                )}
+                                {selectedEquipment.maintenance_notes && (
+                                    <div>
+                                        <label className="text-xs font-heading font-black uppercase tracking-wider text-text-secondary block mb-1">
+                                            Notes
+                                        </label>
+                                        <p className="text-sm text-text-primary whitespace-pre-wrap">
+                                            {selectedEquipment.maintenance_notes}
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Action Buttons */}
+                        <div className="flex gap-4 pt-4 border-t border-border-color">
+                            <button
+                                onClick={() => setIsDetailModalOpen(false)}
+                                className="flex-1 bg-panel-white border border-border-color px-6 py-3 font-heading font-black text-xs uppercase tracking-wider text-text-primary hover:bg-dashboard-bg transition-colors"
+                            >
+                                Close
+                            </button>
+                            <button
+                                onClick={() => handleDeleteEquipment(selectedEquipment.id)}
+                                className="px-6 py-3 bg-red-500 text-white font-heading font-black text-xs uppercase tracking-wider hover:bg-red-600 transition-colors"
+                            >
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </Modal>
+
+            {/* Batch Upload Modal */}
+            <Modal
+                isOpen={isBatchUploadModalOpen}
+                onClose={() => setIsBatchUploadModalOpen(false)}
+                title="Batch Upload Equipment"
+            >
+                <EquipmentBatchUpload
+                    onUpload={handleBatchUpload}
+                    onCancel={() => setIsBatchUploadModalOpen(false)}
                 />
             </Modal>
         </div>

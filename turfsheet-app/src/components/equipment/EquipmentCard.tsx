@@ -1,5 +1,3 @@
-import { X } from 'lucide-react';
-
 interface EquipmentCardProps {
     name: string;
     equipment_number?: string;
@@ -8,7 +6,7 @@ interface EquipmentCardProps {
     model?: string;
     manufacturer?: string;
     description?: string;
-    onDelete?: () => void;
+    onClick?: () => void;
 }
 
 export default function EquipmentCard({
@@ -19,16 +17,19 @@ export default function EquipmentCard({
     model,
     manufacturer,
     description,
-    onDelete
+    onClick
 }: EquipmentCardProps) {
     const statusColors = {
-        Active: 'bg-green-500',
+        Active: 'bg-turf-green',
         Maintenance: 'bg-accent-orange',
         Retired: 'bg-accent-grey'
     };
 
     return (
-        <article className="bg-panel-white border border-border-color shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 group cursor-pointer">
+        <article
+            className="bg-panel-white border border-border-color shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 group cursor-pointer"
+            onClick={onClick}
+        >
             <div className="bg-turf-green px-4 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <h4 className="text-white font-heading font-black text-xs uppercase tracking-widest truncate">
@@ -36,19 +37,10 @@ export default function EquipmentCard({
                     </h4>
                     {equipment_number && (
                         <span className="text-white/80 font-heading font-bold text-xs">
-                            {equipment_number}
+                            #{equipment_number}
                         </span>
                     )}
                 </div>
-                {onDelete && (
-                    <X
-                        className="w-4 h-4 text-white/60 group-hover:text-white transition-colors cursor-pointer"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onDelete();
-                        }}
-                    />
-                )}
             </div>
             <div className="p-5 space-y-3 font-sans">
                 <div className="flex items-center gap-2">

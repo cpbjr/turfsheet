@@ -1,0 +1,5 @@
+name,equipment_number,category,status,manufacturer,model,description,purchase_date,purchase_cost,maintenance_notes,last_serviced_date
+"Toro Fairway Mower","FM-001","Mowers","Active","Toro","Groundsmaster 4010-D","Primary fairway mower for holes 1-9","2023-03-15","45000","",""
+"John Deere Greens Mower","GM-001","Mowers","Active","John Deere","2500E","Precision greens mowing","2022-06-20","32000","",""
+"Club Car Utility","CART-001","Carts","Active","Club Car","Carryall 500","General utility cart for maintenance crew","2024-01-10","8500","",""
+"Stihl Backpack Blower","TOOL-001","Tools","Active","Stihl","BR 700","Debris cleanup and leaf removal","2023-09-05","450","",""
