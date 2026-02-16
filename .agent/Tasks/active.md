@@ -3,18 +3,19 @@
 
 # Active Tasks
 
-Last Updated: 2026-02-16 UTC
-
+Last Updated: 2026-02-16 09:42 UTC
 
 ## Active Tasks
 
-_No active tasks at this time._
+(No active tasks at this time)
+
 
 ---
 
 ## Recently Completed ✅
 
 See `completed/2026-02/` for completed tasks including:
+- ✅ Equipment Page Fixes — Card expansion, batch CSV upload, status color fix (2026-02-16)
 - ✅ Demo Preparation Work — Equipment page, Settings enhancements, job section filtering (2026-02-16)
 - ✅ Projects Page — Inline-editable project board with sections and detail modal (2026-02-11)
 - ✅ Fix Font Awesome Integrity Hash Issue — Updated to v6.7.2 with correct SHA-512 hash (2026-02-14)
