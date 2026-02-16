@@ -2,6 +2,7 @@ import { X } from 'lucide-react';
 
 interface EquipmentCardProps {
     name: string;
+    equipment_number?: string;
     category: string;
     status: string;
     model?: string;
@@ -12,6 +13,7 @@ interface EquipmentCardProps {
 
 export default function EquipmentCard({
     name,
+    equipment_number,
     category,
     status,
     model,
@@ -28,9 +30,16 @@ export default function EquipmentCard({
     return (
         <article className="bg-panel-white border border-border-color shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 group cursor-pointer">
             <div className="bg-turf-green px-4 py-3 flex items-center justify-between">
-                <h4 className="text-white font-heading font-black text-xs uppercase tracking-widest truncate mr-2">
-                    {name}
-                </h4>
+                <div className="flex items-center gap-2">
+                    <h4 className="text-white font-heading font-black text-xs uppercase tracking-widest truncate">
+                        {name}
+                    </h4>
+                    {equipment_number && (
+                        <span className="text-white/80 font-heading font-bold text-xs">
+                            {equipment_number}
+                        </span>
+                    )}
+                </div>
                 {onDelete && (
                     <X
                         className="w-4 h-4 text-white/60 group-hover:text-white transition-colors cursor-pointer"

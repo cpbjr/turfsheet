@@ -1,4 +1,4 @@
--- Migration: Create equipment table for inventory management
+-- Migration: Create equipment table for inventory management (v2)
 -- Date: 2026-02-16
 -- Rollback: DROP TABLE IF EXISTS turfsheet.equipment CASCADE;
 
@@ -9,7 +9,6 @@
 CREATE TABLE IF NOT EXISTS turfsheet.equipment (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
-    equipment_number TEXT,
     category TEXT NOT NULL CHECK (category IN ('Mowers', 'Carts', 'Tools', 'Other')),
     model TEXT,
     manufacturer TEXT,
@@ -28,31 +27,27 @@ CREATE INDEX IF NOT EXISTS idx_equipment_category ON turfsheet.equipment(categor
 CREATE INDEX IF NOT EXISTS idx_equipment_status ON turfsheet.equipment(status);
 CREATE INDEX IF NOT EXISTS idx_equipment_created_at ON turfsheet.equipment(created_at DESC);
 
--- Trigger for updated_at
-CREATE OR REPLACE TRIGGER update_equipment_updated_at
-    BEFORE UPDATE ON turfsheet.equipment
-    FOR EACH ROW
-    EXECUTE FUNCTION turfsheet.update_updated_at_column();
-
--- RLS Policies (allow all users including anonymous)
+-- RLS Policies (authenticated users can read/write)
 ALTER TABLE turfsheet.equipment ENABLE ROW LEVEL SECURITY;
 
--- Permissive policies matching jobs/staff pattern (no TO clause means all roles)
-CREATE POLICY "Enable read access for all users"
+CREATE POLICY "Equipment are viewable by authenticated users"
     ON turfsheet.equipment FOR SELECT
+    TO authenticated
     USING (true);
 
-CREATE POLICY "Enable insert for all users"
+CREATE POLICY "Equipment are creatable by authenticated users"
     ON turfsheet.equipment FOR INSERT
+    TO authenticated
     WITH CHECK (true);
 
-CREATE POLICY "Enable update for all users"
+CREATE POLICY "Equipment are updatable by authenticated users"
     ON turfsheet.equipment FOR UPDATE
-    USING (true)
-    WITH CHECK (true);
+    TO authenticated
+    USING (true);
 
-CREATE POLICY "Enable delete for all users"
+CREATE POLICY "Equipment are deletable by authenticated users"
     ON turfsheet.equipment FOR DELETE
+    TO authenticated
     USING (true);
 
 -- Grant permissions to anon and authenticated roles

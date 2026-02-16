@@ -186,6 +186,7 @@ export default function EquipmentPage() {
                             <EquipmentCard
                                 key={item.id}
                                 name={item.name}
+                                equipment_number={item.equipment_number}
                                 category={item.category}
                                 status={item.status}
                                 model={item.model}

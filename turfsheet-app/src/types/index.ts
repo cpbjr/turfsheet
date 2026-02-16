@@ -180,6 +180,7 @@ export interface Project {
 export interface Equipment {
   id: string;
   name: string;
+  equipment_number?: string;
   category: 'Mowers' | 'Carts' | 'Tools' | 'Other';
   model?: string;
   manufacturer?: string;

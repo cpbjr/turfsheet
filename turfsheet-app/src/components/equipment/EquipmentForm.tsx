@@ -8,6 +8,7 @@ interface EquipmentFormProps {
 export default function EquipmentForm({ onSubmit, onCancel }: EquipmentFormProps) {
     const [formData, setFormData] = useState({
         name: '',
+        equipment_number: '',
         category: 'Mowers',
         model: '',
         manufacturer: '',
@@ -24,6 +25,7 @@ export default function EquipmentForm({ onSubmit, onCancel }: EquipmentFormProps
         // Clean up empty strings to undefined for optional fields
         const cleanedData = {
             ...formData,
+            equipment_number: formData.equipment_number || undefined,
             model: formData.model || undefined,
             manufacturer: formData.manufacturer || undefined,
             description: formData.description || undefined,
@@ -40,16 +42,28 @@ export default function EquipmentForm({ onSubmit, onCancel }: EquipmentFormProps
 
     return (
         <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-                <label className={labelClasses}>Equipment Name</label>
-                <input
-                    required
-                    type="text"
-                    className={inputClasses}
-                    placeholder="e.g. Toro Greensmaster 3100"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                />
+            <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <label className={labelClasses}>Equipment Name</label>
+                    <input
+                        required
+                        type="text"
+                        className={inputClasses}
+                        placeholder="e.g. Toro Greensmaster 3100"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    />
+                </div>
+                <div>
+                    <label className={labelClasses}>Equipment #</label>
+                    <input
+                        type="text"
+                        className={inputClasses}
+                        placeholder="e.g. #12"
+                        value={formData.equipment_number}
+                        onChange={(e) => setFormData({ ...formData, equipment_number: e.target.value })}
+                    />
+                </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
