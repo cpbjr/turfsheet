@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CopyCheck } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import Modal from '../ui/Modal';
 import JobForm from '../jobs/JobForm';
@@ -24,6 +24,8 @@ export default function StaffWhiteboardView({
   const [error, setError] = useState<string | null>(null);
   const [isJobModalOpen, setIsJobModalOpen] = useState(false);
   const [workingStaffIds, setWorkingStaffIds] = useState<Set<string>>(new Set());
+  const [copying, setCopying] = useState(false);
+  const [copyMessage, setCopyMessage] = useState<string | null>(null);
 
   const dateString = selectedDate.toISOString().split('T')[0];
 
@@ -215,6 +217,87 @@ export default function StaffWhiteboardView({
     onDateChange(newDate);
   };
 
+  // Copy assignments from the most recent previous board
+  const handleCopyPreviousBoard = async () => {
+    try {
+      setCopying(true);
+      setCopyMessage(null);
+
+      // Find assignments from the most recent previous date
+      const { data: previousAssignments, error: fetchError } = await supabase
+        .from('daily_assignments')
+        .select('*')
+        .lt('assignment_date', dateString)
+        .order('assignment_date', { ascending: false })
+        .limit(50);
+
+      if (fetchError) throw fetchError;
+
+      if (!previousAssignments || previousAssignments.length === 0) {
+        setCopyMessage('No previous board found');
+        setTimeout(() => setCopyMessage(null), 3000);
+        return;
+      }
+
+      // Get the most recent date from results
+      const sourceDate = previousAssignments[0].assignment_date;
+      const assignmentsToCopy = previousAssignments.filter(
+        (a) => a.assignment_date === sourceDate
+      );
+
+      // Check which staff already have assignments today
+      const { data: existingAssignments } = await supabase
+        .from('daily_assignments')
+        .select('staff_id')
+        .eq('assignment_date', dateString);
+
+      const existingStaffIds = new Set(
+        (existingAssignments || []).map((a: any) => a.staff_id)
+      );
+
+      // Build insert records, skipping already-assigned staff
+      const newAssignments = assignmentsToCopy
+        .filter((a) => !existingStaffIds.has(a.staff_id))
+        .map((a) => ({
+          staff_id: a.staff_id,
+          job_id: a.job_id,
+          assignment_date: dateString,
+        }));
+
+      if (newAssignments.length === 0) {
+        setCopyMessage('Board already set — no changes made');
+        setTimeout(() => setCopyMessage(null), 3000);
+        return;
+      }
+
+      const { error: insertError } = await supabase
+        .from('daily_assignments')
+        .insert(newAssignments);
+
+      if (insertError) throw insertError;
+
+      // Format source date for display
+      const srcDate = new Date(sourceDate + 'T12:00:00');
+      const srcLabel = srcDate.toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+      });
+
+      setCopyMessage(`Copied ${newAssignments.length} assignments from ${srcLabel}`);
+      setTimeout(() => setCopyMessage(null), 4000);
+
+      // Refresh the board
+      await fetchAssignmentsForDate();
+    } catch (err) {
+      console.error('Error copying previous board:', err);
+      setCopyMessage('Failed to copy — check console');
+      setTimeout(() => setCopyMessage(null), 4000);
+    } finally {
+      setCopying(false);
+    }
+  };
+
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('en-US', {
       weekday: 'long',
@@ -275,6 +358,31 @@ export default function StaffWhiteboardView({
           >
             <ChevronRight className="w-4 h-4" />
           </button>
+
+          {/* Divider */}
+          <div className="w-px h-6 bg-border-color" />
+
+          {/* Same as Yesterday */}
+          <button
+            onClick={handleCopyPreviousBoard}
+            disabled={copying || loading}
+            className={`flex items-center gap-2 px-4 py-2 border text-sm font-heading font-bold uppercase transition-colors ${
+              copying
+                ? 'border-border-color text-text-muted cursor-wait'
+                : 'border-border-color hover:border-turf-green hover:text-turf-green'
+            }`}
+            title="Copy assignments from the most recent previous board"
+          >
+            <CopyCheck className="w-4 h-4" />
+            {copying ? 'Copying...' : 'Same as Yesterday'}
+          </button>
+
+          {/* Copy feedback message */}
+          {copyMessage && (
+            <span className="text-xs text-turf-green font-sans animate-pulse">
+              {copyMessage}
+            </span>
+          )}
         </div>
         <div className="text-sm font-heading font-bold text-text-primary">
           {formatDate(selectedDate)}
