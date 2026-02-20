@@ -217,13 +217,13 @@ export default function StaffWhiteboardView({
     onDateChange(newDate);
   };
 
-  // Copy assignments from the most recent previous board
+  // Copy assignments + incomplete second jobs from the most recent previous board
   const handleCopyPreviousBoard = async () => {
     try {
       setCopying(true);
       setCopyMessage(null);
 
-      // Find assignments from the most recent previous date
+      // Find the most recent previous date that has assignments
       const { data: previousAssignments, error: fetchError } = await supabase
         .from('daily_assignments')
         .select('*')
@@ -245,7 +245,8 @@ export default function StaffWhiteboardView({
         (a) => a.assignment_date === sourceDate
       );
 
-      // Check which staff already have assignments today
+      // --- Copy primary job assignments ---
+
       const { data: existingAssignments } = await supabase
         .from('daily_assignments')
         .select('staff_id')
@@ -255,7 +256,6 @@ export default function StaffWhiteboardView({
         (existingAssignments || []).map((a: any) => a.staff_id)
       );
 
-      // Build insert records, skipping already-assigned staff
       const newAssignments = assignmentsToCopy
         .filter((a) => !existingStaffIds.has(a.staff_id))
         .map((a) => ({
@@ -264,19 +264,69 @@ export default function StaffWhiteboardView({
           assignment_date: dateString,
         }));
 
-      if (newAssignments.length === 0) {
+      let copiedJobs = 0;
+      if (newAssignments.length > 0) {
+        const { error: insertError } = await supabase
+          .from('daily_assignments')
+          .insert(newAssignments);
+        if (insertError) throw insertError;
+        copiedJobs = newAssignments.length;
+      }
+
+      // --- Copy incomplete second jobs (not grabbed = not done) ---
+
+      const { data: previousSecondJobs, error: secondError } = await supabase
+        .from('second_job_board')
+        .select('*')
+        .eq('board_date', sourceDate)
+        .is('grabbed_by', null)
+        .order('sort_order', { ascending: true });
+
+      if (secondError) throw secondError;
+
+      let copiedSecondJobs = 0;
+      if (previousSecondJobs && previousSecondJobs.length > 0) {
+        // Check if today already has second jobs (avoid duplicates)
+        const { data: existingSecondJobs } = await supabase
+          .from('second_job_board')
+          .select('description')
+          .eq('board_date', dateString);
+
+        const existingDescriptions = new Set(
+          (existingSecondJobs || []).map((j: any) => j.description)
+        );
+
+        const newSecondJobs = previousSecondJobs
+          .filter((j) => !existingDescriptions.has(j.description))
+          .map((j, idx) => ({
+            board_date: dateString,
+            description: j.description,
+            sort_order: idx + 1,
+            priority: j.priority,
+            carried_from: sourceDate,
+          }));
+
+        if (newSecondJobs.length > 0) {
+          const { error: insertSecondError } = await supabase
+            .from('second_job_board')
+            .insert(newSecondJobs);
+          if (insertSecondError) throw insertSecondError;
+          copiedSecondJobs = newSecondJobs.length;
+        }
+      }
+
+      // --- Feedback ---
+
+      if (copiedJobs === 0 && copiedSecondJobs === 0) {
         setCopyMessage('Board already set — no changes made');
         setTimeout(() => setCopyMessage(null), 3000);
         return;
       }
 
-      const { error: insertError } = await supabase
-        .from('daily_assignments')
-        .insert(newAssignments);
+      const parts: string[] = [];
+      if (copiedJobs > 0) parts.push(`${copiedJobs} assignments`);
+      if (copiedSecondJobs > 0) parts.push(`${copiedSecondJobs} carry-over tasks`);
 
-      if (insertError) throw insertError;
-
-      // Format source date for display
       const srcDate = new Date(sourceDate + 'T12:00:00');
       const srcLabel = srcDate.toLocaleDateString('en-US', {
         weekday: 'short',
@@ -284,10 +334,9 @@ export default function StaffWhiteboardView({
         day: 'numeric',
       });
 
-      setCopyMessage(`Copied ${newAssignments.length} assignments from ${srcLabel}`);
+      setCopyMessage(`Copied ${parts.join(' + ')} from ${srcLabel}`);
       setTimeout(() => setCopyMessage(null), 4000);
 
-      // Refresh the board
       await fetchAssignmentsForDate();
     } catch (err) {
       console.error('Error copying previous board:', err);
