@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, CopyCheck } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CopyCheck, CalendarClock } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import Modal from '../ui/Modal';
 import JobForm from '../jobs/JobForm';
@@ -302,7 +302,6 @@ export default function StaffWhiteboardView({
             board_date: dateString,
             description: j.description,
             sort_order: idx + 1,
-            priority: j.priority,
             carried_from: sourceDate,
           }));
 
@@ -424,6 +423,16 @@ export default function StaffWhiteboardView({
           >
             <CopyCheck className="w-4 h-4" />
             {copying ? 'Copying...' : 'Same as Yesterday'}
+          </button>
+
+          {/* Set Scheduled Jobs — placeholder for future scheduling system */}
+          <button
+            disabled
+            className="flex items-center gap-2 px-4 py-2 border border-border-color text-text-muted text-sm font-heading font-bold uppercase cursor-not-allowed opacity-50"
+            title="Coming soon — auto-populate board from job schedules"
+          >
+            <CalendarClock className="w-4 h-4" />
+            Set Scheduled Jobs
           </button>
 
           {/* Copy feedback message */}
