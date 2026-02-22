@@ -121,6 +121,7 @@ export default function ProjectDetailModal({
   };
 
   const handleDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete this project?')) return;
     setIsSaving(true);
     try {
       await onDelete(project.id);

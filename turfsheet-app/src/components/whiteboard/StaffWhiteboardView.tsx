@@ -81,7 +81,7 @@ export default function StaffWhiteboardView({
 
     const { data, error } = await supabase
       .from('staff_schedules')
-      .select('staff_id');
+      .select('*');
 
     if (error) {
       // Table may not exist yet - treat all staff as working
