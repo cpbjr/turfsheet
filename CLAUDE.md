@@ -1,5 +1,9 @@
 # TurfSheet Project Configuration
 
+## RULES
+MUST FOLLOW EXPLORE AGENT RULE IN GLOBAL CLAUDE.MD
+
+
 ## Project Overview
 
 TurfSheet is a comprehensive task management and agronomic intelligence platform for golf course maintenance operations.
