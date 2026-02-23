@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Upload, FileText, X, CheckCircle, AlertCircle } from 'lucide-react';
+import { CheckCircle, AlertCircle } from 'lucide-react';
 import type { Equipment } from '../../types';
 
 interface EquipmentBatchUploadProps {
@@ -14,7 +14,7 @@ interface ParsedRow {
 }
 
 export default function EquipmentBatchUpload({ onUpload, onCancel }: EquipmentBatchUploadProps) {
-    const [file, setFile] = useState<File | null>(null);
+    const [_file, setFile] = useState<File | null>(null);
     const [parsedData, setParsedData] = useState<ParsedRow[]>([]);
     const [uploading, setUploading] = useState(false);
     const [uploadComplete, setUploadComplete] = useState(false);
@@ -70,13 +70,13 @@ export default function EquipmentBatchUpload({ onUpload, onCancel }: EquipmentBa
                             if (!['Mowers', 'Carts', 'Tools', 'Other'].includes(value)) {
                                 throw new Error(`Invalid category: ${value}. Must be Mowers, Carts, Tools, or Other`);
                             }
-                            equipment.category = value;
+                            equipment.category = value as Equipment['category'];
                             break;
                         case 'status':
                             if (!['Active', 'Maintenance', 'Retired'].includes(value)) {
                                 throw new Error(`Invalid status: ${value}. Must be Active, Maintenance, or Retired`);
                             }
-                            equipment.status = value;
+                            equipment.status = value as Equipment['status'];
                             break;
                         case 'manufacturer':
                             equipment.manufacturer = value;

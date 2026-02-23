@@ -1,0 +1,56 @@
+name: Deploy TurfSheet to Hetzner
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'turfsheet-app/**'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: 'turfsheet-app/package-lock.json'
+
+      - name: Install dependencies
+        working-directory: ./turfsheet-app
+        run: npm ci
+
+      - name: Build React app
+        working-directory: ./turfsheet-app
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to Hetzner server
+        run: |
+          scp -r turfsheet-app/dist/* ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }}:/home/deploy/websites/turfsheet/
+
+      - name: Restart Caddy
+        run: |
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} "cd /home/deploy/gateway && docker compose restart caddy"
+
+      - name: Verify deployment
+        run: |
+          echo "Waiting 5 seconds for Caddy to restart..."
+          sleep 5
+          curl -f https://whitepine-tech.com/turfsheet/ || echo "Warning: Health check failed"
