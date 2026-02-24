@@ -25,4 +25,17 @@
 - [ ] Integration with Toro myTurf (Phase 2+)
 
 ## Task 5 - DB Refinement
-- [ ] Jobs will need to be refined so fields match which type of jobs. Mowing jobs will need specialized fields: direction, HOC, cleanup, etc. 
+- [ ] Jobs will need to be refined so fields match which type of jobs. Mowing jobs will need specialized fields: direction, HOC, cleanup, etc.
+
+## Task 6 - Staff Time-Off Management
+- [ ] Create TimeOffForm component (staff dropdown, date range, reason, notes)
+- [ ] Add "Request Time Off" button to Calendar page
+- [ ] Display time-off entries on calendar as gray events
+- [ ] Add time-off management UI (approve/deny if needed)
+- **Note:** Database table `turfsheet.staff_time_off` already exists (created 2026-02-24). UI implementation deferred.
+
+## Task 7 - Irrigation Management
+- [ ] Design irrigation logging features (zones, probe readings, watering cycles)
+- [ ] Create database tables for irrigation data
+- [ ] Build irrigation page UI (replace current placeholder)
+- **Note:** Placeholder page exists at `/irrigation`. Full implementation planned for future phase.

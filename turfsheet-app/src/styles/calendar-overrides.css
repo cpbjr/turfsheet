@@ -1,0 +1,141 @@
+/* TurfSheet calendar overrides for react-big-calendar */
+
+/* Toolbar */
+.rbc-toolbar {
+  margin-bottom: 1rem;
+  padding: 0;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.rbc-toolbar button {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 800;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  border-radius: 0;
+  border: 1px solid #E5E7EB;
+  color: #374151;
+  padding: 0.5rem 1rem;
+}
+
+.rbc-toolbar button:hover {
+  background-color: #73A657;
+  color: #fff;
+  border-color: #73A657;
+}
+
+.rbc-toolbar button.rbc-active {
+  background-color: #73A657;
+  color: #fff;
+  border-color: #73A657;
+}
+
+/* Header row (day names) */
+.rbc-header {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 800;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: #73A657;
+  padding: 0.625rem 0.5rem;
+  border-bottom: 1px solid #E5E7EB;
+  background: #FAFAFA;
+}
+
+.rbc-header + .rbc-header {
+  border-left: 1px solid #E5E7EB;
+}
+
+/* Month view cells */
+.rbc-month-view {
+  border: 1px solid #E5E7EB;
+  border-radius: 0;
+}
+
+.rbc-month-row + .rbc-month-row {
+  border-top: 1px solid #E5E7EB;
+}
+
+.rbc-day-bg + .rbc-day-bg {
+  border-left: 1px solid #E5E7EB;
+}
+
+/* Today highlight */
+.rbc-today {
+  background-color: rgba(115, 166, 87, 0.08) !important;
+}
+
+/* Date cell number */
+.rbc-date-cell {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.8rem;
+  padding: 0.375rem 0.5rem;
+  color: #374151;
+}
+
+.rbc-date-cell.rbc-now {
+  font-weight: 700;
+  color: #73A657;
+}
+
+/* Off-range (previous/next month) dates */
+.rbc-off-range {
+  color: #D1D5DB;
+}
+
+.rbc-off-range-bg {
+  background-color: #FAFAFA;
+}
+
+/* Events */
+.rbc-event {
+  border-radius: 0 !important;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.7rem;
+  padding: 0.125rem 0.375rem;
+  border: none !important;
+}
+
+.rbc-event:focus {
+  outline: 2px solid #73A657;
+  outline-offset: 1px;
+}
+
+.rbc-event-content {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Show more link */
+.rbc-show-more {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #73A657;
+  padding: 0.125rem 0.375rem;
+}
+
+.rbc-show-more:hover {
+  color: #5A8A42;
+}
+
+/* Remove default border-radius from overlay */
+.rbc-overlay {
+  border-radius: 0;
+  border: 1px solid #E5E7EB;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.rbc-overlay-header {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 800;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border-bottom: 1px solid #E5E7EB;
+  padding: 0.5rem 0.75rem;
+}

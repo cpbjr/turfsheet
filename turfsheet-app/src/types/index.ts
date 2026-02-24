@@ -193,3 +193,73 @@ export interface Equipment {
   created_at: string;
   updated_at: string;
 }
+
+// ============================================================
+// Pesticide Applications (regulatory compliance)
+// ============================================================
+
+export type ApplicationMethod = 'spray' | 'granular' | 'injection' | 'drench' | 'other';
+
+export interface PesticideApplication {
+  id: string;
+  application_date: string;
+  product_name: string;
+  epa_registration_number?: string;
+  active_ingredient?: string;
+  application_rate: string;
+  rate_unit?: string;
+  total_amount_used?: string;
+  area_applied: string;
+  area_size?: string;
+  target_pest?: string;
+  method?: ApplicationMethod;
+  operator_id?: string;
+  wind_speed?: string;
+  temperature?: string;
+  weather_conditions?: string;
+  rei_hours?: number;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// ============================================================
+// Calendar Events
+// ============================================================
+
+export type CalendarEventType = 'tournament' | 'championship' | 'event' | 'maintenance' | 'holiday' | 'other';
+
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  description?: string;
+  event_date: string;
+  end_date?: string;
+  event_type: CalendarEventType;
+  all_day: boolean;
+  start_time?: string;
+  end_time?: string;
+  color?: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// ============================================================
+// Staff Time Off (DB table exists, UI deferred)
+// ============================================================
+
+export type TimeOffReason = 'vacation' | 'sick' | 'personal' | 'other';
+export type TimeOffStatus = 'pending' | 'approved' | 'denied';
+
+export interface StaffTimeOff {
+  id: string;
+  staff_id: string;
+  start_date: string;
+  end_date: string;
+  reason?: TimeOffReason;
+  notes?: string;
+  status: TimeOffStatus;
+  created_at: string;
+  updated_at: string;
+}

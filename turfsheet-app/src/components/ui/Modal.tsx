@@ -32,9 +32,9 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
             />
 
             {/* Modal Content */}
-            <div className="relative bg-panel-white w-full max-w-xl shadow-2xl border border-border-color transform transition-all animate-in fade-in zoom-in duration-300">
+            <div className="relative bg-panel-white w-full max-w-xl max-h-[90vh] flex flex-col shadow-2xl border border-border-color transform transition-all animate-in fade-in zoom-in duration-300">
                 {/* Header - Turf Green as per Job Cards */}
-                <div className="bg-turf-green px-6 py-4 flex items-center justify-between">
+                <div className="bg-turf-green px-6 py-4 flex items-center justify-between shrink-0">
                     <h2 className="text-white font-heading font-black text-sm uppercase tracking-[0.2em]">
                         {title}
                     </h2>
@@ -47,7 +47,7 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
                 </div>
 
                 {/* Body */}
-                <div className="p-8">
+                <div className="p-8 overflow-y-auto">
                     {children}
                 </div>
             </div>

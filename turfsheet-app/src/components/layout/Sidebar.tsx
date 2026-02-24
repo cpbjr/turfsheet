@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import {
   House, Calendar, Users, Briefcase, FolderKanban,
-  BarChart3, MapPin, MessageSquare, History, FileText,
+  BarChart3, MapPin, FlaskConical, Droplets, FileText,
   GraduationCap, Settings, Package, LogOut
 } from 'lucide-react';
 
@@ -17,11 +17,11 @@ export default function Sidebar() {
     { id: 'projects', icon: FolderKanban, label: 'Projects', path: '/projects' },
     { id: 'analytics', icon: BarChart3, label: 'Analytics', path: '/analytics' },
     { id: 'maps', icon: MapPin, label: 'Maps', path: '/maps' },
-    { id: 'messages', icon: MessageSquare, label: 'Messaging', path: '/messages' },
+    { id: 'pesticide', icon: FlaskConical, label: 'Pesticide Log', path: '/pesticide' },
+    { id: 'irrigation', icon: Droplets, label: 'Irrigation', path: '/irrigation' },
   ];
 
   const bottomNav = [
-    { id: 'history', icon: History, label: 'History', path: '/history' },
     { id: 'docs', icon: FileText, label: 'Documents', path: '/docs' },
     { id: 'training', icon: GraduationCap, label: 'Training', path: '/training' },
     { id: 'settings', icon: Settings, label: 'Settings', path: '/settings' },
