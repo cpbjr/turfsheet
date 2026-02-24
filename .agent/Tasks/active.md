@@ -3,11 +3,28 @@
 
 # Active Tasks
 
-Last Updated: 2026-02-16 14:30 UTC
+Last Updated: 2026-02-24
 
 ## Active Tasks
 
-(No active tasks at this time)
+### Fix: Dashboard Announcements — No way to add/edit announcements
+**Priority:** High (core dashboard feature gap)
+**Status:** Not started
+**Date Added:** 2026-02-24
+
+**Problem:** The `daily_board` table and `announcements` column exist in the database, and the `DailyBoard` TypeScript type is defined, but the RightPanel only shows a hardcoded "No announcements at this time" message. There is no UI to create, edit, or delete announcements.
+
+**Scope:**
+- Add an editable announcements section to the dashboard (RightPanel or dedicated modal)
+- Fetch announcements from `turfsheet.daily_board` for the current date
+- Allow adding/editing announcement text
+- Auto-create a `daily_board` row for today if one doesn't exist
+- Display saved announcements instead of the static placeholder
+
+**Key Files:**
+- `src/components/layout/RightPanel.tsx` — current placeholder display
+- `src/types/index.ts` — `DailyBoard` interface (already defined)
+- DB table: `turfsheet.daily_board` (migration exists, RLS policies set)
 
 
 ---
@@ -36,6 +53,6 @@ See `completed/2026-02/` for completed tasks including:
 See [planned.md](file:///home/cpbjr/WhitePineTech/Projects/TurfSheet/.agent/Tasks/planned.md) for upcoming work.
 
 1. Create a site style guide. (Completed)
-2. Create a site on whitepine-tech.com for TurfSheet. (On Hold)
+2. Create a site on whitepine-tech.com for TurfSheet. (Completed)
 3. Move implemented plans from Implemented/ to completed/ as of yesterday. (On Hold)
 3.2 Equipment page (On Hold)
