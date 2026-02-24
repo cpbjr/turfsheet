@@ -7,6 +7,33 @@ Last Updated: 2026-02-24
 
 ## Active Tasks
 
+### BanburyMaintenance Integration — Phase 1: Database Foundation
+**Priority:** High
+**Status:** In Progress
+**Date Added:** 2026-02-24
+
+**Goal:** Maintenance issue tables exist in TurfSheet's Supabase, ready for Tom to write to.
+
+**Completed:**
+- [x] Migration SQL: `maintenance` schema, `issues` table, `reporters` table, indexes, RLS policies
+- [x] Storage bucket: `maintenance-photos` (public, 20MB limit)
+- [x] TypeScript types: `MaintenanceIssue`, `MaintenanceReporter`, `IssueStatus`, `IssuePriority`
+- [x] Supabase client: `maintenanceSupabase` in `lib/supabase.ts`
+
+**Remaining (manual steps):**
+- [ ] Run migration: `npx supabase@latest db push`
+- [ ] Expose `maintenance` schema in Supabase Dashboard → Settings → API → Exposed Schemas
+- [ ] Migrate ~50 existing issues from legacy project (`klyzdnocgrvassppripi`)
+
+**Key Files:**
+- `supabase/migrations/20260224200000_create_maintenance_schema.sql`
+- `turfsheet-app/src/types/index.ts` (new types added at bottom)
+- `turfsheet-app/src/lib/supabase.ts` (new `maintenanceSupabase` client)
+
+**Implementation Plan:** `.agent/Tasks/Implementation/implementation-maintenance-integration.md`
+
+---
+
 ### Fix: Dashboard Announcements — No way to add/edit announcements
 **Priority:** High (core dashboard feature gap)
 **Status:** Not started

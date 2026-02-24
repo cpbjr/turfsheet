@@ -263,3 +263,40 @@ export interface StaffTimeOff {
   created_at: string;
   updated_at: string;
 }
+
+// ============================================================
+// Maintenance Issues (BanburyMaintenance integration via Old Tom)
+// ============================================================
+
+export type IssueStatus = 'Open' | 'In Progress' | 'Completed';
+export type IssuePriority = 'Low' | 'Medium' | 'High';
+
+export interface MaintenanceIssue {
+  id: number;
+  issue_number: number;
+  description: string;
+  location_area?: string;
+  location_detail?: string;
+  location_position?: string;
+  status: IssueStatus;
+  priority: IssuePriority;
+  reporter_name?: string;
+  reporter_telegram_id?: string;
+  photo_url?: string;
+  notes?: string;
+  assigned_to?: string;
+  created_at: string;
+  updated_at: string;
+  completed_at?: string;
+}
+
+export interface MaintenanceReporter {
+  telegram_id: string;
+  name: string;
+  role?: string;
+  is_active: boolean;
+  message_count: number;
+  last_message_date?: string;
+  created_at: string;
+  updated_at: string;
+}
