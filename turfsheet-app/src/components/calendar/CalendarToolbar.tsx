@@ -45,7 +45,8 @@ function CalendarToolbar({ label, onNavigate, onAddEvent }: CalendarToolbarProps
  * not a component with extra props.
  */
 export function createCalendarToolbar(onAddEvent: () => void) {
-  return function ToolbarWithAddEvent(props: ToolbarProps) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return function ToolbarWithAddEvent(props: ToolbarProps<any, object>) {
     return <CalendarToolbar {...props} onAddEvent={onAddEvent} />;
   };
 }
