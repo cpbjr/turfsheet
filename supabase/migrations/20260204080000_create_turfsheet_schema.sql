@@ -1,6 +1,6 @@
--- Migration: Drop turfsheet schema if exists
+-- Migration: Create turfsheet schema
 -- Date: 2026-02-04
--- Description: Remove the turfsheet schema and consolidate tables to public schema
--- Rollback: CREATE SCHEMA IF NOT EXISTS turfsheet;
+-- Description: Create the turfsheet schema for all TurfSheet tables
+-- Rollback: DROP SCHEMA IF EXISTS turfsheet CASCADE;
 
-DROP SCHEMA IF EXISTS turfsheet CASCADE;
+CREATE SCHEMA IF NOT EXISTS turfsheet;

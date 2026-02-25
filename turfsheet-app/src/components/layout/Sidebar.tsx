@@ -2,7 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   House, Calendar, Users, Briefcase, FolderKanban,
   BarChart3, MapPin, FlaskConical, Droplets, FileText,
-  GraduationCap, Settings, Package, LogOut
+  GraduationCap, Settings, Package, LogOut, AlertTriangle
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -11,6 +11,7 @@ export default function Sidebar() {
   const topNav = [
     { id: 'dashboard', icon: House, label: 'Dashboard', path: '/' },
     { id: 'calendar', icon: Calendar, label: 'Calendar', path: '/calendar' },
+    { id: 'maintenance', icon: AlertTriangle, label: 'Maintenance', path: '/maintenance' },
     { id: 'staff', icon: Users, label: 'Staff', path: '/staff' },
     { id: 'equipment', icon: Package, label: 'Equipment', path: '/equipment' },
     { id: 'jobs', icon: Briefcase, label: 'Jobs', path: '/jobs' },

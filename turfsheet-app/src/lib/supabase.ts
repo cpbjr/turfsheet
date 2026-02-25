@@ -13,9 +13,3 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 });
 
-// Separate client for the maintenance schema (BanburyMaintenance integration)
-export const maintenanceSupabase = createClient(supabaseUrl, supabaseAnonKey, {
-  db: {
-    schema: 'maintenance',
-  },
-});

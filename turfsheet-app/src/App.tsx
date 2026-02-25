@@ -12,6 +12,7 @@ import EquipmentPage from './pages/EquipmentPage';
 import CalendarPage from './pages/CalendarPage';
 import PesticidePage from './pages/PesticidePage';
 import IrrigationPage from './pages/IrrigationPage';
+import MaintenancePage from './pages/MaintenancePage';
 import Modal from './components/ui/Modal';
 import JobForm from './components/jobs/JobForm';
 
@@ -59,6 +60,7 @@ function App() {
                 <Route path="/calendar" element={<CalendarPage />} />
                 <Route path="/pesticide" element={<PesticidePage />} />
                 <Route path="/irrigation" element={<IrrigationPage />} />
+                <Route path="/maintenance" element={<MaintenancePage />} />
                 <Route path="/settings" element={<Settings />} />
                 {/* Fallback to Dashboard */}
                 <Route
