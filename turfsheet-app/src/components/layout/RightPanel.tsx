@@ -32,7 +32,7 @@ export default function RightPanel() {
 
     const { data, error } = await supabase
       .from('staff_schedules')
-      .select('*, staff:staff_id(id, name, role, rank)');
+      .select('*, staff:staff_id(id, name, role, sort_order)');
 
     if (error) {
       // Table may not exist yet - just show empty state
@@ -46,7 +46,7 @@ export default function RightPanel() {
       const working = (data as StaffSchedule[])
         .filter(schedule => schedule[dayColumn])
         .map(schedule => schedule.staff)
-        .sort((a, b) => a.rank - b.rank);
+        .sort((a, b) => a.sort_order - b.sort_order);
       setWorkingStaff(working);
     }
     setLoading(false);

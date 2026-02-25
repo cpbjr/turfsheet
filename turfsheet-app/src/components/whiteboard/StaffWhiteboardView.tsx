@@ -34,10 +34,10 @@ export default function StaffWhiteboardView({
 
   // Fetch dynamic data (assignments) when date changes
   useEffect(() => {
-    if (staffList.length > 0 && availableJobs.length > 0) {
+    if (staffList.length > 0) {
       fetchAssignmentsForDate();
     }
-  }, [selectedDate, staffList.length, availableJobs.length]);
+  }, [selectedDate, staffList.length]);
 
   // Fetch staff and jobs once (they rarely change)
   const fetchStaticData = async () => {
@@ -49,7 +49,7 @@ export default function StaffWhiteboardView({
       const { data: staffData, error: staffError } = await supabase
         .from('staff')
         .select('*')
-        .order('rank', { ascending: true })
+        .order('sort_order', { ascending: true })
         .order('name', { ascending: true });
 
       if (staffError) throw staffError;
@@ -58,7 +58,6 @@ export default function StaffWhiteboardView({
       const { data: jobsList, error: jobsError } = await supabase
         .from('jobs')
         .select('*')
-        .eq('section', 'First Jobs')
         .order('title', { ascending: true });
 
       if (jobsError) throw jobsError;

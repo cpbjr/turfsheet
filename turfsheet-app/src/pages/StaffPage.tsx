@@ -23,7 +23,7 @@ export default function StaffPage() {
                 const { data, error: fetchError } = await supabase
                     .from('staff')
                     .select('*')
-                    .order('rank', { ascending: true })
+                    .order('sort_order', { ascending: true })
                     .order('name', { ascending: true });
 
                 if (fetchError) throw fetchError;
