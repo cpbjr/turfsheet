@@ -20,7 +20,7 @@ export interface Job {
 export interface Staff {
   id: string;
   role: string;
-  rank: number; // Hierarchical rank for display order (1=highest)
+  sort_order: number; // Hierarchical rank for display order (1=highest)
   name: string;
   telephone: string;
   telegram_id: string;
