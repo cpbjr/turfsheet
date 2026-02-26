@@ -164,10 +164,10 @@ export default function SecondJobsBoardPanel({
   return (
     <div className="flex flex-col h-full border-l border-border-color bg-panel-white">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 bg-turf-green">
-        <h2 className="text-[0.6rem] font-heading font-black text-white uppercase tracking-[0.2em]">
-          Second Jobs Board
-        </h2>
+      <div className="flex items-center justify-between px-6 py-3 bg-turf-green border-t border-turf-green/20 shadow-sm">
+        <span className="text-[0.6rem] font-heading font-black text-white uppercase tracking-[0.2em]">
+          Second Jobs
+        </span>
         <AddSecondJobDropdown onAdd={handleAddToBoard} />
       </div>
 

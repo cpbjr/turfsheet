@@ -11,6 +11,9 @@ export default function JobsPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isAddJobModalOpen, setIsAddJobModalOpen] = useState(false);
+    const [isEditJobModalOpen, setIsEditJobModalOpen] = useState(false);
+    const [jobToEdit, setJobToEdit] = useState<Job | null>(null);
+    const [confirmDelete, setConfirmDelete] = useState(false);
 
     useEffect(() => {
         const fetchJobs = async () => {
@@ -41,7 +44,6 @@ export default function JobsPage() {
     const handleSaveJob = async (formData: any) => {
         try {
             setError(null);
-            console.log('Inserting job template:', formData);
             const { data, error: insertError } = await supabase
                 .from('jobs')
                 .insert([formData])
@@ -49,13 +51,61 @@ export default function JobsPage() {
 
             if (insertError) throw insertError;
 
-            console.log('Job template created successfully:', data);
             setJobTemplates([...(data || []), ...jobTemplates]);
             setIsAddJobModalOpen(false);
         } catch (err) {
             const message = err instanceof Error ? err.message : 'Failed to create job template';
             setError(message);
             console.error('Error creating job template:', err);
+        }
+    };
+
+    const handleEditJob = (job: Job) => {
+        setJobToEdit(job);
+        setConfirmDelete(false);
+        setIsEditJobModalOpen(true);
+    };
+
+    const handleUpdateJob = async (formData: any) => {
+        if (!jobToEdit) return;
+        try {
+            setError(null);
+            const { data, error: updateError } = await supabase
+                .from('jobs')
+                .update(formData)
+                .eq('id', jobToEdit.id)
+                .select();
+
+            if (updateError) throw updateError;
+
+            setJobTemplates(jobTemplates.map((j) => (j.id === jobToEdit.id ? data![0] : j)));
+            setIsEditJobModalOpen(false);
+            setJobToEdit(null);
+        } catch (err) {
+            const message = err instanceof Error ? err.message : 'Failed to update job template';
+            setError(message);
+            console.error('Error updating job template:', err);
+        }
+    };
+
+    const handleDeleteJob = async () => {
+        if (!jobToEdit) return;
+        try {
+            setError(null);
+            const { error: deleteError } = await supabase
+                .from('jobs')
+                .delete()
+                .eq('id', jobToEdit.id);
+
+            if (deleteError) throw deleteError;
+
+            setJobTemplates(jobTemplates.filter((j) => j.id !== jobToEdit.id));
+            setIsEditJobModalOpen(false);
+            setJobToEdit(null);
+        } catch (err) {
+            const message = err instanceof Error ? err.message : 'Failed to delete job template';
+            setError(message);
+            console.error('Error deleting job template:', err);
         }
     };
 
@@ -135,6 +185,9 @@ export default function JobsPage() {
                                 priority={job.priority}
                                 description={job.description}
                                 section={job.section}
+                                isScheduled={job.is_scheduled}
+                                scheduledDays={job.scheduled_days}
+                                onEdit={() => handleEditJob(job)}
                             />
                         ))}
                     </div>
@@ -151,6 +204,53 @@ export default function JobsPage() {
                     onSubmit={handleSaveJob}
                     onCancel={() => setIsAddJobModalOpen(false)}
                 />
+            </Modal>
+
+            {/* Edit Job Modal */}
+            <Modal
+                isOpen={isEditJobModalOpen}
+                onClose={() => { setIsEditJobModalOpen(false); setJobToEdit(null); setConfirmDelete(false); }}
+                title="Edit Job Template"
+            >
+                {jobToEdit && (
+                    <>
+                        <JobForm
+                            initialData={jobToEdit}
+                            onSubmit={handleUpdateJob}
+                            onCancel={() => { setIsEditJobModalOpen(false); setJobToEdit(null); }}
+                        />
+                        <div className="mt-6 pt-6 border-t border-border-color">
+                            {!confirmDelete ? (
+                                <button
+                                    onClick={() => setConfirmDelete(true)}
+                                    className="w-full px-6 py-3 border border-red-300 text-red-500 font-heading font-black text-[0.7rem] uppercase tracking-[0.2em] hover:bg-red-50 transition-colors"
+                                >
+                                    Delete Job
+                                </button>
+                            ) : (
+                                <div className="space-y-3">
+                                    <p className="text-[0.75rem] font-sans text-red-500 text-center">
+                                        Are you sure? This cannot be undone.
+                                    </p>
+                                    <div className="flex gap-3">
+                                        <button
+                                            onClick={() => setConfirmDelete(false)}
+                                            className="flex-1 px-4 py-3 border border-border-color text-text-secondary font-heading font-black text-[0.7rem] uppercase tracking-[0.2em] hover:bg-dashboard-bg transition-colors"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={handleDeleteJob}
+                                            className="flex-1 px-4 py-3 bg-red-500 text-white font-heading font-black text-[0.7rem] uppercase tracking-[0.2em] hover:bg-red-600 transition-colors"
+                                        >
+                                            Yes, Delete
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </>
+                )}
             </Modal>
         </div>
     );

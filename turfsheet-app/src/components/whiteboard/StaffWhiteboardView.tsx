@@ -234,7 +234,7 @@ export default function StaffWhiteboardView({
         .insert({
           title: formData.title,
           description: formData.description,
-          crew_needed: formData.crewNeeded,
+          crew_needed: formData.crew_needed,
           priority: formData.priority,
           section: formData.section,
         });
@@ -286,11 +286,11 @@ export default function StaffWhiteboardView({
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Header Row */}
           <div className="grid grid-cols-[2fr_3fr] gap-4 px-6 py-3 bg-turf-green border-x border-t border-turf-green/20 shadow-sm">
-            <span className="text-[0.6rem] font-heading font-black text-white uppercase tracking-[0.2em]">
+            <span className="text-xs font-heading font-black text-white uppercase tracking-[0.2em]">
               Staff Name
             </span>
-            <span className="text-[0.6rem] font-heading font-black text-white uppercase tracking-[0.2em]">
-              Primary Job
+            <span className="text-xs font-heading font-black text-white uppercase tracking-[0.2em]">
+              First Jobs
             </span>
           </div>
 

@@ -3,20 +3,34 @@ import React, { useState } from 'react';
 interface StaffFormProps {
     onSubmit: (data: any) => void;
     onCancel: () => void;
+    initialData?: {
+        name: string;
+        role: string;
+        telephone: string;
+        telegram_id: string;
+        notes: string;
+    };
 }
 
-export default function StaffForm({ onSubmit, onCancel }: StaffFormProps) {
+export default function StaffForm({ onSubmit, onCancel, initialData }: StaffFormProps) {
     const [formData, setFormData] = useState({
-        name: '',
-        role: '',
-        telephone: '',
-        telegram_id: '',
-        notes: ''
+        name: initialData?.name ?? '',
+        role: initialData?.role ?? '',
+        telephone: initialData?.telephone ?? '',
+        telegram_id: initialData?.telegram_id ?? '',
+        notes: initialData?.notes ?? ''
     });
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         onSubmit(formData);
+    };
+
+    const formatPhone = (value: string): string => {
+        const digits = value.replace(/\D/g, '').slice(0, 10);
+        if (digits.length <= 3) return digits.length ? `(${digits}` : '';
+        if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+        return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
     };
 
     const inputClasses = "w-full bg-dashboard-bg border border-border-color px-4 py-3 text-sm focus:border-turf-green outline-none transition-colors font-sans";
@@ -54,9 +68,9 @@ export default function StaffForm({ onSubmit, onCancel }: StaffFormProps) {
                     <input
                         type="text"
                         className={inputClasses}
-                        placeholder="e.g. +1 (555) 123-4567"
+                        placeholder="(208) 555-1234"
                         value={formData.telephone}
-                        onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
+                        onChange={(e) => setFormData({ ...formData, telephone: formatPhone(e.target.value) })}
                     />
                 </div>
                 <div>
@@ -93,7 +107,7 @@ export default function StaffForm({ onSubmit, onCancel }: StaffFormProps) {
                     type="submit"
                     className="flex-1 px-6 py-4 bg-turf-green text-white font-heading font-black text-[0.7rem] uppercase tracking-[0.2em] hover:bg-turf-green-dark transition-colors shadow-sm"
                 >
-                    Create Staff Member
+                    {initialData ? 'Save Changes' : 'Create Staff Member'}
                 </button>
             </div>
         </form>
