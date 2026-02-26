@@ -11,6 +11,8 @@ export default function StaffPage() {
     const [selectedStaff, setSelectedStaff] = useState<any>(null);
     const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
     const [isAddStaffModalOpen, setIsAddStaffModalOpen] = useState(false);
+    const [isEditStaffModalOpen, setIsEditStaffModalOpen] = useState(false);
+    const [staffToEdit, setStaffToEdit] = useState<any>(null);
     const [staffMembers, setStaffMembers] = useState<Staff[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -43,6 +45,32 @@ export default function StaffPage() {
     const handleManageSchedule = (staff: any) => {
         setSelectedStaff(staff);
         setIsScheduleModalOpen(true);
+    };
+
+    const handleEditStaff = (staff: any) => {
+        setStaffToEdit(staff);
+        setIsEditStaffModalOpen(true);
+    };
+
+    const handleUpdateStaff = async (formData: any) => {
+        try {
+            setError(null);
+            const { data, error: updateError } = await supabase
+                .from('staff')
+                .update(formData)
+                .eq('id', staffToEdit.id)
+                .select();
+
+            if (updateError) throw updateError;
+
+            setStaffMembers(staffMembers.map((s) => (s.id === staffToEdit.id ? data![0] : s)));
+            setIsEditStaffModalOpen(false);
+            setStaffToEdit(null);
+        } catch (err) {
+            const message = err instanceof Error ? err.message : 'Failed to update staff member';
+            setError(message);
+            console.error('Error updating staff member:', err);
+        }
     };
 
     const handleSaveSchedule = async (scheduleData: any) => {
@@ -207,6 +235,7 @@ export default function StaffPage() {
                                 telegramId={staff.telegram_id}
                                 notes={staff.notes}
                                 onManageSchedule={() => handleManageSchedule(staff)}
+                                onEdit={() => handleEditStaff(staff)}
                             />
                         ))}
                     </div>
@@ -241,6 +270,21 @@ export default function StaffPage() {
                     onSubmit={handleSaveStaff}
                     onCancel={() => setIsAddStaffModalOpen(false)}
                 />
+            </Modal>
+
+            {/* Edit Staff Modal */}
+            <Modal
+                isOpen={isEditStaffModalOpen}
+                onClose={() => { setIsEditStaffModalOpen(false); setStaffToEdit(null); }}
+                title="Edit Staff Member"
+            >
+                {staffToEdit && (
+                    <StaffForm
+                        initialData={staffToEdit}
+                        onSubmit={handleUpdateStaff}
+                        onCancel={() => { setIsEditStaffModalOpen(false); setStaffToEdit(null); }}
+                    />
+                )}
             </Modal>
         </div>
     );

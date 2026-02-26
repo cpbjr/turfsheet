@@ -2,6 +2,8 @@
 // Job Templates (primary jobs library)
 // ============================================================
 
+export type DayOfWeek = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
+
 export interface Job {
   id: string;
   title: string;
@@ -9,8 +11,27 @@ export interface Job {
   crew_needed: number;
   priority?: 'Low' | 'Normal' | 'High' | 'Urgent';
   section: 'First Jobs' | 'Second Jobs';
+  is_scheduled: boolean;
+  scheduled_days: DayOfWeek[];
   created_at: string;
   updated_at: string;
+}
+
+// ============================================================
+// Scheduled Job Queue (auto-populated daily inbox)
+// ============================================================
+
+export interface ScheduledJobQueue {
+  id: string;
+  job_id: string;
+  queue_date: string; // ISO date YYYY-MM-DD
+  dismissed: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ScheduledJobQueueWithJob extends ScheduledJobQueue {
+  job: Job;
 }
 
 // ============================================================

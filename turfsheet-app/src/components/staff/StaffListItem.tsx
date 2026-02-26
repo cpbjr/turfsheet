@@ -6,10 +6,11 @@ interface StaffListItemProps {
     telephone: string;
     telegramId: string;
     onManageSchedule: () => void;
+    onEdit: () => void;
     notes?: string | null;
 }
 
-export default function StaffListItem({ role, name, telephone, telegramId, onManageSchedule, notes }: StaffListItemProps) {
+export default function StaffListItem({ role, name, telephone, telegramId, onManageSchedule, onEdit, notes }: StaffListItemProps) {
     return (
         <div className="grid grid-cols-[1fr_2fr_1.5fr_1.5fr_1fr_2fr_auto] items-center gap-4 px-6 py-4 bg-panel-white border border-border-color hover:border-turf-green transition-all duration-200 group">
             {/* Role */}
@@ -50,7 +51,7 @@ export default function StaffListItem({ role, name, telephone, telegramId, onMan
             </div>
 
             {/* More Actions */}
-            <button className="p-1 hover:bg-dashboard-bg rounded-sm text-text-muted transition-colors">
+            <button onClick={onEdit} className="p-1 hover:bg-dashboard-bg rounded-sm text-text-muted transition-colors" title="Edit staff member">
                 <MoreHorizontal className="w-4 h-4" />
             </button>
         </div>
