@@ -1,18 +1,22 @@
 import React, { useState } from 'react';
-import type { Staff } from '../../types';
+import type { Staff, ChemicalProduct } from '../../types';
 
 interface PesticideFormProps {
     onSubmit: (data: any) => void;
     onCancel: () => void;
     staffMembers: Staff[];
+    products?: ChemicalProduct[];
 }
 
-export default function PesticideForm({ onSubmit, onCancel, staffMembers }: PesticideFormProps) {
+export default function PesticideForm({ onSubmit, onCancel, staffMembers, products = [] }: PesticideFormProps) {
     const today = new Date().toISOString().split('T')[0];
+    const now = new Date().toTimeString().slice(0, 5);
 
     const [formData, setFormData] = useState({
         application_date: today,
+        application_time: now,
         operator_id: '',
+        applicator_license: '',
         product_name: '',
         epa_registration_number: '',
         active_ingredient: '',
@@ -26,14 +30,44 @@ export default function PesticideForm({ onSubmit, onCancel, staffMembers }: Pest
         weather_conditions: '',
         temperature: '',
         wind_speed: '',
+        wind_direction: '',
+        humidity: '',
         notes: ''
     });
+
+    const [selectedProductId, setSelectedProductId] = useState<string>('');
+
+    const handleProductSelect = (productId: string) => {
+        setSelectedProductId(productId);
+        if (!productId) return;
+
+        const product = products.find(p => p.id === parseInt(productId));
+        if (!product) return;
+
+        setFormData(prev => ({
+            ...prev,
+            product_name: product.name,
+            epa_registration_number: product.epa_registration || '',
+            active_ingredient: product.active_ingredient || '',
+            application_rate: product.default_rate
+                ? `${product.default_rate} ${product.rate_unit.replace('sqft', ' sq ft')}`
+                : '',
+            rei_hours: product.rei_hours ? product.rei_hours.toString() : '',
+            method: product.carrier_volume_gal === 0 ? 'granular' : (prev.method || 'spray'),
+        }));
+    };
+
+    const selectedProduct = selectedProductId
+        ? products.find(p => p.id === parseInt(selectedProductId))
+        : null;
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         const cleanedData = {
             ...formData,
             operator_id: formData.operator_id || undefined,
+            applicator_license: formData.applicator_license || undefined,
+            application_time: formData.application_time || undefined,
             epa_registration_number: formData.epa_registration_number || undefined,
             active_ingredient: formData.active_ingredient || undefined,
             target_pest: formData.target_pest || undefined,
@@ -44,6 +78,8 @@ export default function PesticideForm({ onSubmit, onCancel, staffMembers }: Pest
             weather_conditions: formData.weather_conditions || undefined,
             temperature: formData.temperature || undefined,
             wind_speed: formData.wind_speed || undefined,
+            wind_direction: formData.wind_direction || undefined,
+            humidity: formData.humidity || undefined,
             notes: formData.notes || undefined
         };
         onSubmit(cleanedData);
@@ -52,12 +88,49 @@ export default function PesticideForm({ onSubmit, onCancel, staffMembers }: Pest
     const inputClasses = "w-full bg-dashboard-bg border border-border-color px-4 py-3 text-sm focus:border-turf-green outline-none transition-colors font-sans";
     const labelClasses = "block text-[0.65rem] font-heading font-black text-text-secondary uppercase tracking-widest mb-2";
 
+    const SIGNAL_COLORS: Record<string, string> = {
+        CAUTION: 'bg-yellow-50 border-yellow-400 text-yellow-800',
+        WARNING: 'bg-orange-50 border-orange-400 text-orange-800',
+        DANGER: 'bg-red-50 border-red-400 text-red-800',
+    };
+
     return (
         <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Row 1: Date | Operator */}
-            <div className="grid grid-cols-2 gap-4">
+            {/* Product Library Selection */}
+            {products.length > 0 && (
+                <div className="bg-turf-green-light border border-turf-green/30 p-4">
+                    <label className={labelClasses}>Select from Product Library</label>
+                    <select
+                        className={inputClasses}
+                        value={selectedProductId}
+                        onChange={(e) => handleProductSelect(e.target.value)}
+                    >
+                        <option value="">-- Type manually or select a product --</option>
+                        {products.map((p) => (
+                            <option key={p.id} value={p.id}>
+                                {p.name} {p.signal_word ? `[${p.signal_word}]` : ''}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            )}
+
+            {/* Warnings for selected product */}
+            {selectedProduct && (selectedProduct.warnings || selectedProduct.signal_word) && (
+                <div className={`border-l-4 p-3 text-xs ${SIGNAL_COLORS[selectedProduct.signal_word || 'CAUTION']}`}>
+                    <p className="font-heading font-black uppercase tracking-wider text-[0.6rem] mb-1">
+                        {selectedProduct.signal_word || 'CAUTION'} — {selectedProduct.name}
+                    </p>
+                    {selectedProduct.warnings && (
+                        <p className="font-sans leading-relaxed">{selectedProduct.warnings}</p>
+                    )}
+                </div>
+            )}
+
+            {/* Row 1: Date | Time | Operator */}
+            <div className="grid grid-cols-3 gap-4">
                 <div>
-                    <label className={labelClasses}>Application Date</label>
+                    <label className={labelClasses}>Application Date *</label>
                     <input
                         required
                         type="date"
@@ -67,7 +140,16 @@ export default function PesticideForm({ onSubmit, onCancel, staffMembers }: Pest
                     />
                 </div>
                 <div>
-                    <label className={labelClasses}>Operator</label>
+                    <label className={labelClasses}>Application Time</label>
+                    <input
+                        type="time"
+                        className={inputClasses}
+                        value={formData.application_time}
+                        onChange={(e) => setFormData({ ...formData, application_time: e.target.value })}
+                    />
+                </div>
+                <div>
+                    <label className={labelClasses}>Operator *</label>
                     <select
                         required
                         className={inputClasses}
@@ -82,10 +164,34 @@ export default function PesticideForm({ onSubmit, onCancel, staffMembers }: Pest
                 </div>
             </div>
 
-            {/* Row 2: Product | EPA # */}
+            {/* Applicator License (Idaho requirement) */}
             <div className="grid grid-cols-2 gap-4">
                 <div>
-                    <label className={labelClasses}>Product Name</label>
+                    <label className={labelClasses}>Applicator License # (Idaho)</label>
+                    <input
+                        type="text"
+                        className={inputClasses}
+                        placeholder="e.g. ID-12345"
+                        value={formData.applicator_license}
+                        onChange={(e) => setFormData({ ...formData, applicator_license: e.target.value })}
+                    />
+                </div>
+                <div>
+                    <label className={labelClasses}>Target Pest / Purpose</label>
+                    <input
+                        type="text"
+                        className={inputClasses}
+                        placeholder="e.g. Dollar spot, broadleaf weeds"
+                        value={formData.target_pest}
+                        onChange={(e) => setFormData({ ...formData, target_pest: e.target.value })}
+                    />
+                </div>
+            </div>
+
+            {/* Product | EPA # */}
+            <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <label className={labelClasses}>Product Name *</label>
                     <input
                         required
                         type="text"
@@ -107,34 +213,22 @@ export default function PesticideForm({ onSubmit, onCancel, staffMembers }: Pest
                 </div>
             </div>
 
-            {/* Row 3: Active Ingredient | Target Pest */}
-            <div className="grid grid-cols-2 gap-4">
-                <div>
-                    <label className={labelClasses}>Active Ingredient</label>
-                    <input
-                        type="text"
-                        className={inputClasses}
-                        placeholder="e.g. Trinexapac-ethyl"
-                        value={formData.active_ingredient}
-                        onChange={(e) => setFormData({ ...formData, active_ingredient: e.target.value })}
-                    />
-                </div>
-                <div>
-                    <label className={labelClasses}>Target Pest</label>
-                    <input
-                        type="text"
-                        className={inputClasses}
-                        placeholder="e.g. Dollar spot, crabgrass"
-                        value={formData.target_pest}
-                        onChange={(e) => setFormData({ ...formData, target_pest: e.target.value })}
-                    />
-                </div>
+            {/* Active Ingredient */}
+            <div>
+                <label className={labelClasses}>Active Ingredient</label>
+                <input
+                    type="text"
+                    className={inputClasses}
+                    placeholder="e.g. Trinexapac-ethyl"
+                    value={formData.active_ingredient}
+                    onChange={(e) => setFormData({ ...formData, active_ingredient: e.target.value })}
+                />
             </div>
 
-            {/* Row 4: Application Rate | Total Amount */}
+            {/* Application Rate | Total Amount */}
             <div className="grid grid-cols-2 gap-4">
                 <div>
-                    <label className={labelClasses}>Application Rate</label>
+                    <label className={labelClasses}>Application Rate *</label>
                     <input
                         required
                         type="text"
@@ -156,10 +250,10 @@ export default function PesticideForm({ onSubmit, onCancel, staffMembers }: Pest
                 </div>
             </div>
 
-            {/* Row 5: Area Applied | Area Size */}
+            {/* Area Applied | Area Size */}
             <div className="grid grid-cols-2 gap-4">
                 <div>
-                    <label className={labelClasses}>Area Applied</label>
+                    <label className={labelClasses}>Area / Location Applied *</label>
                     <input
                         required
                         type="text"
@@ -170,7 +264,7 @@ export default function PesticideForm({ onSubmit, onCancel, staffMembers }: Pest
                     />
                 </div>
                 <div>
-                    <label className={labelClasses}>Area Size</label>
+                    <label className={labelClasses}>Area Size (sq ft or acres)</label>
                     <input
                         type="text"
                         className={inputClasses}
@@ -181,7 +275,7 @@ export default function PesticideForm({ onSubmit, onCancel, staffMembers }: Pest
                 </div>
             </div>
 
-            {/* Row 6: Method | REI Hours */}
+            {/* Method | REI Hours */}
             <div className="grid grid-cols-2 gap-4">
                 <div>
                     <label className={labelClasses}>Application Method</label>
@@ -211,41 +305,82 @@ export default function PesticideForm({ onSubmit, onCancel, staffMembers }: Pest
                 </div>
             </div>
 
-            {/* Row 7: Weather | Temperature | Wind Speed */}
-            <div className="grid grid-cols-3 gap-4">
-                <div>
-                    <label className={labelClasses}>Weather Conditions</label>
-                    <input
-                        type="text"
-                        className={inputClasses}
-                        placeholder="e.g. Sunny, clear"
-                        value={formData.weather_conditions}
-                        onChange={(e) => setFormData({ ...formData, weather_conditions: e.target.value })}
-                    />
+            {/* Weather Conditions - Idaho compliance */}
+            <div className="border-t border-border-color pt-4">
+                <p className="text-[0.6rem] font-heading font-black text-text-secondary uppercase tracking-widest mb-3">
+                    Weather Conditions at Time of Application
+                </p>
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label className={labelClasses}>Temperature (F)</label>
+                        <input
+                            type="text"
+                            className={inputClasses}
+                            placeholder="e.g. 72"
+                            value={formData.temperature}
+                            onChange={(e) => setFormData({ ...formData, temperature: e.target.value })}
+                        />
+                    </div>
+                    <div>
+                        <label className={labelClasses}>Wind Speed (mph)</label>
+                        <input
+                            type="text"
+                            className={inputClasses}
+                            placeholder="e.g. 5"
+                            value={formData.wind_speed}
+                            onChange={(e) => setFormData({ ...formData, wind_speed: e.target.value })}
+                        />
+                    </div>
                 </div>
-                <div>
-                    <label className={labelClasses}>Temperature</label>
-                    <input
-                        type="text"
-                        className={inputClasses}
-                        placeholder="e.g. 72F"
-                        value={formData.temperature}
-                        onChange={(e) => setFormData({ ...formData, temperature: e.target.value })}
-                    />
-                </div>
-                <div>
-                    <label className={labelClasses}>Wind Speed</label>
-                    <input
-                        type="text"
-                        className={inputClasses}
-                        placeholder="e.g. 5 mph"
-                        value={formData.wind_speed}
-                        onChange={(e) => setFormData({ ...formData, wind_speed: e.target.value })}
-                    />
+                <div className="grid grid-cols-3 gap-4 mt-4">
+                    <div>
+                        <label className={labelClasses}>Wind Direction</label>
+                        <select
+                            className={inputClasses}
+                            value={formData.wind_direction}
+                            onChange={(e) => setFormData({ ...formData, wind_direction: e.target.value })}
+                        >
+                            <option value="">Select...</option>
+                            <option value="N">North</option>
+                            <option value="NE">Northeast</option>
+                            <option value="E">East</option>
+                            <option value="SE">Southeast</option>
+                            <option value="S">South</option>
+                            <option value="SW">Southwest</option>
+                            <option value="W">West</option>
+                            <option value="NW">Northwest</option>
+                            <option value="Calm">Calm</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label className={labelClasses}>Humidity %</label>
+                        <input
+                            type="text"
+                            className={inputClasses}
+                            placeholder="e.g. 45"
+                            value={formData.humidity}
+                            onChange={(e) => setFormData({ ...formData, humidity: e.target.value })}
+                        />
+                    </div>
+                    <div>
+                        <label className={labelClasses}>Sky Conditions</label>
+                        <select
+                            className={inputClasses}
+                            value={formData.weather_conditions}
+                            onChange={(e) => setFormData({ ...formData, weather_conditions: e.target.value })}
+                        >
+                            <option value="">Select...</option>
+                            <option value="Clear">Clear</option>
+                            <option value="Partly Cloudy">Partly Cloudy</option>
+                            <option value="Overcast">Overcast</option>
+                            <option value="Light Rain">Light Rain</option>
+                            <option value="Rain">Rain</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
-            {/* Row 8: Notes */}
+            {/* Notes */}
             <div>
                 <label className={labelClasses}>Notes</label>
                 <textarea

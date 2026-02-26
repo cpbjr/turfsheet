@@ -216,6 +216,50 @@ export interface Equipment {
 }
 
 // ============================================================
+// Chemical Products (product library for spray calculations)
+// ============================================================
+
+export type ChemicalProductType =
+  | 'FERTILIZER'
+  | 'HERBICIDE'
+  | 'FUNGICIDE'
+  | 'INSECTICIDE'
+  | 'PGR'
+  | 'ALGAECIDE'
+  | 'IRON_SUPPLEMENT'
+  | 'SURFACTANT'
+  | 'OTHER';
+
+export type RateUnit = 'oz/1000sqft' | 'lbs/1000sqft' | 'lbs/acre' | 'oz/acre' | 'ppm';
+
+export type SignalWord = 'CAUTION' | 'WARNING' | 'DANGER';
+
+export interface ChemicalProduct {
+  id: number;
+  name: string;
+  type: ChemicalProductType;
+  manufacturer?: string;
+  epa_registration?: string;
+  active_ingredient?: string;
+  concentration_pct?: number;
+  analysis?: string;
+  rei_hours: number;
+  default_rate?: number;
+  rate_unit: RateUnit;
+  carrier_volume_gal: number;
+  signal_word?: SignalWord;
+  warnings?: string;
+  max_wind_mph?: number;
+  min_temp_f?: number;
+  max_temp_f?: number;
+  rain_delay_hours?: number;
+  notes?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// ============================================================
 // Pesticide Applications (regulatory compliance)
 // ============================================================
 
