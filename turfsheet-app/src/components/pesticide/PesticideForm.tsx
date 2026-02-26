@@ -1,11 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Cloud } from 'lucide-react';
 import type { Staff, ChemicalProduct } from '../../types';
+import { getCurrentWeather } from '../../services/weather';
+import type { WeatherData } from '../../types/weather';
 
 interface PesticideFormProps {
     onSubmit: (data: any) => void;
     onCancel: () => void;
     staffMembers: Staff[];
     products?: ChemicalProduct[];
+}
+
+function degreesToCardinal(deg: number): string {
+    const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+    return dirs[Math.round(deg / 45) % 8];
+}
+
+function weatherCodeToDescription(code: number): string {
+    if (code === 0) return 'Clear';
+    if (code <= 3) return 'Partly Cloudy';
+    if (code <= 48) return 'Overcast';
+    if (code <= 67) return 'Rain';
+    if (code <= 82) return 'Rain Showers';
+    return 'Other';
 }
 
 export default function PesticideForm({ onSubmit, onCancel, staffMembers, products = [] }: PesticideFormProps) {
@@ -34,6 +51,31 @@ export default function PesticideForm({ onSubmit, onCancel, staffMembers, produc
         humidity: '',
         notes: ''
     });
+
+    const [weatherLoaded, setWeatherLoaded] = useState(false);
+
+    // Auto-fill weather from live API on mount
+    useEffect(() => {
+        getCurrentWeather()
+            .then((data: WeatherData) => {
+                const tempF = Math.round(data.current.temperature_2m * 9 / 5 + 32);
+                const windMph = Math.round(data.current.wind_speed_10m);
+                const windDir = degreesToCardinal(data.current.wind_direction_10m);
+                const humidity = data.current.relative_humidity_2m;
+                const desc = weatherCodeToDescription(data.current.weather_code);
+
+                setFormData(prev => ({
+                    ...prev,
+                    temperature: String(tempF),
+                    wind_speed: String(windMph),
+                    wind_direction: windDir,
+                    humidity: String(humidity),
+                    weather_conditions: desc,
+                }));
+                setWeatherLoaded(true);
+            })
+            .catch(err => console.warn('Weather auto-fill failed:', err));
+    }, []);
 
     const [selectedProductId, setSelectedProductId] = useState<string>('');
 
@@ -307,9 +349,16 @@ export default function PesticideForm({ onSubmit, onCancel, staffMembers, produc
 
             {/* Weather Conditions - Idaho compliance */}
             <div className="border-t border-border-color pt-4">
-                <p className="text-[0.6rem] font-heading font-black text-text-secondary uppercase tracking-widest mb-3">
-                    Weather Conditions at Time of Application
-                </p>
+                <div className="flex items-center gap-2 mb-3">
+                    <p className="text-[0.6rem] font-heading font-black text-text-secondary uppercase tracking-widest">
+                        Weather Conditions at Time of Application
+                    </p>
+                    {weatherLoaded && (
+                        <span className="flex items-center gap-1 text-[0.55rem] text-turf-green font-sans bg-turf-green-light px-2 py-0.5">
+                            <Cloud className="w-3 h-3" /> Auto-filled from live weather
+                        </span>
+                    )}
+                </div>
                 <div className="grid grid-cols-2 gap-4">
                     <div>
                         <label className={labelClasses}>Temperature (F)</label>

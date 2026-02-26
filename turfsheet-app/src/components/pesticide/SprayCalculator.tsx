@@ -1,7 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Calculator, FlaskConical, AlertTriangle, Wind, Thermometer, CloudRain } from 'lucide-react';
+import { Calculator, FlaskConical, AlertTriangle, Wind, Thermometer, CloudRain, Droplets, Compass } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { getCurrentWeather } from '../../services/weather';
 import type { ChemicalProduct } from '../../types';
+import type { WeatherData } from '../../types/weather';
 
 interface MixItem {
     productId: number | '';
@@ -9,10 +11,31 @@ interface MixItem {
     rateUnit: string;
 }
 
-interface WeatherData {
-    temp_f?: number;
-    wind_mph?: number;
-    description?: string;
+interface CurrentConditions {
+    temp_f: number;
+    wind_mph: number;
+    wind_direction: string;
+    humidity: number;
+    description: string;
+    precip_chance: number;
+}
+
+function degreesToCardinal(deg: number): string {
+    const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+    return dirs[Math.round(deg / 45) % 8];
+}
+
+function weatherCodeToDescription(code: number): string {
+    if (code === 0) return 'Clear';
+    if (code <= 3) return 'Partly Cloudy';
+    if (code <= 48) return 'Overcast/Fog';
+    if (code <= 57) return 'Drizzle';
+    if (code <= 67) return 'Rain';
+    if (code <= 77) return 'Snow';
+    if (code <= 82) return 'Rain Showers';
+    if (code <= 86) return 'Snow Showers';
+    if (code >= 95) return 'Thunderstorm';
+    return 'Unknown';
 }
 
 const SIGNAL_COLORS: Record<string, string> = {
@@ -28,7 +51,7 @@ export default function SprayCalculator() {
     const [tankSizeGal, setTankSizeGal] = useState('');
     const [carrierRate, setCarrierRate] = useState('2');
     const [mixItems, setMixItems] = useState<MixItem[]>([{ productId: '', rate: '', rateUnit: 'oz/1000sqft' }]);
-    const [weather, setWeather] = useState<WeatherData | null>(null);
+    const [conditions, setConditions] = useState<CurrentConditions | null>(null);
 
     useEffect(() => {
         const fetchProducts = async () => {
@@ -42,14 +65,19 @@ export default function SprayCalculator() {
         };
         fetchProducts();
 
-        // Try to get current weather from the header's weather widget data
-        // This uses a simple approach - checking localStorage or window state
-        const storedWeather = localStorage.getItem('turfsheet_current_weather');
-        if (storedWeather) {
-            try {
-                setWeather(JSON.parse(storedWeather));
-            } catch { /* ignore parse errors */ }
-        }
+        getCurrentWeather()
+            .then((data: WeatherData) => {
+                setConditions({
+                    temp_f: Math.round(data.current.temperature_2m * 9 / 5 + 32),
+                    wind_mph: Math.round(data.current.wind_speed_10m),
+                    wind_direction: degreesToCardinal(data.current.wind_direction_10m),
+                    humidity: data.current.relative_humidity_2m,
+                    description: weatherCodeToDescription(data.current.weather_code),
+                    precip_chance: data.current.precipitation_probability ??
+                        data.daily.precipitation_probability_max?.[0] ?? 0,
+                });
+            })
+            .catch(err => console.warn('Weather fetch failed:', err));
     }, []);
 
     const handleProductSelect = (index: number, productId: string) => {
@@ -89,34 +117,42 @@ export default function SprayCalculator() {
 
     // Check for weather conflicts with selected products
     const weatherAlerts = useMemo(() => {
+        if (!conditions) return [];
         const alerts: { product: string; message: string; severity: 'warning' | 'danger' }[] = [];
 
         selectedProducts.forEach(product => {
-            if (weather?.wind_mph && product.max_wind_mph && weather.wind_mph > product.max_wind_mph) {
+            if (product.max_wind_mph && conditions.wind_mph > product.max_wind_mph) {
                 alerts.push({
                     product: product.name,
-                    message: `Current wind ${weather.wind_mph} mph exceeds max ${product.max_wind_mph} mph`,
+                    message: `Current wind ${conditions.wind_mph} mph ${conditions.wind_direction} exceeds label max ${product.max_wind_mph} mph`,
                     severity: 'danger',
                 });
             }
-            if (weather?.temp_f && product.max_temp_f && weather.temp_f > product.max_temp_f) {
+            if (product.max_temp_f && conditions.temp_f > product.max_temp_f) {
                 alerts.push({
                     product: product.name,
-                    message: `Current temp ${weather.temp_f}°F exceeds max ${product.max_temp_f}°F`,
+                    message: `Current temp ${conditions.temp_f}°F exceeds label max ${product.max_temp_f}°F`,
                     severity: 'danger',
                 });
             }
-            if (weather?.temp_f && product.min_temp_f && weather.temp_f < product.min_temp_f) {
+            if (product.min_temp_f && conditions.temp_f < product.min_temp_f) {
                 alerts.push({
                     product: product.name,
-                    message: `Current temp ${weather.temp_f}°F below min ${product.min_temp_f}°F`,
+                    message: `Current temp ${conditions.temp_f}°F below label min ${product.min_temp_f}°F`,
                     severity: 'danger',
+                });
+            }
+            if (product.rain_delay_hours && conditions.precip_chance >= 50) {
+                alerts.push({
+                    product: product.name,
+                    message: `${conditions.precip_chance}% chance of rain — label requires ${product.rain_delay_hours}h rain-free after application`,
+                    severity: 'warning',
                 });
             }
         });
 
         return alerts;
-    }, [selectedProducts, weather]);
+    }, [selectedProducts, conditions]);
 
     const calculations = useMemo(() => {
         const area = parseFloat(areaSqft) || 0;
@@ -247,19 +283,21 @@ export default function SprayCalculator() {
                     <h3 className="font-heading font-black text-sm uppercase tracking-wider text-text-primary">
                         Spray Mix Calculator
                     </h3>
-                    {weather && (
+                    {conditions && (
                         <span className="ml-auto text-xs text-text-secondary font-sans flex items-center gap-3">
-                            {weather.temp_f && (
-                                <span className="flex items-center gap-1">
-                                    <Thermometer className="w-3 h-3" /> {weather.temp_f}°F
-                                </span>
-                            )}
-                            {weather.wind_mph && (
-                                <span className="flex items-center gap-1">
-                                    <Wind className="w-3 h-3" /> {weather.wind_mph} mph
-                                </span>
-                            )}
-                            {weather.description && <span>{weather.description}</span>}
+                            <span className="flex items-center gap-1">
+                                <Thermometer className="w-3 h-3" /> {conditions.temp_f}°F
+                            </span>
+                            <span className="flex items-center gap-1">
+                                <Wind className="w-3 h-3" /> {conditions.wind_mph} mph
+                            </span>
+                            <span className="flex items-center gap-1">
+                                <Compass className="w-3 h-3" /> {conditions.wind_direction}
+                            </span>
+                            <span className="flex items-center gap-1">
+                                <Droplets className="w-3 h-3" /> {conditions.humidity}%
+                            </span>
+                            <span>{conditions.description}</span>
                         </span>
                     )}
                 </div>
