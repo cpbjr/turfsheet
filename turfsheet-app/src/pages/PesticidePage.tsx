@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Search, Plus, Printer, ClipboardList, Package, Calculator } from 'lucide-react';
+import { Search, Plus, Printer, ClipboardList, Package, Calculator, Edit2, Trash2 } from 'lucide-react';
 import Modal from '../components/ui/Modal';
 import PesticideForm from '../components/pesticide/PesticideForm';
 import PesticideListItem from '../components/pesticide/PesticideListItem';
@@ -27,7 +27,12 @@ export default function PesticidePage() {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [selectedApplication, setSelectedApplication] = useState<PesticideApplication | null>(null);
+    const [editingApplication, setEditingApplication] = useState<PesticideApplication | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const [dateFrom, setDateFrom] = useState('');
+    const [dateTo, setDateTo] = useState('');
+    // Task 1: prefill data from calculator
+    const [prefillData, setPrefillData] = useState<Record<string, string> | null>(null);
     const printRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -89,8 +94,54 @@ export default function PesticidePage() {
 
             setApplications([...(data || []), ...applications]);
             setIsAddModalOpen(false);
+            setPrefillData(null);
         } catch (err) {
             const message = err instanceof Error ? err.message : 'Failed to record application';
+            setError(message);
+        }
+    };
+
+    // Task 7: Edit handler
+    const handleEditApplication = async (formData: any) => {
+        if (!editingApplication) return;
+        try {
+            setError(null);
+            const { error: updateError } = await supabase
+                .from('pesticide_applications')
+                .update(formData)
+                .eq('id', editingApplication.id);
+
+            if (updateError) throw updateError;
+
+            const { data: updated } = await supabase
+                .from('pesticide_applications')
+                .select('*')
+                .order('application_date', { ascending: false });
+            if (updated) setApplications(updated);
+            setEditingApplication(null);
+        } catch (err) {
+            const message = err instanceof Error ? err.message : 'Failed to update application';
+            setError(message);
+        }
+    };
+
+    // Task 7: Delete handler
+    const handleDeleteApplication = async (id: string) => {
+        if (!window.confirm('Delete this application record? This cannot be undone.')) return;
+        try {
+            setError(null);
+            const { error: deleteError } = await supabase
+                .from('pesticide_applications')
+                .delete()
+                .eq('id', id);
+
+            if (deleteError) throw deleteError;
+
+            setApplications(prev => prev.filter(app => app.id !== id));
+            setIsDetailModalOpen(false);
+            setSelectedApplication(null);
+        } catch (err) {
+            const message = err instanceof Error ? err.message : 'Failed to delete application';
             setError(message);
         }
     };
@@ -98,6 +149,13 @@ export default function PesticidePage() {
     const handleViewApplication = (app: PesticideApplication) => {
         setSelectedApplication(app);
         setIsDetailModalOpen(true);
+    };
+
+    // Task 1: Bridge from calculator
+    const handleRecordFromCalculator = (data: Record<string, string>) => {
+        setPrefillData(data);
+        setActiveTab('applications');
+        setIsAddModalOpen(true);
     };
 
     const handlePrint = () => {
@@ -155,7 +213,7 @@ export default function PesticidePage() {
 <body>
     <h1>PESTICIDE &amp; FERTILIZER APPLICATION LOG</h1>
     <div class="subtitle">
-        Generated ${today} | ${filteredApplications.length} Application${filteredApplications.length !== 1 ? 's' : ''}
+        Generated ${today} | ${filteredApplications.length} Application${filteredApplications.length !== 1 ? 's' : ''}${dateFrom || dateTo ? ` | Showing: ${dateFrom || 'All'} to ${dateTo || 'Present'}` : ''}
     </div>
     <div class="compliance">
         Records maintained per Idaho Statutes Title 22, Ch. 34 &amp; IDAPA 02.03.03 | Retain for minimum 2 years
@@ -200,8 +258,11 @@ export default function PesticidePage() {
 
     const filteredApplications = applications.filter(app => {
         const query = searchQuery.toLowerCase();
-        return app.product_name.toLowerCase().includes(query) ||
+        const matchesSearch = app.product_name.toLowerCase().includes(query) ||
             app.area_applied.toLowerCase().includes(query);
+        const matchesDateFrom = !dateFrom || app.application_date >= dateFrom;
+        const matchesDateTo = !dateTo || app.application_date <= dateTo;
+        return matchesSearch && matchesDateFrom && matchesDateTo;
     });
 
     const inputClasses = "bg-panel-white border border-border-color px-4 py-2 text-sm focus:border-turf-green outline-none transition-colors font-sans";
@@ -282,9 +343,29 @@ export default function PesticidePage() {
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
                         </div>
-                        <span className="text-xs text-text-secondary font-sans">
-                            {filteredApplications.length} record{filteredApplications.length !== 1 ? 's' : ''}
-                        </span>
+                        <div className="flex items-center gap-4 flex-wrap">
+                            <div className="flex items-center gap-2">
+                                <label className="text-[0.65rem] font-heading font-black text-text-secondary uppercase tracking-widest whitespace-nowrap">From</label>
+                                <input
+                                    type="date"
+                                    value={dateFrom}
+                                    onChange={(e) => setDateFrom(e.target.value)}
+                                    className="bg-dashboard-bg border border-border-color px-3 py-2 text-sm focus:border-turf-green outline-none transition-colors font-sans"
+                                />
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <label className="text-[0.65rem] font-heading font-black text-text-secondary uppercase tracking-widest whitespace-nowrap">To</label>
+                                <input
+                                    type="date"
+                                    value={dateTo}
+                                    onChange={(e) => setDateTo(e.target.value)}
+                                    className="bg-dashboard-bg border border-border-color px-3 py-2 text-sm focus:border-turf-green outline-none transition-colors font-sans"
+                                />
+                            </div>
+                            <span className="text-xs text-text-secondary font-sans">
+                                {filteredApplications.length} record{filteredApplications.length !== 1 ? 's' : ''}
+                            </span>
+                        </div>
                     </div>
 
                     {/* List Header */}
@@ -335,20 +416,39 @@ export default function PesticidePage() {
             )}
 
             {activeTab === 'products' && <ProductLibrary />}
-            {activeTab === 'calculator' && <SprayCalculator />}
+            {/* Task 1: pass onRecordApplication handler */}
+            {activeTab === 'calculator' && <SprayCalculator onRecordApplication={handleRecordFromCalculator} />}
 
             {/* Add Application Modal */}
             <Modal
                 isOpen={isAddModalOpen}
-                onClose={() => setIsAddModalOpen(false)}
+                onClose={() => { setIsAddModalOpen(false); setPrefillData(null); }}
                 title="Record Application"
             >
                 <PesticideForm
                     onSubmit={handleSave}
-                    onCancel={() => setIsAddModalOpen(false)}
+                    onCancel={() => { setIsAddModalOpen(false); setPrefillData(null); }}
                     staffMembers={staffMembers}
                     products={products}
+                    prefillData={prefillData}
                 />
+            </Modal>
+
+            {/* Edit Application Modal (Task 7) */}
+            <Modal
+                isOpen={!!editingApplication}
+                onClose={() => setEditingApplication(null)}
+                title="Edit Application"
+            >
+                {editingApplication && (
+                    <PesticideForm
+                        onSubmit={handleEditApplication}
+                        onCancel={() => setEditingApplication(null)}
+                        staffMembers={staffMembers}
+                        products={products}
+                        initialData={editingApplication}
+                    />
+                )}
             </Modal>
 
             {/* Detail Modal */}
@@ -489,12 +589,30 @@ export default function PesticidePage() {
                             </div>
                         )}
 
-                        <div className="flex gap-4 pt-4 border-t border-border-color">
+                        {/* Task 7: Edit/Delete footer */}
+                        <div className="flex gap-3 pt-4 border-t border-border-color">
                             <button
                                 onClick={() => setIsDetailModalOpen(false)}
                                 className="flex-1 bg-panel-white border border-border-color px-6 py-3 font-heading font-black text-xs uppercase tracking-wider text-text-primary hover:bg-dashboard-bg transition-colors"
                             >
                                 Close
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setIsDetailModalOpen(false);
+                                    setEditingApplication(selectedApplication);
+                                }}
+                                className="bg-panel-white border border-border-color text-text-primary px-4 py-3 shadow-sm flex items-center gap-2 font-heading font-black hover:bg-dashboard-bg transition-all text-[0.65rem] uppercase tracking-[0.15em]"
+                            >
+                                <Edit2 className="w-3.5 h-3.5" />
+                                Edit
+                            </button>
+                            <button
+                                onClick={() => handleDeleteApplication(selectedApplication.id)}
+                                className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 shadow-sm flex items-center gap-2 font-heading font-black hover:bg-red-100 transition-all text-[0.65rem] uppercase tracking-[0.15em]"
+                            >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                Delete
                             </button>
                         </div>
                     </div>

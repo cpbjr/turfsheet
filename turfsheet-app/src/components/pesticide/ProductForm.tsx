@@ -5,6 +5,7 @@ interface ProductFormProps {
     onSubmit: (data: Omit<ChemicalProduct, 'id' | 'created_at' | 'updated_at'>) => void;
     onCancel: () => void;
     initialData?: ChemicalProduct;
+    existingNames?: string[];
 }
 
 const PRODUCT_TYPES: { value: ChemicalProductType; label: string }[] = [
@@ -26,7 +27,7 @@ const RATE_UNITS: { value: RateUnit; label: string }[] = [
     { value: 'lbs/acre', label: 'lbs / acre' },
 ];
 
-export default function ProductForm({ onSubmit, onCancel, initialData }: ProductFormProps) {
+export default function ProductForm({ onSubmit, onCancel, initialData, existingNames }: ProductFormProps) {
     const [formData, setFormData] = useState({
         name: '',
         type: 'HERBICIDE' as ChemicalProductType,
@@ -48,6 +49,22 @@ export default function ProductForm({ onSubmit, onCancel, initialData }: Product
         notes: '',
         is_active: true,
     });
+
+    const [nameError, setNameError] = useState('');
+
+    const checkDuplicate = (name: string): boolean => {
+        if (!existingNames) return false;
+        const isDuplicate = existingNames.some(
+            n => n.toLowerCase() === name.trim().toLowerCase() &&
+            (!initialData || n.toLowerCase() !== initialData.name.toLowerCase())
+        );
+        if (isDuplicate) {
+            setNameError('A product with this name already exists');
+            return true;
+        }
+        setNameError('');
+        return false;
+    };
 
     useEffect(() => {
         if (initialData) {
@@ -77,6 +94,7 @@ export default function ProductForm({ onSubmit, onCancel, initialData }: Product
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        if (checkDuplicate(formData.name)) return;
         onSubmit({
             name: formData.name,
             type: formData.type,
@@ -112,11 +130,15 @@ export default function ProductForm({ onSubmit, onCancel, initialData }: Product
                     <input
                         required
                         type="text"
-                        className={inputClasses}
+                        className={`${inputClasses}${nameError ? ' border-red-400' : ''}`}
                         placeholder="e.g. 2,4-D Amine"
                         value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        onChange={(e) => { setFormData({ ...formData, name: e.target.value }); if (nameError) setNameError(''); }}
+                        onBlur={(e) => checkDuplicate(e.target.value)}
                     />
+                    {nameError && (
+                        <p className="text-red-600 text-xs mt-1">{nameError}</p>
+                    )}
                 </div>
                 <div>
                     <label className={labelClasses}>Product Type *</label>

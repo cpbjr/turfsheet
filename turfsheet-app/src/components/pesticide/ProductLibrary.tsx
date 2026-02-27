@@ -240,6 +240,7 @@ export default function ProductLibrary() {
                 <ProductForm
                     onSubmit={handleAdd}
                     onCancel={() => setIsAddModalOpen(false)}
+                    existingNames={products.map(p => p.name)}
                 />
             </Modal>
 
@@ -254,6 +255,7 @@ export default function ProductLibrary() {
                         onSubmit={handleUpdate}
                         onCancel={() => setEditingProduct(null)}
                         initialData={editingProduct}
+                        existingNames={products.map(p => p.name)}
                     />
                 )}
             </Modal>

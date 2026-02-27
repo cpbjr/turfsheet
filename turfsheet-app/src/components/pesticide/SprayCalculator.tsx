@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Calculator, FlaskConical, AlertTriangle, Wind, Thermometer, CloudRain, Droplets, Compass } from 'lucide-react';
+import { Calculator, FlaskConical, AlertTriangle, Wind, Thermometer, CloudRain, Droplets, Compass, RefreshCw, ClipboardList, Printer, Save } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { getCurrentWeather } from '../../services/weather';
-import type { ChemicalProduct } from '../../types';
+import type { ChemicalProduct, SprayMixTemplate } from '../../types';
 import type { WeatherData } from '../../types/weather';
 
 interface MixItem {
@@ -18,6 +18,10 @@ interface CurrentConditions {
     humidity: number;
     description: string;
     precip_chance: number;
+}
+
+interface SprayCalculatorProps {
+    onRecordApplication?: (data: Record<string, string>) => void;
 }
 
 function degreesToCardinal(deg: number): string {
@@ -44,7 +48,7 @@ const SIGNAL_COLORS: Record<string, string> = {
     DANGER: 'bg-red-100 border-red-400 text-red-800',
 };
 
-export default function SprayCalculator() {
+export default function SprayCalculator({ onRecordApplication }: SprayCalculatorProps) {
     const [products, setProducts] = useState<ChemicalProduct[]>([]);
     const [loading, setLoading] = useState(true);
     const [areaSqft, setAreaSqft] = useState('');
@@ -52,6 +56,40 @@ export default function SprayCalculator() {
     const [carrierRate, setCarrierRate] = useState('2');
     const [mixItems, setMixItems] = useState<MixItem[]>([{ productId: '', rate: '', rateUnit: 'oz/1000sqft' }]);
     const [conditions, setConditions] = useState<CurrentConditions | null>(null);
+
+    // Template state
+    const [templates, setTemplates] = useState<SprayMixTemplate[]>([]);
+    const [showSaveModal, setShowSaveModal] = useState(false);
+    const [templateName, setTemplateName] = useState('');
+    const [templateDesc, setTemplateDesc] = useState('');
+
+    const inputClasses = "w-full bg-dashboard-bg border border-border-color px-4 py-3 text-sm focus:border-turf-green outline-none transition-colors font-sans";
+    const labelClasses = "block text-[0.65rem] font-heading font-black text-text-secondary uppercase tracking-widest mb-2";
+
+    const fetchWeather = async () => {
+        try {
+            const data: WeatherData = await getCurrentWeather();
+            setConditions({
+                temp_f: Math.round(data.current.temperature_2m * 9 / 5 + 32),
+                wind_mph: Math.round(data.current.wind_speed_10m),
+                wind_direction: degreesToCardinal(data.current.wind_direction_10m),
+                humidity: data.current.relative_humidity_2m,
+                description: weatherCodeToDescription(data.current.weather_code),
+                precip_chance: data.current.precipitation_probability ??
+                    data.daily.precipitation_probability_max?.[0] ?? 0,
+            });
+        } catch (err) {
+            console.warn('Weather fetch failed:', err);
+        }
+    };
+
+    const fetchTemplates = async () => {
+        const { data } = await supabase
+            .from('spray_mix_templates')
+            .select('*')
+            .order('name');
+        if (data) setTemplates(data as SprayMixTemplate[]);
+    };
 
     useEffect(() => {
         const fetchProducts = async () => {
@@ -64,20 +102,8 @@ export default function SprayCalculator() {
             setLoading(false);
         };
         fetchProducts();
-
-        getCurrentWeather()
-            .then((data: WeatherData) => {
-                setConditions({
-                    temp_f: Math.round(data.current.temperature_2m * 9 / 5 + 32),
-                    wind_mph: Math.round(data.current.wind_speed_10m),
-                    wind_direction: degreesToCardinal(data.current.wind_direction_10m),
-                    humidity: data.current.relative_humidity_2m,
-                    description: weatherCodeToDescription(data.current.weather_code),
-                    precip_chance: data.current.precipitation_probability ??
-                        data.daily.precipitation_probability_max?.[0] ?? 0,
-                });
-            })
-            .catch(err => console.warn('Weather fetch failed:', err));
+        fetchWeather();
+        fetchTemplates();
     }, []);
 
     const handleProductSelect = (index: number, productId: string) => {
@@ -169,7 +195,7 @@ export default function SprayCalculator() {
             const rate = parseFloat(item.rate) || 0;
             const unit = item.rateUnit;
 
-            if (rate <= 0) return { product, rate: 0, unit, totalAmount: 0, perTank: 0, displayUnit: 'oz' };
+            if (rate <= 0) return { product, productName: product?.name || 'Custom', rate: 0, unit, rateUnit: unit, totalAmount: 0, perTank: 0, displayUnit: 'oz' };
 
             let totalAmount = 0;
             let displayUnit = 'oz';
@@ -190,7 +216,7 @@ export default function SprayCalculator() {
 
             const perTank = numberOfTanks > 0 ? totalAmount / numberOfTanks : totalAmount;
 
-            return { product, rate, unit, totalAmount, perTank, displayUnit };
+            return { product, productName: product?.name || 'Custom', rate, unit, rateUnit: unit, totalAmount, perTank, displayUnit };
         }).filter(c => c.rate > 0);
 
         return {
@@ -203,8 +229,102 @@ export default function SprayCalculator() {
         };
     }, [areaSqft, tankSizeGal, carrierRate, mixItems, products]);
 
-    const inputClasses = "w-full bg-dashboard-bg border border-border-color px-4 py-3 text-sm focus:border-turf-green outline-none transition-colors font-sans";
-    const labelClasses = "block text-[0.65rem] font-heading font-black text-text-secondary uppercase tracking-widest mb-2";
+    // Task 6: Print mix instructions
+    const handlePrintMixInstructions = () => {
+        if (!calculations) return;
+        const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        const time = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
+        const productRows = calculations.productCalcs.map(pc => `
+            <tr>
+                <td style="padding:8px 12px; border-bottom:1px solid #E0E4E8; font-weight:600;">${pc.productName}</td>
+                <td style="padding:8px 12px; border-bottom:1px solid #E0E4E8;">${pc.rate} ${pc.unit.replace('sqft', ' sq ft')}</td>
+                <td style="padding:8px 12px; border-bottom:1px solid #E0E4E8; font-weight:700; color:#73A657;">${pc.totalAmount.toFixed(2)} ${pc.displayUnit}</td>
+                <td style="padding:8px 12px; border-bottom:1px solid #E0E4E8; font-weight:700; color:#73A657;">${pc.perTank.toFixed(2)} ${pc.displayUnit}</td>
+            </tr>
+        `).join('');
+
+        const weatherSection = conditions ? `
+            <div style="margin-top:20px; padding:12px 16px; background:#F4F6F8; border:1px solid #E0E4E8;">
+                <strong style="font-size:11px; text-transform:uppercase; letter-spacing:0.1em;">Conditions at Time of Calculation</strong><br/>
+                <span style="font-size:13px;">Temp: ${conditions.temp_f}°F | Wind: ${conditions.wind_mph} mph ${conditions.wind_direction} | Humidity: ${conditions.humidity}% | ${conditions.description}</span>
+            </div>
+        ` : '';
+
+        const safetyWarnings = mixItems
+            .filter(m => m.productId !== '')
+            .map(m => products.find(p => p.id === m.productId))
+            .filter((p): p is ChemicalProduct => !!(p && (p.signal_word || p.warnings)))
+            .map(p => `
+                <div style="margin-top:8px; padding:8px 12px; border-left:4px solid ${
+                    p.signal_word === 'DANGER' ? '#EF4444' : p.signal_word === 'WARNING' ? '#F97316' : '#EAB308'
+                }; background:#FFFBEB; font-size:11px;">
+                    <strong>${p.signal_word || 'NOTE'}: ${p.name}</strong>${p.warnings ? ` — ${p.warnings}` : ''}
+                    ${p.rei_hours ? `<br/>REI: ${p.rei_hours} hours` : ''}
+                </div>
+            `).join('');
+
+        const html = `<!DOCTYPE html><html><head><title>Mix Instructions</title>
+            <style>
+                body { font-family: Inter, Arial, sans-serif; padding: 40px; color: #2C3E50; }
+                h1 { font-family: Outfit, Arial, sans-serif; font-size: 18px; text-transform: uppercase; letter-spacing: 0.15em; margin: 0 0 4px 0; }
+                table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+                th { background: #73A657; color: white; padding: 8px 12px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; }
+                .summary { display: flex; gap: 16px; margin-top: 16px; }
+                .summary-box { flex: 1; text-align: center; padding: 12px; border: 1px solid #E0E4E8; }
+                .summary-box .value { font-size: 24px; font-weight: 700; color: #73A657; }
+                .summary-box .label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: #7F8C8D; }
+                .notes-box { margin-top: 24px; border: 1px solid #E0E4E8; padding: 16px; min-height: 80px; }
+                .notes-box h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; margin: 0 0 8px 0; color: #7F8C8D; }
+                .footer { margin-top: 24px; font-size: 10px; color: #BDC3C7; text-align: center; }
+            </style>
+        </head><body>
+            <h1>Tank Mix Instructions</h1>
+            <div style="font-size:12px; color:#7F8C8D;">${today} at ${time}</div>
+
+            <div class="summary">
+                <div class="summary-box">
+                    <div class="value">${calculations.area.toLocaleString()}</div>
+                    <div class="label">Total Area (sq ft)</div>
+                </div>
+                <div class="summary-box">
+                    <div class="value">${calculations.totalWaterNeeded.toFixed(1)}</div>
+                    <div class="label">Total Water (gal)</div>
+                </div>
+                <div class="summary-box">
+                    <div class="value">${calculations.numberOfTanks || '—'}</div>
+                    <div class="label">Tank Loads</div>
+                </div>
+                <div class="summary-box">
+                    <div class="value">${calculations.waterPerTank.toFixed(1)}</div>
+                    <div class="label">Water / Tank (gal)</div>
+                </div>
+            </div>
+
+            <table>
+                <thead><tr>
+                    <th>Product</th><th>Label Rate</th><th>Total Needed</th><th>Per Tank</th>
+                </tr></thead>
+                <tbody>${productRows}</tbody>
+            </table>
+
+            ${safetyWarnings}
+            ${weatherSection}
+
+            <div class="notes-box">
+                <h3>Notes / Special Instructions</h3>
+            </div>
+
+            <div class="footer">TurfSheet — Tank Mix Instructions — ${today}</div>
+            <script>window.onload = function() { window.print(); }</script>
+        </body></html>`;
+
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.write(html);
+            printWindow.document.close();
+        }
+    };
 
     if (loading) {
         return <div className="flex items-center justify-center h-64"><p className="text-text-secondary">Loading...</p></div>;
@@ -298,7 +418,53 @@ export default function SprayCalculator() {
                                 <Droplets className="w-3 h-3" /> {conditions.humidity}%
                             </span>
                             <span>{conditions.description}</span>
+                            <button
+                                type="button"
+                                onClick={fetchWeather}
+                                className="text-text-secondary hover:text-turf-green transition-colors"
+                                title="Refresh weather"
+                            >
+                                <RefreshCw className="w-3.5 h-3.5" />
+                            </button>
                         </span>
+                    )}
+                </div>
+
+                {/* Template controls */}
+                <div className="flex items-end gap-3 pb-6 border-b border-border-color">
+                    <div className="flex-1">
+                        <label className={labelClasses}>Load Saved Mix</label>
+                        <select
+                            value=""
+                            onChange={(e) => {
+                                const template = templates.find(t => t.id === parseInt(e.target.value));
+                                if (!template) return;
+                                if (template.area_sqft) setAreaSqft(String(template.area_sqft));
+                                if (template.tank_size_gal) setTankSizeGal(String(template.tank_size_gal));
+                                setCarrierRate(String(template.carrier_rate));
+                                setMixItems(template.products.map(p => ({
+                                    productId: p.productId as number | '',
+                                    rate: p.rate,
+                                    rateUnit: p.rateUnit,
+                                })));
+                            }}
+                            className={inputClasses}
+                        >
+                            <option value="">Select a saved mix...</option>
+                            {templates.map(t => (
+                                <option key={t.id} value={t.id}>{t.name}{t.description ? ` — ${t.description}` : ''}</option>
+                            ))}
+                        </select>
+                    </div>
+                    {mixItems.some(m => m.productId !== '') && (
+                        <button
+                            type="button"
+                            onClick={() => setShowSaveModal(true)}
+                            className="bg-panel-white border border-border-color text-text-primary px-4 py-3 shadow-sm flex items-center gap-2 font-heading font-black hover:bg-dashboard-bg transition-all text-[0.7rem] uppercase tracking-[0.15em]"
+                        >
+                            <Save className="w-3.5 h-3.5" />
+                            Save Mix
+                        </button>
                     )}
                 </div>
 
@@ -473,7 +639,7 @@ export default function SprayCalculator() {
                                 {calculations.productCalcs.map((calc, i) => (
                                     <div key={i} className={`grid ${calculations.numberOfTanks > 0 ? 'grid-cols-4' : 'grid-cols-3'} gap-4 px-4 py-3 border-t border-border-color items-center`}>
                                         <span className="text-sm font-sans font-medium text-text-primary">
-                                            {calc.product?.name || 'Custom Product'}
+                                            {calc.productName}
                                         </span>
                                         <span className="text-sm font-sans text-text-secondary">
                                             {calc.rate} {calc.unit.replace('sqft', ' sq ft')}
@@ -489,6 +655,112 @@ export default function SprayCalculator() {
                                     </div>
                                 ))}
                             </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex justify-end gap-3 pt-2">
+                            <button
+                                type="button"
+                                onClick={handlePrintMixInstructions}
+                                className="bg-panel-white border border-border-color text-text-primary px-6 py-3 shadow-sm flex items-center gap-2 font-heading font-black hover:bg-dashboard-bg transition-all text-[0.7rem] uppercase tracking-[0.15em]"
+                            >
+                                <Printer className="w-3.5 h-3.5" />
+                                Print Mix Sheet
+                            </button>
+                            {onRecordApplication && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const firstItem = mixItems.find(m => m.productId !== '');
+                                        const product = firstItem ? products.find(p => p.id === firstItem.productId) : null;
+                                        const firstCalc = calculations.productCalcs[0];
+                                        onRecordApplication({
+                                            product_name: product?.name || '',
+                                            epa_registration_number: product?.epa_registration || '',
+                                            active_ingredient: product?.active_ingredient || '',
+                                            application_rate: firstItem ? `${firstItem.rate} ${firstItem.rateUnit.replace('sqft', ' sq ft')}` : '',
+                                            total_amount_used: firstCalc
+                                                ? `${firstCalc.totalAmount.toFixed(2)} ${firstCalc.displayUnit}`
+                                                : '',
+                                            area_size: `${areaSqft} sq ft`,
+                                            method: 'spray',
+                                            rei_hours: product?.rei_hours?.toString() || '',
+                                            temperature: conditions?.temp_f?.toString() || '',
+                                            wind_speed: conditions?.wind_mph?.toString() || '',
+                                            wind_direction: conditions?.wind_direction || '',
+                                            humidity: conditions?.humidity?.toString() || '',
+                                            weather_conditions: conditions?.description || '',
+                                        });
+                                    }}
+                                    className="bg-turf-green text-white px-6 py-3 shadow-sm flex items-center gap-2 font-heading font-black hover:bg-turf-green-dark hover:-translate-y-0.5 transition-all duration-300 text-[0.7rem] uppercase tracking-[0.15em]"
+                                >
+                                    <ClipboardList className="w-3.5 h-3.5" />
+                                    Record This Application
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Save Template Modal */}
+            {showSaveModal && (
+                <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center">
+                    <div className="bg-panel-white p-8 w-full max-w-md shadow-xl">
+                        <h3 className="text-sm font-heading font-black uppercase tracking-widest mb-6">Save Mix Template</h3>
+                        <div className="space-y-4">
+                            <div>
+                                <label className={labelClasses}>Template Name *</label>
+                                <input
+                                    value={templateName}
+                                    onChange={e => setTemplateName(e.target.value)}
+                                    placeholder="e.g. Greens Weekly"
+                                    className={inputClasses}
+                                />
+                            </div>
+                            <div>
+                                <label className={labelClasses}>Description</label>
+                                <input
+                                    value={templateDesc}
+                                    onChange={e => setTemplateDesc(e.target.value)}
+                                    placeholder="Optional notes"
+                                    className={inputClasses}
+                                />
+                            </div>
+                        </div>
+                        <div className="flex gap-4 mt-6">
+                            <button
+                                type="button"
+                                onClick={() => { setShowSaveModal(false); setTemplateName(''); setTemplateDesc(''); }}
+                                className="flex-1 px-6 py-4 border border-border-color text-text-secondary font-heading font-black text-[0.7rem] uppercase tracking-[0.2em] hover:bg-dashboard-bg transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                disabled={!templateName.trim()}
+                                onClick={async () => {
+                                    const { error } = await supabase.from('spray_mix_templates').insert([{
+                                        name: templateName.trim(),
+                                        description: templateDesc.trim() || null,
+                                        area_sqft: areaSqft ? parseFloat(areaSqft) : null,
+                                        tank_size_gal: tankSizeGal ? parseFloat(tankSizeGal) : null,
+                                        carrier_rate: parseFloat(carrierRate) || 2,
+                                        products: mixItems.filter(m => m.productId !== '').map(m => ({
+                                            productId: m.productId, rate: m.rate, rateUnit: m.rateUnit,
+                                        })),
+                                    }]);
+                                    if (!error) {
+                                        await fetchTemplates();
+                                        setShowSaveModal(false);
+                                        setTemplateName('');
+                                        setTemplateDesc('');
+                                    }
+                                }}
+                                className="flex-1 px-6 py-4 bg-turf-green text-white font-heading font-black text-[0.7rem] uppercase tracking-[0.2em] hover:bg-turf-green-dark transition-colors shadow-sm disabled:opacity-50"
+                            >
+                                Save Template
+                            </button>
                         </div>
                     </div>
                 </div>

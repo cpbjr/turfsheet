@@ -289,6 +289,22 @@ export interface PesticideApplication {
 }
 
 // ============================================================
+// Spray Mix Templates
+// ============================================================
+
+export interface SprayMixTemplate {
+  id: number;
+  name: string;
+  description?: string;
+  area_sqft?: number;
+  tank_size_gal?: number;
+  carrier_rate: number;
+  products: { productId: number; rate: string; rateUnit: string }[];
+  created_at: string;
+  updated_at: string;
+}
+
+// ============================================================
 // Calendar Events
 // ============================================================
 

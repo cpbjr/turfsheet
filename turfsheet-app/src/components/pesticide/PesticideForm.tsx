@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Cloud } from 'lucide-react';
-import type { Staff, ChemicalProduct } from '../../types';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Cloud, AlertTriangle, RefreshCw } from 'lucide-react';
+import type { Staff, ChemicalProduct, PesticideApplication } from '../../types';
 import { getCurrentWeather } from '../../services/weather';
 import type { WeatherData } from '../../types/weather';
 
@@ -9,6 +9,8 @@ interface PesticideFormProps {
     onCancel: () => void;
     staffMembers: Staff[];
     products?: ChemicalProduct[];
+    prefillData?: Record<string, string> | null;
+    initialData?: PesticideApplication;
 }
 
 function degreesToCardinal(deg: number): string {
@@ -25,59 +27,113 @@ function weatherCodeToDescription(code: number): string {
     return 'Other';
 }
 
-export default function PesticideForm({ onSubmit, onCancel, staffMembers, products = [] }: PesticideFormProps) {
+export default function PesticideForm({ onSubmit, onCancel, staffMembers, products = [], prefillData, initialData }: PesticideFormProps) {
     const today = new Date().toISOString().split('T')[0];
     const now = new Date().toTimeString().slice(0, 5);
 
-    const [formData, setFormData] = useState({
-        application_date: today,
-        application_time: now,
-        operator_id: '',
-        applicator_license: '',
-        product_name: '',
-        epa_registration_number: '',
-        active_ingredient: '',
-        target_pest: '',
-        application_rate: '',
-        total_amount_used: '',
-        area_applied: '',
-        area_size: '',
-        method: '',
-        rei_hours: '',
-        weather_conditions: '',
-        temperature: '',
-        wind_speed: '',
-        wind_direction: '',
-        humidity: '',
-        notes: ''
+    const [formData, setFormData] = useState(() => {
+        if (initialData) {
+            const a = initialData as any;
+            return {
+                application_date: initialData.application_date || today,
+                application_time: a.application_time || '',
+                operator_id: initialData.operator_id || '',
+                applicator_license: a.applicator_license || '',
+                product_name: initialData.product_name || '',
+                epa_registration_number: initialData.epa_registration_number || '',
+                active_ingredient: initialData.active_ingredient || '',
+                target_pest: initialData.target_pest || '',
+                application_rate: initialData.application_rate || '',
+                total_amount_used: initialData.total_amount_used || '',
+                area_applied: initialData.area_applied || '',
+                area_size: initialData.area_size || '',
+                method: initialData.method || '',
+                rei_hours: initialData.rei_hours?.toString() || '',
+                weather_conditions: initialData.weather_conditions || '',
+                temperature: initialData.temperature || '',
+                wind_speed: initialData.wind_speed || '',
+                wind_direction: a.wind_direction || '',
+                humidity: a.humidity || '',
+                notes: initialData.notes || '',
+            };
+        }
+        return {
+            application_date: today,
+            application_time: now,
+            operator_id: '',
+            applicator_license: '',
+            product_name: '',
+            epa_registration_number: '',
+            active_ingredient: '',
+            target_pest: '',
+            application_rate: '',
+            total_amount_used: '',
+            area_applied: '',
+            area_size: '',
+            method: '',
+            rei_hours: '',
+            weather_conditions: '',
+            temperature: '',
+            wind_speed: '',
+            wind_direction: '',
+            humidity: '',
+            notes: '',
+        };
     });
 
     const [weatherLoaded, setWeatherLoaded] = useState(false);
+    const [weatherData, setWeatherData] = useState<{ temp_f: number; wind_mph: number; precip_chance: number } | null>(null);
 
-    // Auto-fill weather from live API on mount
+    const fetchWeather = async () => {
+        try {
+            const data: WeatherData = await getCurrentWeather();
+            const tempF = Math.round(data.current.temperature_2m * 9 / 5 + 32);
+            const windMph = Math.round(data.current.wind_speed_10m);
+            const windDir = degreesToCardinal(data.current.wind_direction_10m);
+            const humidity = data.current.relative_humidity_2m;
+            const desc = weatherCodeToDescription(data.current.weather_code);
+            const precipChance = data.current.precipitation_probability ??
+                (data as any).daily?.precipitation_probability_max?.[0] ?? 0;
+
+            setFormData(prev => ({
+                ...prev,
+                temperature: String(tempF),
+                wind_speed: String(windMph),
+                wind_direction: windDir,
+                humidity: String(humidity),
+                weather_conditions: desc,
+            }));
+            setWeatherData({ temp_f: tempF, wind_mph: windMph, precip_chance: precipChance });
+            setWeatherLoaded(true);
+        } catch (err) {
+            console.warn('Weather auto-fill failed:', err);
+        }
+    };
+
+    // Auto-fill weather from live API on mount (skip if editing existing record)
     useEffect(() => {
-        getCurrentWeather()
-            .then((data: WeatherData) => {
-                const tempF = Math.round(data.current.temperature_2m * 9 / 5 + 32);
-                const windMph = Math.round(data.current.wind_speed_10m);
-                const windDir = degreesToCardinal(data.current.wind_direction_10m);
-                const humidity = data.current.relative_humidity_2m;
-                const desc = weatherCodeToDescription(data.current.weather_code);
-
-                setFormData(prev => ({
-                    ...prev,
-                    temperature: String(tempF),
-                    wind_speed: String(windMph),
-                    wind_direction: windDir,
-                    humidity: String(humidity),
-                    weather_conditions: desc,
-                }));
-                setWeatherLoaded(true);
-            })
-            .catch(err => console.warn('Weather auto-fill failed:', err));
+        if (!initialData) {
+            fetchWeather();
+        }
     }, []);
 
     const [selectedProductId, setSelectedProductId] = useState<string>('');
+
+    // Apply prefill data from calculator
+    useEffect(() => {
+        if (prefillData) {
+            setFormData(prev => ({
+                ...prev,
+                ...Object.fromEntries(
+                    Object.entries(prefillData).filter(([_, v]) => v !== '' && v !== undefined)
+                ),
+            }));
+            const matchingProduct = products.find(p => p.name === prefillData.product_name);
+            if (matchingProduct) {
+                setSelectedProductId(String(matchingProduct.id));
+            }
+        }
+    }, [prefillData]);
 
     const handleProductSelect = (productId: string) => {
         setSelectedProductId(productId);
@@ -102,6 +158,26 @@ export default function PesticideForm({ onSubmit, onCancel, staffMembers, produc
     const selectedProduct = selectedProductId
         ? products.find(p => p.id === parseInt(selectedProductId))
         : null;
+
+    const weatherAlerts = useMemo(() => {
+        if (!weatherData || !selectedProductId) return [];
+        const product = products.find(p => p.id === parseInt(selectedProductId));
+        if (!product) return [];
+        const alerts: { severity: 'danger' | 'warning'; message: string }[] = [];
+        if (product.max_wind_mph && weatherData.wind_mph > product.max_wind_mph) {
+            alerts.push({ severity: 'danger', message: `Wind ${weatherData.wind_mph} mph exceeds label max ${product.max_wind_mph} mph` });
+        }
+        if (product.max_temp_f && weatherData.temp_f > product.max_temp_f) {
+            alerts.push({ severity: 'danger', message: `Temperature ${weatherData.temp_f}°F exceeds label max ${product.max_temp_f}°F` });
+        }
+        if (product.min_temp_f && weatherData.temp_f < product.min_temp_f) {
+            alerts.push({ severity: 'danger', message: `Temperature ${weatherData.temp_f}°F below label min ${product.min_temp_f}°F` });
+        }
+        if (product.rain_delay_hours && weatherData.precip_chance >= 50) {
+            alerts.push({ severity: 'warning', message: `${weatherData.precip_chance}% rain chance — label requires ${product.rain_delay_hours}h rain-free` });
+        }
+        return alerts;
+    }, [weatherData, selectedProductId, products]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -166,6 +242,20 @@ export default function PesticideForm({ onSubmit, onCancel, staffMembers, produc
                     {selectedProduct.warnings && (
                         <p className="font-sans leading-relaxed">{selectedProduct.warnings}</p>
                     )}
+                </div>
+            )}
+
+            {/* Weather safety warnings */}
+            {weatherAlerts.length > 0 && (
+                <div className="space-y-2">
+                    {weatherAlerts.map((alert, i) => (
+                        <div key={i} className={`flex items-center gap-3 px-4 py-3 text-sm ${
+                            alert.severity === 'danger' ? 'bg-red-50 border border-red-200 text-red-700' : 'bg-amber-50 border border-amber-200 text-amber-700'
+                        }`}>
+                            <AlertTriangle size={16} className="flex-shrink-0" />
+                            <span>{alert.message}</span>
+                        </div>
+                    ))}
                 </div>
             )}
 
@@ -358,6 +448,14 @@ export default function PesticideForm({ onSubmit, onCancel, staffMembers, produc
                             <Cloud className="w-3 h-3" /> Auto-filled from live weather
                         </span>
                     )}
+                    <button
+                        type="button"
+                        onClick={fetchWeather}
+                        className="text-text-secondary hover:text-turf-green transition-colors ml-1"
+                        title="Refresh weather"
+                    >
+                        <RefreshCw size={13} />
+                    </button>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -453,7 +551,7 @@ export default function PesticideForm({ onSubmit, onCancel, staffMembers, produc
                     type="submit"
                     className="flex-1 px-6 py-4 bg-turf-green text-white font-heading font-black text-[0.7rem] uppercase tracking-[0.2em] hover:bg-turf-green-dark transition-colors shadow-sm"
                 >
-                    Record Application
+                    {initialData ? 'Update Application' : 'Record Application'}
                 </button>
             </div>
         </form>
