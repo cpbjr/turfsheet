@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Calculator, FlaskConical, AlertTriangle, Wind, Thermometer, CloudRain, Droplets, Compass, RefreshCw, ClipboardList, Printer, Save } from 'lucide-react';
+import { Calculator, FlaskConical, AlertTriangle, Wind, Thermometer, CloudRain, Droplets, Compass, RefreshCw, ClipboardList, Printer, Save, Plus, FolderOpen } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { getCurrentWeather } from '../../services/weather';
 import type { ChemicalProduct, SprayMixTemplate } from '../../types';
@@ -62,6 +62,7 @@ export default function SprayCalculator({ onRecordApplication }: SprayCalculator
     const [showSaveModal, setShowSaveModal] = useState(false);
     const [templateName, setTemplateName] = useState('');
     const [templateDesc, setTemplateDesc] = useState('');
+    const [showLoadDropdown, setShowLoadDropdown] = useState(false);
 
     const inputClasses = "w-full bg-dashboard-bg border border-border-color px-4 py-3 text-sm focus:border-turf-green outline-none transition-colors font-sans";
     const labelClasses = "block text-[0.65rem] font-heading font-black text-text-secondary uppercase tracking-widest mb-2";
@@ -430,37 +431,68 @@ export default function SprayCalculator({ onRecordApplication }: SprayCalculator
                     )}
                 </div>
 
-                {/* Template controls */}
-                <div className="flex items-end gap-3 pb-6 border-b border-border-color">
-                    <div className="flex-1">
-                        <label className={labelClasses}>Load Saved Mix</label>
-                        <select
-                            value=""
-                            onChange={(e) => {
-                                const template = templates.find(t => t.id === parseInt(e.target.value));
-                                if (!template) return;
-                                if (template.area_sqft) setAreaSqft(String(template.area_sqft));
-                                if (template.tank_size_gal) setTankSizeGal(String(template.tank_size_gal));
-                                setCarrierRate(String(template.carrier_rate));
-                                setMixItems(template.products.map(p => ({
-                                    productId: p.productId as number | '',
-                                    rate: p.rate,
-                                    rateUnit: p.rateUnit,
-                                })));
-                            }}
-                            className={inputClasses}
-                        >
-                            <option value="">Select a saved mix...</option>
-                            {templates.map(t => (
-                                <option key={t.id} value={t.id}>{t.name}{t.description ? ` — ${t.description}` : ''}</option>
-                            ))}
-                        </select>
-                    </div>
+                {/* Template controls — New Mix / Load Saved */}
+                <div className="flex items-center gap-3 pb-6 border-b border-border-color">
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setAreaSqft('');
+                            setTankSizeGal('');
+                            setCarrierRate('2');
+                            setMixItems([{ productId: '', rate: '', rateUnit: 'oz/1000sqft' }]);
+                            setShowLoadDropdown(false);
+                        }}
+                        className="bg-turf-green text-white px-5 py-3 shadow-sm flex items-center gap-2 font-heading font-black hover:bg-turf-green-dark hover:-translate-y-0.5 transition-all duration-300 text-[0.7rem] uppercase tracking-[0.15em]"
+                    >
+                        <Plus className="w-3.5 h-3.5" />
+                        New Mix
+                    </button>
+                    {templates.length > 0 && (
+                        <>
+                            {!showLoadDropdown ? (
+                                <button
+                                    type="button"
+                                    onClick={() => setShowLoadDropdown(true)}
+                                    className="bg-panel-white border border-border-color text-text-primary px-5 py-3 shadow-sm flex items-center gap-2 font-heading font-black hover:bg-dashboard-bg transition-all text-[0.7rem] uppercase tracking-[0.15em]"
+                                >
+                                    <FolderOpen className="w-3.5 h-3.5" />
+                                    Load Saved
+                                </button>
+                            ) : (
+                                <div className="flex-1">
+                                    <select
+                                        autoFocus
+                                        value=""
+                                        onChange={(e) => {
+                                            const template = templates.find(t => t.id === parseInt(e.target.value));
+                                            if (!template) return;
+                                            if (template.area_sqft) setAreaSqft(String(template.area_sqft));
+                                            if (template.tank_size_gal) setTankSizeGal(String(template.tank_size_gal));
+                                            setCarrierRate(String(template.carrier_rate));
+                                            setMixItems(template.products.map(p => ({
+                                                productId: p.productId as number | '',
+                                                rate: p.rate,
+                                                rateUnit: p.rateUnit,
+                                            })));
+                                            setShowLoadDropdown(false);
+                                        }}
+                                        onBlur={() => setShowLoadDropdown(false)}
+                                        className={inputClasses}
+                                    >
+                                        <option value="">Select a saved mix...</option>
+                                        {templates.map(t => (
+                                            <option key={t.id} value={t.id}>{t.name}{t.description ? ` — ${t.description}` : ''}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+                        </>
+                    )}
                     {mixItems.some(m => m.productId !== '') && (
                         <button
                             type="button"
                             onClick={() => setShowSaveModal(true)}
-                            className="bg-panel-white border border-border-color text-text-primary px-4 py-3 shadow-sm flex items-center gap-2 font-heading font-black hover:bg-dashboard-bg transition-all text-[0.7rem] uppercase tracking-[0.15em]"
+                            className="bg-panel-white border border-border-color text-text-primary px-5 py-3 shadow-sm flex items-center gap-2 font-heading font-black hover:bg-dashboard-bg transition-all text-[0.7rem] uppercase tracking-[0.15em] ml-auto"
                         >
                             <Save className="w-3.5 h-3.5" />
                             Save Mix
