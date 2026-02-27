@@ -3,7 +3,7 @@
 
 # Active Tasks
 
-Last Updated: 2026-02-25
+Last Updated: 2026-02-26
 
 ## Active Tasks
 
@@ -57,6 +57,7 @@ Last Updated: 2026-02-25
 ## Recently Completed ✅
 
 See `completed/2026-02/` for completed tasks including:
+- ✅ Pesticide Tracker Improvements — Date filtering, weather alerts, mix templates, print sheet, edit/delete, calc→log bridge (2026-02-26)
 - ✅ Scheduled Jobs + Job Edit/Delete — Recurring schedules, auto-populate dashboard, full CRUD with confirm-delete (2026-02-25)
 - ✅ Demo Day Fixes — UI improvements, working staff filtering, header weather widget (2026-02-16)
 - ✅ Equipment Page Fixes — Card expansion, batch CSV upload, status color fix (2026-02-16)

@@ -26,6 +26,16 @@
 - `SSH_USER` (deploy)
 - `SERVER_HOST` (5.78.128.255)
 
+## Deployment Workflow (Branch → PR → Merge)
+
+1. Create feature branch: `git checkout -b feature/my-feature`
+2. Commit and push branch
+3. Open PR against `main` (via `gh pr create` or GitHub UI)
+4. Merge PR → triggers GH Actions automatically (no manual step needed)
+5. Monitor at: https://github.com/cpbjr/turfsheet/actions
+
+**Note:** This project uses GitHub Actions + Hetzner. It is NOT on Vercel.
+
 ## Manual Trigger
 
 GitHub Actions → "Deploy TurfSheet to Hetzner" → "Run workflow"
@@ -39,4 +49,4 @@ Always run `npx tsc -b --noEmit` locally before pushing to catch type errors.
 
 Vite config uses `base: '/turfsheet/'` for subpath serving.
 
-*Last Updated: 2026-02-24*
+*Last Updated: 2026-02-25*
