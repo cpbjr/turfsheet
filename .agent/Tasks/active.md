@@ -3,31 +3,9 @@
 
 # Active Tasks
 
-Last Updated: 2026-02-26
+Last Updated: 2026-02-27
 
 ## Active Tasks
-
-### Fix: Dashboard Announcements — No way to add/edit announcements
-**Priority:** High (core dashboard feature gap)
-**Status:** Not started
-**Date Added:** 2026-02-24
-
-**Problem:** The `daily_board` table and `announcements` column exist in the database, and the `DailyBoard` TypeScript type is defined, but the RightPanel only shows a hardcoded "No announcements at this time" message. There is no UI to create, edit, or delete announcements.
-
-**Scope:**
-- Add an editable announcements section to the dashboard (RightPanel or dedicated modal)
-- Fetch announcements from `turfsheet.daily_board` for the current date
-- Allow adding/editing announcement text
-- Auto-create a `daily_board` row for today if one doesn't exist
-- Display saved announcements instead of the static placeholder
-
-**Key Files:**
-- `src/components/layout/RightPanel.tsx` — current placeholder display
-- `src/types/index.ts` — `DailyBoard` interface (already defined)
-- DB table: `turfsheet.daily_board` (migration exists, RLS policies set)
-
-
----
 
 ### Feature: Mowing Directions on Jobs
 **Priority:** Medium
@@ -57,6 +35,7 @@ Last Updated: 2026-02-26
 ## Recently Completed ✅
 
 See `completed/2026-02/` for completed tasks including:
+- ✅ Whiteboard Misc Fixes + Announcements — Off staff display, manage schedule modal, announcements CRUD, UTC date fix, 3-column layout (2026-02-27)
 - ✅ Pesticide Tracker Improvements — Date filtering, weather alerts, mix templates, print sheet, edit/delete, calc→log bridge (2026-02-26)
 - ✅ Scheduled Jobs + Job Edit/Delete — Recurring schedules, auto-populate dashboard, full CRUD with confirm-delete (2026-02-25)
 - ✅ Demo Day Fixes — UI improvements, working staff filtering, header weather widget (2026-02-16)

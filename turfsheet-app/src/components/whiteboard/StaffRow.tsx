@@ -19,6 +19,7 @@ interface StaffRowProps {
   onUnassignSecondJob: (boardItemId: string) => void;
   isEven: boolean;
   isWorking?: boolean;
+  isOff?: boolean;
 }
 
 export default function StaffRow({
@@ -32,20 +33,43 @@ export default function StaffRow({
   onUnassignSecondJob,
   isEven,
   isWorking = true,
+  isOff = false,
 }: StaffRowProps) {
+  // Not scheduled for today — hide entirely
+  if (!isWorking && !isOff) return null;
+
   return (
     <div
-      className={`grid grid-cols-[2fr_3fr] gap-4 px-6 py-4 border-x border-b border-border-color ${
+      className={`grid grid-cols-[120px_1fr_1fr] gap-2 px-6 py-4 border-x border-b border-border-color ${
         isEven ? 'bg-panel-white' : 'bg-dashboard-bg/30'
-      } ${!isWorking ? 'opacity-40 pointer-events-none' : ''}`}
+      }`}
     >
-      {/* Staff Name + Second Job Chips */}
-      <div className="flex flex-col gap-1">
-        <div className="font-heading font-bold text-text-primary text-sm">
+      {/* Staff Name */}
+      <div className="flex items-center">
+        <div className={`font-heading font-bold text-sm ${isOff ? 'text-text-secondary' : 'text-text-primary'}`}>
           {row.staff.name}
         </div>
-        {secondJobChips.length > 0 && (
-          <div className="flex flex-wrap gap-1">
+      </div>
+
+      {/* First Job column */}
+      {isOff ? (
+        <div className="bg-red-50 border border-red-300 px-4 py-2 flex items-center justify-center col-span-2">
+          <span className="text-red-600 font-heading font-black text-sm uppercase tracking-wide">Off</span>
+        </div>
+      ) : (
+        <>
+          <JobAssignmentCell
+            staffId={String(row.staff.id)}
+            date={dateString}
+            currentAssignment={row.primaryJob}
+            availableJobs={availableJobs}
+            onUpdate={onUpdate}
+            onOptimisticUpdate={onOptimisticUpdate}
+            onCreateJob={onCreateJob}
+          />
+
+          {/* Second Jobs column */}
+          <div className="flex flex-wrap gap-1 items-center">
             {secondJobChips.map((chip) => (
               <SecondJobChip
                 key={chip.id}
@@ -54,19 +78,8 @@ export default function StaffRow({
               />
             ))}
           </div>
-        )}
-      </div>
-
-      {/* Primary Job */}
-      <JobAssignmentCell
-        staffId={String(row.staff.id)}
-        date={dateString}
-        currentAssignment={row.primaryJob}
-        availableJobs={availableJobs}
-        onUpdate={onUpdate}
-        onOptimisticUpdate={onOptimisticUpdate}
-        onCreateJob={onCreateJob}
-      />
+        </>
+      )}
     </div>
   );
 }

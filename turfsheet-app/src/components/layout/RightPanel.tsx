@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { UserMinus } from 'lucide-react';
+import { UserMinus, Plus, Check, X, Pencil } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import type { Staff } from '../../types';
+import type { Staff, DailyBoard } from '../../types';
+import ManageScheduleModal from './ManageScheduleModal';
 
 interface StaffSchedule {
   id: string;
@@ -16,13 +17,67 @@ interface StaffSchedule {
   staff: Staff;
 }
 
+function getTodayISO() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 export default function RightPanel() {
   const [workingStaff, setWorkingStaff] = useState<Staff[]>([]);
   const [loading, setLoading] = useState(true);
+  const [announcement, setAnnouncement] = useState('');
+  const [editingAnnouncement, setEditingAnnouncement] = useState(false);
+  const [draftAnnouncement, setDraftAnnouncement] = useState('');
+  const [dailyBoardId, setDailyBoardId] = useState<string | null>(null);
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
 
   useEffect(() => {
     fetchWorkingStaff();
+    fetchAnnouncement();
   }, []);
+
+  const fetchAnnouncement = async () => {
+    const today = getTodayISO();
+    const { data, error } = await supabase
+      .from('daily_board')
+      .select('*')
+      .eq('board_date', today)
+      .maybeSingle();
+
+    if (error) {
+      console.warn('daily_board not available:', error.message);
+      return;
+    }
+
+    if (data) {
+      setAnnouncement((data as DailyBoard).announcements || '');
+      setDailyBoardId((data as DailyBoard).id);
+    }
+  };
+
+  const saveAnnouncement = async () => {
+    const today = getTodayISO();
+    const text = draftAnnouncement.trim();
+
+    if (dailyBoardId) {
+      const { error } = await supabase
+        .from('daily_board')
+        .update({ announcements: text || null, updated_at: new Date().toISOString() })
+        .eq('id', dailyBoardId);
+      if (error) { console.error('Error updating announcement:', error); return; }
+    } else {
+      const { data, error } = await supabase
+        .from('daily_board')
+        .insert({ board_date: today, announcements: text || null })
+        .select()
+        .single();
+      if (error) { console.error('Error creating announcement:', error); return; }
+      if (data) setDailyBoardId((data as DailyBoard).id);
+    }
+
+    setAnnouncement(text);
+    setEditingAnnouncement(false);
+  };
 
   const fetchWorkingStaff = async () => {
     setLoading(true);
@@ -35,7 +90,6 @@ export default function RightPanel() {
       .select('*, staff:staff_id(id, name, role, sort_order)');
 
     if (error) {
-      // Table may not exist yet - just show empty state
       console.warn('Staff schedules table not available:', error.message);
       setWorkingStaff([]);
       setLoading(false);
@@ -56,15 +110,67 @@ export default function RightPanel() {
     <aside className="w-[340px] bg-white border-l border-border-color overflow-y-auto flex flex-col shrink-0">
       {/* Announcements Section */}
       <div className="p-10 space-y-6 border-b border-dashboard-bg bg-panel-white">
-        <h4 className="text-[0.75rem] font-heading font-black text-text-primary uppercase tracking-[0.3em] border-b border-border-color pb-5">
-          Announcements
-        </h4>
-        <div className="bg-panel-white border border-border-color p-8 text-center shadow-sm">
-          <p className="text-text-secondary text-[0.75rem] font-sans">
-            No announcements at this time
-          </p>
+        <div className="flex items-center justify-between border-b border-border-color pb-5">
+          <h4 className="text-[0.75rem] font-heading font-black text-text-primary uppercase tracking-[0.3em]">
+            Announcements
+          </h4>
+          {!editingAnnouncement && (
+            <button
+              onClick={() => {
+                setDraftAnnouncement(announcement);
+                setEditingAnnouncement(true);
+              }}
+              className="w-6 h-6 flex items-center justify-center bg-turf-green text-white hover:brightness-110 transition-all"
+              title={announcement ? 'Edit announcement' : 'Add announcement'}
+            >
+              {announcement ? <Pencil size={12} /> : <Plus size={14} />}
+            </button>
+          )}
         </div>
+
+        {editingAnnouncement ? (
+          <div className="space-y-3">
+            <textarea
+              value={draftAnnouncement}
+              onChange={(e) => setDraftAnnouncement(e.target.value)}
+              placeholder="Type announcement..."
+              className="w-full border border-border-color p-3 text-sm font-sans text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-turf-green"
+              rows={3}
+              autoFocus
+            />
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setEditingAnnouncement(false)}
+                className="px-3 py-1.5 text-xs font-heading font-bold uppercase tracking-wide text-text-secondary hover:text-text-primary transition-colors"
+              >
+                <X size={14} className="inline mr-1" />
+                Cancel
+              </button>
+              <button
+                onClick={saveAnnouncement}
+                className="px-3 py-1.5 text-xs font-heading font-bold uppercase tracking-wide bg-turf-green text-white hover:brightness-110 transition-all"
+              >
+                <Check size={14} className="inline mr-1" />
+                Save
+              </button>
+            </div>
+          </div>
+        ) : announcement ? (
+          <div className="bg-panel-white border border-border-color p-6 shadow-sm">
+            <p className="text-text-primary text-sm font-sans whitespace-pre-wrap">
+              {announcement}
+            </p>
+          </div>
+        ) : (
+          <div className="bg-panel-white border border-border-color p-8 text-center shadow-sm">
+            <p className="text-text-secondary text-[0.75rem] font-sans">
+              No announcements at this time
+            </p>
+          </div>
+        )}
       </div>
+
+      {/* Working Today Section */}
       <div className="p-10 flex flex-col bg-white">
         <h4 className="text-[0.75rem] font-heading font-black mb-10 text-text-primary uppercase tracking-[0.3em] border-b border-border-color pb-5">
           Working Today
@@ -98,26 +204,19 @@ export default function RightPanel() {
           </div>
         )}
 
-        <button className="mt-8 bg-turf-green text-white px-6 py-5 font-heading font-black text-[0.85rem] uppercase tracking-[0.25em] hover:brightness-110 hover:-translate-y-1 hover:shadow-lg transition-all duration-300 shadow-sm flex items-center justify-center">
+        <button
+          onClick={() => setIsScheduleModalOpen(true)}
+          className="mt-8 bg-turf-green text-white px-6 py-5 font-heading font-black text-[0.85rem] uppercase tracking-[0.25em] hover:brightness-110 hover:-translate-y-1 hover:shadow-lg transition-all duration-300 shadow-sm flex items-center justify-center"
+        >
           Manage Schedule
         </button>
       </div>
 
-      {/* Action Buttons - Remaining */}
-      <div className="flex flex-col space-y-4 p-10 border-t border-dashboard-bg bg-dashboard-bg/5 mt-auto">
-        <button className="bg-turf-green text-white px-6 py-4 font-heading font-black text-[0.8rem] uppercase tracking-[0.2em] hover:brightness-110 hover:-translate-y-1 hover:shadow-lg transition-all duration-300 shadow-sm flex items-center justify-center">
-          Add A Job
-        </button>
-        <button className="bg-[#95A5A6] text-white px-6 py-4 font-heading font-black text-[0.8rem] uppercase tracking-[0.2em] hover:brightness-110 hover:-translate-y-1 hover:shadow-lg transition-all duration-300 shadow-sm flex items-center justify-center">
-          Equipment
-        </button>
-        <button className="bg-[#95A5A6] text-white px-6 py-4 font-heading font-black text-[0.8rem] uppercase tracking-[0.2em] hover:brightness-110 hover:-translate-y-1 hover:shadow-lg transition-all duration-300 shadow-sm flex items-center justify-center">
-          Display Mode
-        </button>
-        <button className="bg-[#EAB35E] text-white px-6 py-4 font-heading font-black text-[0.8rem] uppercase tracking-[0.2em] hover:brightness-110 hover:-translate-y-1 hover:shadow-lg transition-all duration-300 shadow-sm flex items-center justify-center">
-          Help
-        </button>
-      </div>
+      <ManageScheduleModal
+        isOpen={isScheduleModalOpen}
+        onClose={() => setIsScheduleModalOpen(false)}
+        onUpdate={() => fetchWorkingStaff()}
+      />
     </aside>
   );
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import Modal from '../ui/Modal';
@@ -24,8 +24,9 @@ export default function StaffWhiteboardView({
   const [error, setError] = useState<string | null>(null);
   const [isJobModalOpen, setIsJobModalOpen] = useState(false);
   const [workingStaffIds, setWorkingStaffIds] = useState<Set<string>>(new Set());
+  const [offStaffIds, setOffStaffIds] = useState<Set<string>>(new Set());
 
-  const dateString = selectedDate.toISOString().split('T')[0];
+  const dateString = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
 
   // Fetch static data (staff & jobs) only on mount
   useEffect(() => {
@@ -38,6 +39,16 @@ export default function StaffWhiteboardView({
       fetchAssignmentsForDate();
     }
   }, [selectedDate, staffList.length]);
+
+  // Keep a ref to the latest fetch function so the event listener never goes stale
+  const fetchRef = useRef<(() => void) | null>(null);
+
+  // Re-fetch when schedule is changed via ManageScheduleModal
+  useEffect(() => {
+    const handler = () => { fetchRef.current?.(); };
+    window.addEventListener('schedule-changed', handler);
+    return () => window.removeEventListener('schedule-changed', handler);
+  }, []);
 
   // Fetch staff and jobs once (they rarely change)
   const fetchStaticData = async () => {
@@ -73,7 +84,7 @@ export default function StaffWhiteboardView({
     }
   };
 
-  // Fetch working staff for the selected date
+  // Fetch working staff for the selected date (schedules + time off)
   const fetchWorkingStaffIds = async () => {
     const dayOfWeek = selectedDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
     const dayColumn = `${dayOfWeek}_on`;
@@ -83,17 +94,29 @@ export default function StaffWhiteboardView({
       .select('*');
 
     if (error) {
-      // Table may not exist yet - treat all staff as working
       console.warn('Staff schedules table not available:', error.message);
       setWorkingStaffIds(new Set(staffList.map(s => String(s.id))));
-      return;
-    }
-
-    if (data) {
+    } else if (data) {
       const workingIds = data
         .filter((schedule: any) => schedule[dayColumn])
         .map((schedule: any) => String(schedule.staff_id));
       setWorkingStaffIds(new Set(workingIds));
+    }
+
+    // Check staff_time_off for the selected date
+    const { data: timeOffData, error: timeOffError } = await supabase
+      .from('staff_time_off')
+      .select('staff_id')
+      .lte('start_date', dateString)
+      .gte('end_date', dateString)
+      .eq('status', 'approved');
+
+    if (timeOffError) {
+      console.warn('staff_time_off not available:', timeOffError.message);
+      setOffStaffIds(new Set());
+    } else {
+      const offIds = (timeOffData || []).map((row: any) => String(row.staff_id));
+      setOffStaffIds(new Set(offIds));
     }
   };
 
@@ -141,6 +164,7 @@ export default function StaffWhiteboardView({
       console.error('Error fetching assignments:', err);
     }
   };
+  fetchRef.current = fetchAssignmentsForDate;
 
   // Optimistically update a primary job assignment
   const handleOptimisticJobUpdate = (staffId: string, jobId: string | null) => {
@@ -285,12 +309,15 @@ export default function StaffWhiteboardView({
         {/* Left Panel: Staff + Jobs */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Header Row */}
-          <div className="grid grid-cols-[2fr_3fr] gap-4 px-6 py-3 bg-turf-green border-x border-t border-turf-green/20 shadow-sm">
+          <div className="grid grid-cols-[120px_1fr_1fr] gap-2 px-6 py-3 h-10 bg-turf-green border-x border-t border-turf-green/20 shadow-sm items-center">
             <span className="text-xs font-heading font-black text-white uppercase tracking-[0.2em]">
               Staff Name
             </span>
             <span className="text-xs font-heading font-black text-white uppercase tracking-[0.2em]">
               First Jobs
+            </span>
+            <span className="text-xs font-heading font-black text-white uppercase tracking-[0.2em]">
+              Second Jobs
             </span>
           </div>
 
@@ -322,7 +349,8 @@ export default function StaffWhiteboardView({
                     onCreateJob={handleCreateJob}
                     onUnassignSecondJob={handleUnassignSecondJob}
                     isEven={idx % 2 === 0}
-                    isWorking={workingStaffIds.has(String(row.staff.id))}
+                    isWorking={workingStaffIds.has(String(row.staff.id)) && !offStaffIds.has(String(row.staff.id))}
+                    isOff={offStaffIds.has(String(row.staff.id))}
                   />
                 ))
               ) : (

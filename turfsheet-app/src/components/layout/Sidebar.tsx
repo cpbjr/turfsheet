@@ -1,8 +1,8 @@
 import { Link, useLocation } from 'react-router-dom';
 import {
-  House, Calendar, Users, Briefcase, FolderKanban,
-  BarChart3, MapPin, FlaskConical, Droplets, FileText,
-  GraduationCap, Settings, Package, LogOut, AlertTriangle
+  House, Calendar, Users, Briefcase, FolderKanban, AlertTriangle,
+  MapPin, FlaskConical, Droplets, FileText,
+  GraduationCap, Settings, LogOut, Tractor
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -11,20 +11,19 @@ export default function Sidebar() {
   const topNav = [
     { id: 'dashboard', icon: House, label: 'Dashboard', path: '/' },
     { id: 'calendar', icon: Calendar, label: 'Calendar', path: '/calendar' },
-    { id: 'maintenance', icon: AlertTriangle, label: 'Maintenance', path: '/maintenance' },
     { id: 'staff', icon: Users, label: 'Staff', path: '/staff' },
-    { id: 'equipment', icon: Package, label: 'Equipment', path: '/equipment' },
     { id: 'jobs', icon: Briefcase, label: 'Jobs', path: '/jobs' },
-    { id: 'projects', icon: FolderKanban, label: 'Projects', path: '/projects' },
-    { id: 'analytics', icon: BarChart3, label: 'Analytics', path: '/analytics' },
-    { id: 'maps', icon: MapPin, label: 'Maps', path: '/maps' },
-    { id: 'pesticide', icon: FlaskConical, label: 'Pesticide Log', path: '/pesticide' },
+    { id: 'equipment', icon: Tractor, label: 'Equipment', path: '/equipment' },
+    { id: 'pesticide', icon: FlaskConical, label: 'Chemicals', path: '/pesticide' },
     { id: 'irrigation', icon: Droplets, label: 'Irrigation', path: '/irrigation' },
+    { id: 'maintenance', icon: AlertTriangle, label: 'Maintenance', path: '/maintenance' },
+    { id: 'projects', icon: FolderKanban, label: 'Projects', path: '/projects' },
   ];
 
   const bottomNav = [
+    { id: 'maps', icon: MapPin, label: 'Maps', path: '/maps' },
     { id: 'docs', icon: FileText, label: 'Documents', path: '/docs' },
-    { id: 'training', icon: GraduationCap, label: 'Training', path: '/training' },
+    { id: 'training', icon: GraduationCap, label: 'Learning', path: '/training' },
     { id: 'settings', icon: Settings, label: 'Settings', path: '/settings' },
     { id: 'logout', icon: LogOut, label: 'Logout', path: '/logout' },
   ];
@@ -54,6 +53,9 @@ export default function Sidebar() {
             </Link>
           ))}
         </div>
+
+        {/* Separator */}
+        <div className="w-6 border-t border-white/30 mx-auto" />
 
         {/* Bottom Section */}
         <div className="flex flex-col items-center gap-4 mb-2">

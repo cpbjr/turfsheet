@@ -10,6 +10,7 @@ interface SecondJobBoardItemProps {
   onRemoveFromBoard: (boardItemId: string) => void;
   onMoveUp: (boardItemId: string) => void;
   onMoveDown: (boardItemId: string) => void;
+  onSetPriority: (boardItemId: string, priority: string | null) => void;
   isFirst: boolean;
   isLast: boolean;
 }
@@ -22,6 +23,7 @@ export default function SecondJobBoardItem({
   onRemoveFromBoard,
   onMoveUp,
   onMoveDown,
+  onSetPriority,
   isFirst,
   isLast,
 }: SecondJobBoardItemProps) {
@@ -31,11 +33,22 @@ export default function SecondJobBoardItem({
     <div className="border border-border-color bg-panel-white px-4 py-3">
       {/* Top row: Priority, Description, Action Buttons */}
       <div className="flex items-center gap-2">
-        {boardItem.priority && (
-          <div className="w-6 h-6 flex items-center justify-center bg-turf-green text-white text-xs font-heading font-bold rounded-sm">
-            {boardItem.priority}
-          </div>
-        )}
+        <input
+          type="text"
+          maxLength={1}
+          value={boardItem.priority || ''}
+          onChange={(e) => {
+            const val = e.target.value.toUpperCase().trim();
+            onSetPriority(boardItem.id, val || null);
+          }}
+          className={`w-6 h-6 text-center text-xs font-heading font-bold rounded-sm shrink-0 border transition-colors focus:outline-none focus:ring-1 focus:ring-turf-green ${
+            boardItem.priority
+              ? 'border-turf-green bg-turf-green/10 text-turf-green'
+              : 'border-border-color bg-gray-50 text-gray-400'
+          }`}
+          title="Type a priority letter"
+          placeholder="-"
+        />
 
         <div className="flex-1">
           <span

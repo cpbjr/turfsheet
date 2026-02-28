@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { ArrowDownAZ } from 'lucide-react';
 import type { Staff, SecondJobBoardItemWithStaff } from '../../types';
 import { supabase } from '../../lib/supabase';
 import SecondJobBoardItem from './SecondJobBoardItem';
@@ -133,6 +134,45 @@ export default function SecondJobsBoardPanel({
     }
   }
 
+  async function handleSortAlphabetically() {
+    try {
+      const sorted = [...boardItems].sort((a, b) =>
+        a.description.localeCompare(b.description, undefined, { sensitivity: 'base' })
+      );
+
+      const updates = sorted.map((item, index) => ({
+        id: item.id,
+        sort_order: index + 1,
+      }));
+
+      for (const update of updates) {
+        const { error } = await supabase
+          .from('second_job_board')
+          .update({ sort_order: update.sort_order })
+          .eq('id', update.id);
+        if (error) throw error;
+      }
+
+      await fetchBoardData();
+    } catch (error) {
+      console.error('Error sorting alphabetically:', error);
+    }
+  }
+
+  async function handleSetPriority(boardItemId: string, priority: string | null) {
+    try {
+      const { error } = await supabase
+        .from('second_job_board')
+        .update({ priority })
+        .eq('id', boardItemId);
+
+      if (error) throw error;
+      await fetchBoardData();
+    } catch (error) {
+      console.error('Error setting priority:', error);
+    }
+  }
+
   async function handleMoveDown(boardItemId: string) {
     try {
       const currentIndex = boardItems.findIndex((item) => item.id === boardItemId);
@@ -164,11 +204,20 @@ export default function SecondJobsBoardPanel({
   return (
     <div className="flex flex-col h-full border-l border-border-color bg-panel-white">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-3 bg-turf-green border-t border-turf-green/20 shadow-sm">
-        <span className="text-[0.6rem] font-heading font-black text-white uppercase tracking-[0.2em]">
+      <div className="flex items-center justify-between px-6 py-3 h-10 bg-turf-green border-t border-turf-green/20 shadow-sm">
+        <span className="text-xs font-heading font-black text-white uppercase tracking-[0.2em]">
           Second Jobs
         </span>
-        <AddSecondJobDropdown onAdd={handleAddToBoard} />
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleSortAlphabetically}
+            className="p-1 text-white/70 hover:text-white transition-colors"
+            title="Sort A-Z"
+          >
+            <ArrowDownAZ size={16} />
+          </button>
+          <AddSecondJobDropdown onAdd={handleAddToBoard} />
+        </div>
       </div>
 
       {/* Board Items */}
@@ -193,6 +242,7 @@ export default function SecondJobsBoardPanel({
                 onRemoveFromBoard={handleRemoveFromBoard}
                 onMoveUp={handleMoveUp}
                 onMoveDown={handleMoveDown}
+                onSetPriority={handleSetPriority}
                 isFirst={index === 0}
                 isLast={index === boardItems.length - 1}
               />
