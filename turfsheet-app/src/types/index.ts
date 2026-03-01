@@ -284,6 +284,20 @@ export interface PesticideApplication {
   weather_conditions?: string;
   rei_hours?: number;
   notes?: string;
+  // Compliance fields
+  application_time?: string;
+  applicator_license?: string;
+  wind_direction?: string;
+  humidity?: string;
+  // Paper form fields
+  worker_protection_exchange: boolean;
+  worker_protection_requirements?: string;
+  recommended_by?: number;
+  epa_lot_number?: string;
+  manufacturer?: string;
+  amount_per_tank?: string;
+  equipment_used?: string;
+  // Timestamps
   created_at: string;
   updated_at: string;
 }
