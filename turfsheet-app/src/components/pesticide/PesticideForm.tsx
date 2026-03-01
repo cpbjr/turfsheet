@@ -31,14 +31,15 @@ export default function PesticideForm({ onSubmit, onCancel, staffMembers, produc
     const today = new Date().toISOString().split('T')[0];
     const now = new Date().toTimeString().slice(0, 5);
 
+    const darrylId = staffMembers.find(s => s.name === 'Darryl')?.id?.toString() || '';
+
     const [formData, setFormData] = useState(() => {
         if (initialData) {
-            const a = initialData as any;
             return {
                 application_date: initialData.application_date || today,
-                application_time: a.application_time || '',
+                application_time: initialData.application_time || '',
                 operator_id: initialData.operator_id || '',
-                applicator_license: a.applicator_license || '',
+                applicator_license: initialData.applicator_license || '',
                 product_name: initialData.product_name || '',
                 epa_registration_number: initialData.epa_registration_number || '',
                 active_ingredient: initialData.active_ingredient || '',
@@ -52,9 +53,16 @@ export default function PesticideForm({ onSubmit, onCancel, staffMembers, produc
                 weather_conditions: initialData.weather_conditions || '',
                 temperature: initialData.temperature || '',
                 wind_speed: initialData.wind_speed || '',
-                wind_direction: a.wind_direction || '',
-                humidity: a.humidity || '',
+                wind_direction: initialData.wind_direction || '',
+                humidity: initialData.humidity || '',
                 notes: initialData.notes || '',
+                worker_protection_exchange: initialData.worker_protection_exchange || false,
+                worker_protection_requirements: initialData.worker_protection_requirements || '',
+                recommended_by: initialData.recommended_by?.toString() || darrylId,
+                epa_lot_number: initialData.epa_lot_number || '',
+                manufacturer: initialData.manufacturer || '',
+                amount_per_tank: initialData.amount_per_tank || '',
+                equipment_used: initialData.equipment_used || '',
             };
         }
         return {
@@ -78,6 +86,13 @@ export default function PesticideForm({ onSubmit, onCancel, staffMembers, produc
             wind_direction: '',
             humidity: '',
             notes: '',
+            worker_protection_exchange: false,
+            worker_protection_requirements: '',
+            recommended_by: darrylId,
+            epa_lot_number: '',
+            manufacturer: '',
+            amount_per_tank: '',
+            equipment_used: '',
         };
     });
 
@@ -152,6 +167,8 @@ export default function PesticideForm({ onSubmit, onCancel, staffMembers, produc
                 : '',
             rei_hours: product.rei_hours ? product.rei_hours.toString() : '',
             method: product.carrier_volume_gal === 0 ? 'granular' : (prev.method || 'spray'),
+            manufacturer: product.manufacturer || '',
+            worker_protection_requirements: product.warnings || '',
         }));
     };
 
@@ -181,6 +198,10 @@ export default function PesticideForm({ onSubmit, onCancel, staffMembers, produc
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        if (!formData.worker_protection_exchange) {
+            alert('Worker Protection Safety briefing must be completed before recording an application.');
+            return;
+        }
         const cleanedData = {
             ...formData,
             operator_id: formData.operator_id || undefined,
@@ -198,7 +219,13 @@ export default function PesticideForm({ onSubmit, onCancel, staffMembers, produc
             wind_speed: formData.wind_speed || undefined,
             wind_direction: formData.wind_direction || undefined,
             humidity: formData.humidity || undefined,
-            notes: formData.notes || undefined
+            notes: formData.notes || undefined,
+            recommended_by: formData.recommended_by ? parseInt(formData.recommended_by) : undefined,
+            epa_lot_number: formData.epa_lot_number || undefined,
+            manufacturer: formData.manufacturer || undefined,
+            amount_per_tank: formData.amount_per_tank || undefined,
+            equipment_used: formData.equipment_used || undefined,
+            worker_protection_requirements: formData.worker_protection_requirements || undefined,
         };
         onSubmit(cleanedData);
     };
@@ -296,6 +323,26 @@ export default function PesticideForm({ onSubmit, onCancel, staffMembers, produc
                 </div>
             </div>
 
+            {/* Worker Protection Exchange (WPS) */}
+            <div className="bg-amber-50 border border-amber-300 p-4">
+                <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                        type="checkbox"
+                        className="w-5 h-5 accent-turf-green"
+                        checked={formData.worker_protection_exchange}
+                        onChange={(e) => setFormData({ ...formData, worker_protection_exchange: e.target.checked })}
+                    />
+                    <span className="text-sm font-heading font-black uppercase tracking-wider text-amber-800">
+                        Worker Protection Safety briefing completed *
+                    </span>
+                </label>
+                {formData.worker_protection_requirements && (
+                    <p className="mt-2 text-xs text-amber-700 font-sans leading-relaxed pl-8">
+                        <strong>Label Requirements:</strong> {formData.worker_protection_requirements}
+                    </p>
+                )}
+            </div>
+
             {/* Applicator License (Idaho requirement) */}
             <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -320,6 +367,21 @@ export default function PesticideForm({ onSubmit, onCancel, staffMembers, produc
                 </div>
             </div>
 
+            {/* Recommended By (Pesticide Recommendation) */}
+            <div>
+                <label className={labelClasses}>Pesticide Recommendation By</label>
+                <select
+                    className={inputClasses}
+                    value={formData.recommended_by}
+                    onChange={(e) => setFormData({ ...formData, recommended_by: e.target.value })}
+                >
+                    <option value="">Select staff...</option>
+                    {staffMembers.map((s) => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                </select>
+            </div>
+
             {/* Product | EPA # */}
             <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -341,6 +403,30 @@ export default function PesticideForm({ onSubmit, onCancel, staffMembers, produc
                         placeholder="e.g. 100-1164"
                         value={formData.epa_registration_number}
                         onChange={(e) => setFormData({ ...formData, epa_registration_number: e.target.value })}
+                    />
+                </div>
+            </div>
+
+            {/* EPA Lot Number | Manufacturer */}
+            <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <label className={labelClasses}>EPA Lot Number</label>
+                    <input
+                        type="text"
+                        className={inputClasses}
+                        placeholder="From product container"
+                        value={formData.epa_lot_number}
+                        onChange={(e) => setFormData({ ...formData, epa_lot_number: e.target.value })}
+                    />
+                </div>
+                <div>
+                    <label className={labelClasses}>Manufacturer</label>
+                    <input
+                        type="text"
+                        className={inputClasses}
+                        placeholder="e.g. Syngenta"
+                        value={formData.manufacturer}
+                        onChange={(e) => setFormData({ ...formData, manufacturer: e.target.value })}
                     />
                 </div>
             </div>
@@ -380,6 +466,18 @@ export default function PesticideForm({ onSubmit, onCancel, staffMembers, produc
                         onChange={(e) => setFormData({ ...formData, total_amount_used: e.target.value })}
                     />
                 </div>
+            </div>
+
+            {/* Amount per Tank */}
+            <div>
+                <label className={labelClasses}>Amount per Tank</label>
+                <input
+                    type="text"
+                    className={inputClasses}
+                    placeholder="e.g., 32 oz"
+                    value={formData.amount_per_tank}
+                    onChange={(e) => setFormData({ ...formData, amount_per_tank: e.target.value })}
+                />
             </div>
 
             {/* Area Applied | Area Size */}
@@ -435,6 +533,23 @@ export default function PesticideForm({ onSubmit, onCancel, staffMembers, produc
                         onChange={(e) => setFormData({ ...formData, rei_hours: e.target.value })}
                     />
                 </div>
+            </div>
+
+            {/* Equipment Used */}
+            <div>
+                <label className={labelClasses}>Equipment Used</label>
+                <select
+                    className={inputClasses}
+                    value={formData.equipment_used}
+                    onChange={(e) => setFormData({ ...formData, equipment_used: e.target.value })}
+                >
+                    <option value="">Select equipment...</option>
+                    <option value="Spray Rig">Spray Rig</option>
+                    <option value="Backpack Sprayer">Backpack Sprayer</option>
+                    <option value="Spreader">Spreader</option>
+                    <option value="Boom Sprayer">Boom Sprayer</option>
+                    <option value="Hand Sprayer">Hand Sprayer</option>
+                </select>
             </div>
 
             {/* Weather Conditions - Idaho compliance */}
