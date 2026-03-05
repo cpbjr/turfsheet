@@ -395,3 +395,24 @@ export interface MaintenanceReporter {
   created_at: string;
   updated_at: string;
 }
+
+// ============================================================
+// Green Readings (moisture and firmness monitoring on greens)
+// ============================================================
+
+export interface GreenReading {
+  id: string;
+  reading_date: string;      // ISO date YYYY-MM-DD
+  reading_time?: string;     // HH:MM
+  hole_number: number;       // 1–18
+  moisture?: number;         // Volumetric water content (%)
+  firmness?: number;         // Clegg value or equivalent
+  staff_id?: number;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GreenReadingWithStaff extends GreenReading {
+  staff?: Pick<Staff, 'id' | 'name'>;
+}

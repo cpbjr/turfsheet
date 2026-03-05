@@ -13,6 +13,7 @@ import CalendarPage from './pages/CalendarPage';
 import PesticidePage from './pages/PesticidePage';
 import IrrigationPage from './pages/IrrigationPage';
 import MaintenancePage from './pages/MaintenancePage';
+import MonitoringPage from './pages/MonitoringPage';
 import MapsPage from './pages/MapsPage';
 import DocsPage from './pages/DocsPage';
 import LearningPage from './pages/LearningPage';
@@ -64,6 +65,7 @@ function App() {
                 <Route path="/pesticide" element={<PesticidePage />} />
                 <Route path="/irrigation" element={<IrrigationPage />} />
                 <Route path="/maintenance" element={<MaintenancePage />} />
+                <Route path="/monitoring" element={<MonitoringPage />} />
                 <Route path="/maps" element={<MapsPage />} />
                 <Route path="/docs" element={<DocsPage />} />
                 <Route path="/training" element={<LearningPage />} />
