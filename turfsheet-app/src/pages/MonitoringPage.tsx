@@ -219,12 +219,13 @@ export default function MonitoringPage() {
 
   // Chart data — aggregate by date (average across holes for the filtered set)
   const chartData = useMemo(() => {
-    const byDate = new Map<string, { moistures: number[]; firmnesses: number[] }>();
+    const byDate = new Map<string, { moistures: number[]; firmnesses: number[]; clippings: number | null }>();
     filtered.forEach(r => {
-      if (!byDate.has(r.reading_date)) byDate.set(r.reading_date, { moistures: [], firmnesses: [] });
+      if (!byDate.has(r.reading_date)) byDate.set(r.reading_date, { moistures: [], firmnesses: [], clippings: null });
       const entry = byDate.get(r.reading_date)!;
       if (r.moisture != null) entry.moistures.push(r.moisture);
       if (r.firmness != null) entry.firmnesses.push(r.firmness);
+      if (r.clippings_lbs != null && entry.clippings === null) entry.clippings = r.clippings_lbs;
     });
     const dates = Array.from(byDate.keys()).sort();
     const avg = (arr: number[]) => arr.reduce((s, v) => s + v, 0) / arr.length;
@@ -235,6 +236,9 @@ export default function MonitoringPage() {
       firmness: dates
         .filter(d => byDate.get(d)!.firmnesses.length > 0)
         .map(d => ({ x: d, y: avg(byDate.get(d)!.firmnesses) })),
+      clippings: dates
+        .filter(d => byDate.get(d)!.clippings !== null)
+        .map(d => ({ x: d, y: byDate.get(d)!.clippings! })),
     };
   }, [filtered]);
 
@@ -274,7 +278,7 @@ export default function MonitoringPage() {
       )}
 
       {/* Trend Charts */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
           <LineChart
             data={chartData.moisture}
@@ -289,6 +293,14 @@ export default function MonitoringPage() {
             color="#2563eb"
             label="Firmness Trend (avg across holes)"
             unit="Clegg value"
+          />
+        </div>
+        <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
+          <LineChart
+            data={chartData.clippings}
+            color="#d97706"
+            label="Clippings Trend (daily)"
+            unit="lbs"
           />
         </div>
       </div>
@@ -359,6 +371,7 @@ export default function MonitoringPage() {
                 </th>
                 <th className={thClass}>Moisture (%)</th>
                 <th className={thClass}>Firmness</th>
+                <th className={thClass}>Clippings (lbs)</th>
                 <th className={thClass}>Staff</th>
                 <th className={thClass}>Notes</th>
                 <th className={thClass + ' text-right'}>Actions</th>
@@ -383,6 +396,9 @@ export default function MonitoringPage() {
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-700">
                     {r.firmness != null ? r.firmness.toFixed(1) : <span className="text-gray-300">—</span>}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-700">
+                    {r.clippings_lbs != null ? r.clippings_lbs.toFixed(2) : <span className="text-gray-300">—</span>}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-500">
                     {r.staff_id != null ? (staffMap.get(String(r.staff_id)) ?? '—') : <span className="text-gray-300">—</span>}

@@ -407,6 +407,7 @@ export interface GreenReading {
   hole_number: number;       // 1–18
   moisture?: number;         // Volumetric water content (%)
   firmness?: number;         // Clegg value or equivalent
+  clippings_lbs?: number;    // Daily clipping weight (lbs)
   staff_id?: number;
   notes?: string;
   created_at: string;

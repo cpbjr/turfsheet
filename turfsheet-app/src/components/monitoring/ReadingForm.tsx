@@ -18,6 +18,7 @@ export default function ReadingForm({ initialData, staff, onSubmit, onCancel }: 
     hole_number: initialData?.hole_number ?? 1,
     moisture: initialData?.moisture ?? '',
     firmness: initialData?.firmness ?? '',
+    clippings_lbs: initialData?.clippings_lbs ?? '',
     staff_id: initialData?.staff_id ?? '',
     notes: initialData?.notes ?? '',
   });
@@ -30,6 +31,7 @@ export default function ReadingForm({ initialData, staff, onSubmit, onCancel }: 
       hole_number: Number(formData.hole_number),
       moisture: formData.moisture !== '' ? Number(formData.moisture) : undefined,
       firmness: formData.firmness !== '' ? Number(formData.firmness) : undefined,
+      clippings_lbs: formData.clippings_lbs !== '' ? Number(formData.clippings_lbs) : undefined,
       staff_id: formData.staff_id !== '' ? Number(formData.staff_id) : undefined,
       notes: formData.notes || undefined,
     });
@@ -102,6 +104,19 @@ export default function ReadingForm({ initialData, staff, onSubmit, onCancel }: 
             onChange={e => setFormData(f => ({ ...f, firmness: e.target.value }))}
           />
         </div>
+      </div>
+
+      <div>
+        <label className={labelClass}>Clippings (lbs) <span className="text-gray-400 font-normal">— daily total</span></label>
+        <input
+          type="number"
+          step="0.01"
+          min="0"
+          placeholder="e.g. 3.25"
+          className={fieldClass}
+          value={formData.clippings_lbs}
+          onChange={e => setFormData(f => ({ ...f, clippings_lbs: e.target.value }))}
+        />
       </div>
 
       <div>
