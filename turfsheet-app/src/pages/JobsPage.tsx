@@ -4,7 +4,7 @@ import JobCard from '../components/jobs/JobCard';
 import Modal from '../components/ui/Modal';
 import JobForm from '../components/jobs/JobForm';
 import { supabase } from '../lib/supabase';
-import type { Job } from '../types';
+import type { Job, JobType } from '../types';
 
 export default function JobsPage() {
     const [jobTemplates, setJobTemplates] = useState<Job[]>([]);
@@ -14,6 +14,7 @@ export default function JobsPage() {
     const [isEditJobModalOpen, setIsEditJobModalOpen] = useState(false);
     const [jobToEdit, setJobToEdit] = useState<Job | null>(null);
     const [confirmDelete, setConfirmDelete] = useState(false);
+    const [activeTab, setActiveTab] = useState<JobType>('General');
 
     useEffect(() => {
         const fetchJobs = async () => {
@@ -158,6 +159,23 @@ export default function JobsPage() {
                 </div>
             </div>
 
+            {/* Tab Bar */}
+            <div className="flex gap-0 border-b border-border-color">
+                {(['General', 'Mowing'] as const).map((tab) => (
+                    <button
+                        key={tab}
+                        onClick={() => setActiveTab(tab)}
+                        className={`px-8 py-3 text-[0.65rem] font-heading font-black uppercase tracking-widest transition-colors border-b-2 -mb-px ${
+                            activeTab === tab
+                                ? 'border-turf-green text-turf-green'
+                                : 'border-transparent text-text-secondary hover:text-text-primary'
+                        }`}
+                    >
+                        {tab} Jobs
+                    </button>
+                ))}
+            </div>
+
             {/* Jobs Grid */}
             <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
                 {loading && (
@@ -170,14 +188,14 @@ export default function JobsPage() {
                         <p className="text-red-500">Error: {error}</p>
                     </div>
                 )}
-                {!loading && !error && jobTemplates.length === 0 && (
+                {!loading && !error && jobTemplates.filter((j) => j.job_type === activeTab).length === 0 && (
                     <div className="h-64 flex flex-col items-center justify-center bg-panel-white border border-border-color border-dashed rounded-sm">
-                        <p className="text-text-secondary font-sans text-sm">No jobs in your library yet.</p>
+                        <p className="text-text-secondary font-sans text-sm">No {activeTab.toLowerCase()} jobs in your library yet.</p>
                     </div>
                 )}
-                {!loading && !error && jobTemplates.length > 0 && (
+                {!loading && !error && jobTemplates.filter((j) => j.job_type === activeTab).length > 0 && (
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-8 pb-12">
-                        {jobTemplates.map((job) => (
+                        {jobTemplates.filter((j) => j.job_type === activeTab).map((job) => (
                             <JobCard
                                 key={job.id}
                                 title={job.title}
@@ -187,6 +205,10 @@ export default function JobsPage() {
                                 section={job.section}
                                 isScheduled={job.is_scheduled}
                                 scheduledDays={job.scheduled_days}
+                                jobType={job.job_type}
+                                mowDirection={job.mow_direction}
+                                hoc={job.hoc}
+                                mowPattern={job.mow_pattern}
                                 onEdit={() => handleEditJob(job)}
                             />
                         ))}

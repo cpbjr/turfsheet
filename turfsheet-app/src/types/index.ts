@@ -4,6 +4,10 @@
 
 export type DayOfWeek = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
 
+export type MowDirection = '12-6' | '2-8' | '3-9' | '4-10';
+export type MowPattern = 'Double Cut (Cross)' | 'Double Cut (Parallel)' | 'No Cleanup';
+export type JobType = 'General' | 'Mowing';
+
 export interface Job {
   id: string;
   title: string;
@@ -13,6 +17,10 @@ export interface Job {
   section: 'First Jobs' | 'Second Jobs';
   is_scheduled: boolean;
   scheduled_days: DayOfWeek[];
+  job_type: JobType;
+  mow_direction?: MowDirection;
+  hoc?: number;
+  mow_pattern?: MowPattern;
   created_at: string;
   updated_at: string;
 }

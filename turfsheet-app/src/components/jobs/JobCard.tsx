@@ -9,9 +9,13 @@ interface JobCardProps {
     onEdit?: () => void;
     isScheduled?: boolean;
     scheduledDays?: string[];
+    jobType?: string;
+    mowDirection?: string;
+    hoc?: number;
+    mowPattern?: string;
 }
 
-export default function JobCard({ title, crewNeeded, priority, description, section, onEdit, isScheduled, scheduledDays }: JobCardProps) {
+export default function JobCard({ title, crewNeeded, priority, description, section, onEdit, isScheduled, scheduledDays, jobType, mowDirection, hoc, mowPattern }: JobCardProps) {
     return (
         <article className="bg-panel-white border border-border-color shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 group">
             <div className="bg-turf-green px-4 py-3 flex items-center justify-between">
@@ -56,6 +60,29 @@ export default function JobCard({ title, crewNeeded, priority, description, sect
                 {description && (
                     <div className="text-[0.8rem] text-text-primary">
                         {description}
+                    </div>
+                )}
+
+                {jobType === 'Mowing' && (mowDirection || hoc || mowPattern) && (
+                    <div className="pt-2 border-t border-border-color space-y-1">
+                        {mowDirection && (
+                            <div className="text-[0.75rem] font-sans">
+                                <span className="text-text-secondary">Direction: </span>
+                                <span className="text-text-primary font-bold">{mowDirection}</span>
+                            </div>
+                        )}
+                        {hoc && (
+                            <div className="text-[0.75rem] font-sans">
+                                <span className="text-text-secondary">HOC: </span>
+                                <span className="text-text-primary font-bold">{hoc}"</span>
+                            </div>
+                        )}
+                        {mowPattern && (
+                            <div className="text-[0.75rem] font-sans">
+                                <span className="text-text-secondary">Pattern: </span>
+                                <span className="text-text-primary font-bold">{mowPattern}</span>
+                            </div>
+                        )}
                     </div>
                 )}
 

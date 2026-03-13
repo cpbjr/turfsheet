@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { DayOfWeek, Job } from '../../types';
+import type { DayOfWeek, Job, JobType, MowDirection, MowPattern } from '../../types';
 
 const DAYS_OF_WEEK: { key: DayOfWeek; label: string }[] = [
     { key: 'monday',    label: 'Mon' },
@@ -26,6 +26,10 @@ export default function JobForm({ onSubmit, onCancel, initialData }: JobFormProp
         section: 'First Jobs' | 'Second Jobs';
         is_scheduled: boolean;
         scheduled_days: DayOfWeek[];
+        job_type: JobType;
+        mow_direction: MowDirection | '';
+        hoc: number | '';
+        mow_pattern: MowPattern | '';
     }>({
         title: initialData?.title ?? '',
         description: initialData?.description ?? '',
@@ -34,11 +38,26 @@ export default function JobForm({ onSubmit, onCancel, initialData }: JobFormProp
         section: initialData?.section ?? 'First Jobs',
         is_scheduled: initialData?.is_scheduled ?? false,
         scheduled_days: (initialData?.scheduled_days ?? []) as DayOfWeek[],
+        job_type: initialData?.job_type ?? 'General',
+        mow_direction: initialData?.mow_direction ?? '',
+        hoc: initialData?.hoc ?? '',
+        mow_pattern: initialData?.mow_pattern ?? '',
     });
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSubmit(formData);
+        const submitData = { ...formData };
+        if (submitData.job_type !== 'Mowing') {
+            submitData.mow_direction = '';
+            submitData.hoc = '';
+            submitData.mow_pattern = '';
+        }
+        onSubmit({
+            ...submitData,
+            mow_direction: submitData.mow_direction || null,
+            hoc: submitData.hoc === '' ? null : submitData.hoc,
+            mow_pattern: submitData.mow_pattern || null,
+        });
     };
 
     const toggleDay = (day: DayOfWeek) => {
@@ -124,6 +143,72 @@ export default function JobForm({ onSubmit, onCancel, initialData }: JobFormProp
                     ))}
                 </div>
             </div>
+
+            <div>
+                <label className={labelClasses}>Job Type</label>
+                <div className="flex gap-4">
+                    {(['General', 'Mowing'] as const).map((t) => (
+                        <label key={t} className="flex-1 flex items-center justify-center border border-border-color p-3 bg-dashboard-bg cursor-pointer hover:border-turf-green transition-colors">
+                            <input
+                                type="radio"
+                                className="hidden"
+                                name="job_type"
+                                value={t}
+                                checked={formData.job_type === t}
+                                onChange={() => setFormData({ ...formData, job_type: t })}
+                            />
+                            <span className={`text-[0.65rem] font-heading font-black uppercase tracking-widest ${formData.job_type === t ? 'text-turf-green' : 'text-text-secondary'}`}>
+                                {t}
+                            </span>
+                        </label>
+                    ))}
+                </div>
+            </div>
+
+            {formData.job_type === 'Mowing' && (
+                <div className="space-y-4 p-4 bg-dashboard-bg border border-border-color">
+                    <p className={labelClasses}>Mowing Details</p>
+                    <div>
+                        <label className={labelClasses}>Mow Direction</label>
+                        <select
+                            className={inputClasses}
+                            value={formData.mow_direction}
+                            onChange={(e) => setFormData({ ...formData, mow_direction: e.target.value as MowDirection | '' })}
+                        >
+                            <option value="">Select direction...</option>
+                            <option>12-6</option>
+                            <option>2-8</option>
+                            <option>3-9</option>
+                            <option>4-10</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label className={labelClasses}>HOC (inches)</label>
+                        <input
+                            type="number"
+                            step="0.001"
+                            min="0"
+                            className={inputClasses}
+                            placeholder="0.125"
+                            value={formData.hoc}
+                            onChange={(e) => setFormData({ ...formData, hoc: e.target.value === '' ? '' : parseFloat(e.target.value) })}
+                        />
+                    </div>
+                    <div>
+                        <label className={labelClasses}>Mow Pattern</label>
+                        <select
+                            className={inputClasses}
+                            value={formData.mow_pattern}
+                            onChange={(e) => setFormData({ ...formData, mow_pattern: e.target.value as MowPattern | '' })}
+                        >
+                            <option value="">Select pattern...</option>
+                            <option>Double Cut (Cross)</option>
+                            <option>Double Cut (Parallel)</option>
+                            <option>No Cleanup</option>
+                        </select>
+                    </div>
+                </div>
+            )}
 
             <div>
                 <label className={labelClasses}>Scheduling</label>
