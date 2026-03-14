@@ -128,6 +128,10 @@ export default function ClassicDashboard({ onCreateJob }: ClassicDashboardProps)
                   priority={item.job.priority}
                   description={item.job.description}
                   section={item.job.section}
+                  jobType={item.job.job_type}
+                  mowDirection={item.job.mow_direction}
+                  hoc={item.job.hoc}
+                  mowPattern={item.job.mow_pattern}
                 />
                 <button
                   onClick={() => handleDismissScheduled(item.id)}
@@ -156,6 +160,10 @@ export default function ClassicDashboard({ onCreateJob }: ClassicDashboardProps)
               priority={job.priority}
               description={job.description}
               section={job.section}
+              jobType={job.job_type}
+              mowDirection={job.mow_direction}
+              hoc={job.hoc}
+              mowPattern={job.mow_pattern}
             />
           ))}
           <button
@@ -195,6 +203,10 @@ export default function ClassicDashboard({ onCreateJob }: ClassicDashboardProps)
               priority={job.priority}
               description={job.description}
               section={job.section}
+              jobType={job.job_type}
+              mowDirection={job.mow_direction}
+              hoc={job.hoc}
+              mowPattern={job.mow_pattern}
             />
           ))}
           <button

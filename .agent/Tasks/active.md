@@ -9,8 +9,9 @@ Last Updated: 2026-02-27
 
 ### Feature: Mowing Directions on Jobs
 **Priority:** Medium
-**Status:** Not started
+**Status:** Ready to implement
 **Date Added:** 2026-02-25
+**Plan:** `.agent/Tasks/Implementation/2026-03-09-mowing-directions.md`
 
 **Overview:** Add mowing-specific metadata fields to job templates and job cards, similar to competitor app (see `SiteExamples/Examples/IMG_4371.jpg` and `IMG_4372.jpg`).
 
