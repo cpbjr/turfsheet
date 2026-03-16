@@ -160,12 +160,12 @@ export default function JobsPage() {
             </div>
 
             {/* Tab Bar */}
-            <div className="flex gap-0 border-b border-border-color">
-                {(['General', 'Mowing'] as const).map((tab) => (
+            <div className="flex border-b border-border-color">
+                {(['General', 'Mowing'] as JobType[]).map((tab) => (
                     <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
-                        className={`px-8 py-3 text-[0.65rem] font-heading font-black uppercase tracking-widest transition-colors border-b-2 -mb-px ${
+                        className={`px-6 py-3 text-[0.65rem] font-heading font-black uppercase tracking-widest border-b-2 transition-colors ${
                             activeTab === tab
                                 ? 'border-turf-green text-turf-green'
                                 : 'border-transparent text-text-secondary hover:text-text-primary'

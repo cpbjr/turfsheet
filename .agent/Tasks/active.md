@@ -3,33 +3,11 @@
 
 # Active Tasks
 
-Last Updated: 2026-02-27
+Last Updated: 2026-03-13
 
 ## Active Tasks
 
-### Feature: Mowing Directions on Jobs
-**Priority:** Medium
-**Status:** Ready to implement
-**Date Added:** 2026-02-25
-**Plan:** `.agent/Tasks/Implementation/2026-03-09-mowing-directions.md`
-
-**Overview:** Add mowing-specific metadata fields to job templates and job cards, similar to competitor app (see `SiteExamples/Examples/IMG_4371.jpg` and `IMG_4372.jpg`).
-
-**Fields to add to jobs:**
-- **Mow Direction** — dropdown with values: `12-6`, `2-8`, `3-9`, `4-10` (clock positions; more to be added later)
-- **Clean Up** — dropdown (e.g., "Clockwise", "Counter-Clockwise")
-- **HOC** — height of cut, decimal number (e.g., 0.125")
-- **Mow Pattern** — optional icon/enum (Contour, Push, Double Cut, Circle Cut, No Cleanup, etc.)
-
-**Display:** Fields should show on job cards in Classic Dashboard and Whiteboard (where assigned).
-
-**Reference:** `SiteExamples/Examples/IMG_4371.jpg` (form), `IMG_4372.jpg` (card display)
-
-**Scope:**
-- Add columns to `turfsheet.jobs` table (migration)
-- Update TypeScript `Job` interface
-- Update `JobForm.tsx` with new optional fields (only shown for mowing-type jobs, or always shown)
-- Update job card display to show populated values
+*(none)*
 
 ---
 
