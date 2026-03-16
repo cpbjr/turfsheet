@@ -147,7 +147,7 @@ export default function JobForm({ onSubmit, onCancel, initialData }: JobFormProp
             <div>
                 <label className={labelClasses}>Job Type</label>
                 <div className="flex gap-4">
-                    {(['General', 'Mowing'] as const).map((t) => (
+                    {(['General', 'Mowing'] as JobType[]).map((t) => (
                         <label key={t} className="flex-1 flex items-center justify-center border border-border-color p-3 bg-dashboard-bg cursor-pointer hover:border-turf-green transition-colors">
                             <input
                                 type="radio"
@@ -166,8 +166,8 @@ export default function JobForm({ onSubmit, onCancel, initialData }: JobFormProp
             </div>
 
             {formData.job_type === 'Mowing' && (
-                <div className="space-y-4 p-4 bg-dashboard-bg border border-border-color">
-                    <p className={labelClasses}>Mowing Details</p>
+                <div className="space-y-4 p-4 border border-turf-green/30 bg-turf-green/5">
+                    <p className="text-[0.65rem] font-heading font-black text-turf-green uppercase tracking-widest">Mowing Details</p>
                     <div>
                         <label className={labelClasses}>Mow Direction</label>
                         <select
@@ -175,7 +175,7 @@ export default function JobForm({ onSubmit, onCancel, initialData }: JobFormProp
                             value={formData.mow_direction}
                             onChange={(e) => setFormData({ ...formData, mow_direction: e.target.value as MowDirection | '' })}
                         >
-                            <option value="">Select direction...</option>
+                            <option value="">— Select Direction —</option>
                             <option>12-6</option>
                             <option>2-8</option>
                             <option>3-9</option>
@@ -201,7 +201,7 @@ export default function JobForm({ onSubmit, onCancel, initialData }: JobFormProp
                             value={formData.mow_pattern}
                             onChange={(e) => setFormData({ ...formData, mow_pattern: e.target.value as MowPattern | '' })}
                         >
-                            <option value="">Select pattern...</option>
+                            <option value="">— Select Pattern —</option>
                             <option>Double Cut (Cross)</option>
                             <option>Double Cut (Parallel)</option>
                             <option>No Cleanup</option>
