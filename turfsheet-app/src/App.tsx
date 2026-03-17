@@ -47,7 +47,7 @@ function App() {
           {/* Dashboard Grid */}
           <div className="flex flex-1 overflow-hidden relative">
             {/* Task Board - Center */}
-            <section className="flex-1 p-4 md:p-8 lg:p-12 overflow-y-auto min-w-0">
+            <section className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto min-w-0">
               <Routes>
                 <Route
                   path="/"

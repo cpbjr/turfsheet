@@ -130,10 +130,10 @@ export default function ProductLibrary() {
     const inputClasses = "bg-panel-white border border-border-color px-4 py-2 text-sm focus:border-turf-green outline-none transition-colors font-sans";
 
     return (
-        <div className="space-y-6 h-full flex flex-col">
+        <div className="space-y-6">
             {/* Control Bar */}
             <div className="flex flex-col lg:flex-row gap-4 justify-between items-center bg-panel-white p-4 border border-border-color shadow-sm">
-                <div className="relative flex-1 w-full max-w-md">
+                <div className="relative flex-1 w-full max-w-2xl">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
                     <input
                         type="text"
@@ -159,7 +159,7 @@ export default function ProductLibrary() {
             )}
 
             {/* Product Table */}
-            <div className="flex-1 overflow-y-auto">
+            <div>
                 {/* Header */}
                 <div className="grid grid-cols-[2fr_1fr_1.5fr_1fr_1fr_80px] gap-4 px-6 py-3 bg-turf-green text-white text-[0.65rem] font-heading font-black uppercase tracking-widest">
                     <span>Product</span>
@@ -171,13 +171,13 @@ export default function ProductLibrary() {
                 </div>
 
                 {loading && (
-                    <div className="flex items-center justify-center h-64">
+                    <div className="flex items-center justify-center p-12">
                         <p className="text-text-secondary">Loading products...</p>
                     </div>
                 )}
 
                 {!loading && filteredProducts.length === 0 && (
-                    <div className="h-64 flex flex-col items-center justify-center bg-panel-white border border-border-color border-t-0 border-dashed">
+                    <div className="p-12 flex flex-col items-center justify-center bg-panel-white border border-border-color border-t-0 border-dashed">
                         <p className="text-text-secondary font-sans text-sm">
                             {searchQuery ? 'No products match your search.' : 'No products in library yet.'}
                         </p>

@@ -293,7 +293,7 @@ export default function PesticidePage() {
     };
 
     return (
-        <div className="space-y-8 h-full flex flex-col">
+        <div className="space-y-8 pb-12">
             {/* Page Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-border-color">
                 <div>
@@ -344,10 +344,10 @@ export default function PesticidePage() {
 
             {/* Tab Content */}
             {activeTab === 'applications' && (
-                <div className="flex-1 flex flex-col space-y-6 overflow-hidden">
+                <div className="space-y-6">
                     {/* Search Bar */}
                     <div className="flex flex-col lg:flex-row gap-4 justify-between items-center bg-panel-white p-4 border border-border-color shadow-sm">
-                        <div className="relative flex-1 w-full max-w-md">
+                        <div className="relative flex-1 w-full max-w-2xl">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
                             <input
                                 type="text"
@@ -393,9 +393,9 @@ export default function PesticidePage() {
                     </div>
 
                     {/* List Content */}
-                    <div className="flex-1 overflow-y-auto custom-scrollbar -mt-2">
+                    <div className="-mt-2">
                         {loading && (
-                            <div className="flex items-center justify-center h-64">
+                            <div className="flex items-center justify-center p-12">
                                 <p className="text-text-secondary">Loading applications...</p>
                             </div>
                         )}
@@ -430,13 +430,13 @@ export default function PesticidePage() {
             )}
 
             {activeTab === 'products' && (
-                <div className="flex-1 overflow-hidden">
+                <div className="pb-8">
                     <ProductLibrary />
                 </div>
             )}
             {/* Task 1: pass onRecordApplication handler */}
             {activeTab === 'calculator' && (
-                <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 pb-8">
+                <div className="pb-8">
                     <SprayCalculator onRecordApplication={handleRecordFromCalculator} />
                 </div>
             )}

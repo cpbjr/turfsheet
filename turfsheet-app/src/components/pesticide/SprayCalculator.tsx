@@ -398,8 +398,8 @@ export default function SprayCalculator({ onRecordApplication }: SprayCalculator
             )}
 
             {/* Input Section */}
-            <div className="bg-panel-white border border-border-color p-6 shadow-sm space-y-6">
-                <div className="flex flex-wrap items-center gap-3 pb-4 border-b border-border-color">
+            <div className="bg-panel-white border border-border-color p-8 shadow-sm space-y-8">
+                <div className="flex flex-wrap items-center gap-3 pb-6 border-b border-border-color">
                     <div className="flex items-center gap-3 w-full md:w-auto shrink-0">
                         <Calculator className="w-5 h-5 text-turf-green" />
                         <h3 className="font-heading font-black text-sm uppercase tracking-wider text-text-primary">
@@ -503,7 +503,7 @@ export default function SprayCalculator({ onRecordApplication }: SprayCalculator
                 </div>
 
                 {/* Area & Tank */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
                     <div>
                         <label className={labelClasses}>Area to Spray (sq ft) *</label>
                         <input
@@ -543,9 +543,9 @@ export default function SprayCalculator({ onRecordApplication }: SprayCalculator
                 {/* Products to Mix */}
                 <div>
                     <label className={labelClasses}>Products to Mix</label>
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                         {mixItems.map((item, index) => (
-                            <div key={index} className="grid grid-cols-12 gap-3 items-end border-b border-border-color pb-4 md:border-0 md:pb-0 mb-2 md:mb-0">
+                            <div key={index} className="grid grid-cols-12 gap-4 lg:gap-6 items-end border-b border-border-color pb-6 md:border-0 md:pb-0 mb-4 md:mb-0">
                                 <div className="col-span-12 md:col-span-5 lg:col-span-6">
                                     <select
                                         className={inputClasses}
