@@ -116,10 +116,10 @@ export default function ClassicDashboard({ onCreateJob }: ClassicDashboardProps)
       {/* Scheduled Today Section */}
       {scheduledQueue.length > 0 && (
         <section>
-          <h3 className="text-[0.75rem] font-heading font-black text-turf-green uppercase px-10 py-6 border-b border-turf-green/30 tracking-[0.3em] mb-8 bg-panel-white border border-turf-green/30">
+          <h3 className="text-[0.75rem] font-heading font-black text-turf-green uppercase px-4 md:px-10 py-4 md:py-6 border-b border-turf-green/30 tracking-[0.3em] mb-6 md:mb-8 bg-panel-white border border-turf-green/30">
             Scheduled Today — {todayLabel}
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-4 md:gap-8">
             {scheduledQueue.map((item) => (
               <div key={item.id} className="relative">
                 <JobCard
@@ -148,10 +148,10 @@ export default function ClassicDashboard({ onCreateJob }: ClassicDashboardProps)
 
       {/* First Jobs Section */}
       <section>
-        <h3 className="text-[0.75rem] font-heading font-black text-text-secondary uppercase px-10 py-6 border-b border-border-color tracking-[0.3em] mb-8 bg-panel-white border border-border-color">
+        <h3 className="text-[0.75rem] font-heading font-black text-text-secondary uppercase px-4 md:px-10 py-4 md:py-6 border-b border-border-color tracking-[0.3em] mb-6 md:mb-8 bg-panel-white border border-border-color">
           First Jobs Portfolio
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-4 md:gap-8">
           {firstJobs.map((job) => (
             <JobCard
               key={job.id}
@@ -191,10 +191,10 @@ export default function ClassicDashboard({ onCreateJob }: ClassicDashboardProps)
 
       {/* Second Jobs Section */}
       <section>
-        <h3 className="text-[0.75rem] font-heading font-black text-text-secondary uppercase px-10 py-6 border-b border-border-color tracking-[0.3em] mb-8 bg-panel-white border border-border-color">
+        <h3 className="text-[0.75rem] font-heading font-black text-text-secondary uppercase px-4 md:px-10 py-4 md:py-6 border-b border-border-color tracking-[0.3em] mb-6 md:mb-8 bg-panel-white border border-border-color">
           Second Jobs Portfolio
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-4 md:gap-8">
           {secondJobs.map((job) => (
             <JobCard
               key={job.id}

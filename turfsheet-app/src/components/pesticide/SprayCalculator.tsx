@@ -399,13 +399,15 @@ export default function SprayCalculator({ onRecordApplication }: SprayCalculator
 
             {/* Input Section */}
             <div className="bg-panel-white border border-border-color p-6 shadow-sm space-y-6">
-                <div className="flex items-center gap-3 pb-4 border-b border-border-color">
-                    <Calculator className="w-5 h-5 text-turf-green" />
-                    <h3 className="font-heading font-black text-sm uppercase tracking-wider text-text-primary">
-                        Spray Mix Calculator
-                    </h3>
+                <div className="flex flex-wrap items-center gap-3 pb-4 border-b border-border-color">
+                    <div className="flex items-center gap-3 w-full md:w-auto shrink-0">
+                        <Calculator className="w-5 h-5 text-turf-green" />
+                        <h3 className="font-heading font-black text-sm uppercase tracking-wider text-text-primary">
+                            Spray Mix Calculator
+                        </h3>
+                    </div>
                     {conditions && (
-                        <span className="ml-auto text-xs text-text-secondary font-sans flex items-center gap-3">
+                        <span className="ml-0 md:ml-auto text-xs text-text-secondary font-sans flex flex-wrap items-center gap-3 mt-2 md:mt-0">
                             <span className="flex items-center gap-1">
                                 <Thermometer className="w-3 h-3" /> {conditions.temp_f}°F
                             </span>
@@ -432,7 +434,7 @@ export default function SprayCalculator({ onRecordApplication }: SprayCalculator
                 </div>
 
                 {/* Template controls — New Mix / Load Saved */}
-                <div className="flex items-center gap-3 pb-6 border-b border-border-color">
+                <div className="flex flex-wrap items-center gap-3 pb-6 border-b border-border-color">
                     <button
                         type="button"
                         onClick={() => {
@@ -501,7 +503,7 @@ export default function SprayCalculator({ onRecordApplication }: SprayCalculator
                 </div>
 
                 {/* Area & Tank */}
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label className={labelClasses}>Area to Spray (sq ft) *</label>
                         <input
@@ -543,8 +545,8 @@ export default function SprayCalculator({ onRecordApplication }: SprayCalculator
                     <label className={labelClasses}>Products to Mix</label>
                     <div className="space-y-3">
                         {mixItems.map((item, index) => (
-                            <div key={index} className="grid grid-cols-[2fr_1fr_1fr_auto] gap-3 items-end">
-                                <div>
+                            <div key={index} className="grid grid-cols-12 gap-3 items-end border-b border-border-color pb-4 md:border-0 md:pb-0 mb-2 md:mb-0">
+                                <div className="col-span-12 md:col-span-5 lg:col-span-6">
                                     <select
                                         className={inputClasses}
                                         value={item.productId}
@@ -558,7 +560,7 @@ export default function SprayCalculator({ onRecordApplication }: SprayCalculator
                                         ))}
                                     </select>
                                 </div>
-                                <div>
+                                <div className="col-span-5 md:col-span-3 lg:col-span-2">
                                     <input
                                         type="number"
                                         step="0.0001"
@@ -573,7 +575,7 @@ export default function SprayCalculator({ onRecordApplication }: SprayCalculator
                                         }}
                                     />
                                 </div>
-                                <div>
+                                <div className="col-span-5 md:col-span-3 lg:col-span-3">
                                     <select
                                         className={inputClasses}
                                         value={item.rateUnit}
@@ -589,14 +591,16 @@ export default function SprayCalculator({ onRecordApplication }: SprayCalculator
                                         <option value="lbs/acre">lbs/acre</option>
                                     </select>
                                 </div>
-                                <button
-                                    type="button"
-                                    onClick={() => removeMixItem(index)}
-                                    className="px-3 py-3 text-text-secondary hover:text-red-500 border border-border-color hover:border-red-300 transition-colors text-sm"
-                                    disabled={mixItems.length <= 1}
-                                >
-                                    &times;
-                                </button>
+                                <div className="col-span-2 md:col-span-1 lg:col-span-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => removeMixItem(index)}
+                                        className="w-full px-3 py-3 text-text-secondary hover:text-red-500 border border-border-color hover:border-red-300 transition-colors text-sm"
+                                        disabled={mixItems.length <= 1}
+                                    >
+                                        &times;
+                                    </button>
+                                </div>
                             </div>
                         ))}
                     </div>
@@ -622,7 +626,7 @@ export default function SprayCalculator({ onRecordApplication }: SprayCalculator
 
                     <div className="p-6 space-y-6">
                         {/* Overview */}
-                        <div className="grid grid-cols-3 gap-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                             <div className="text-center p-4 bg-turf-green-light border border-turf-green/20">
                                 <p className="text-[0.6rem] font-heading font-black uppercase tracking-widest text-text-secondary mb-1">
                                     Total Area
@@ -661,40 +665,42 @@ export default function SprayCalculator({ onRecordApplication }: SprayCalculator
                             <h4 className="text-[0.65rem] font-heading font-black uppercase tracking-widest text-text-secondary mb-3">
                                 Product Amounts
                             </h4>
-                            <div className="border border-border-color">
-                                <div className={`grid ${calculations.numberOfTanks > 0 ? 'grid-cols-4' : 'grid-cols-3'} gap-4 px-4 py-2 bg-dashboard-bg text-[0.6rem] font-heading font-black uppercase tracking-widest text-text-secondary`}>
-                                    <span>Product</span>
-                                    <span>Rate</span>
-                                    <span>Total Needed</span>
-                                    {calculations.numberOfTanks > 0 && <span>Per Tank</span>}
-                                </div>
-                                {calculations.productCalcs.map((calc, i) => (
-                                    <div key={i} className={`grid ${calculations.numberOfTanks > 0 ? 'grid-cols-4' : 'grid-cols-3'} gap-4 px-4 py-3 border-t border-border-color items-center`}>
-                                        <span className="text-sm font-sans font-medium text-text-primary">
-                                            {calc.productName}
-                                        </span>
-                                        <span className="text-sm font-sans text-text-secondary">
-                                            {calc.rate} {calc.unit.replace('sqft', ' sq ft')}
-                                        </span>
-                                        <span className="text-sm font-sans font-medium text-turf-green">
-                                            {calc.totalAmount.toFixed(2)} {calc.displayUnit}
-                                        </span>
-                                        {calculations.numberOfTanks > 0 && (
-                                            <span className="text-sm font-sans text-text-secondary">
-                                                {calc.perTank.toFixed(2)} {calc.displayUnit}
-                                            </span>
-                                        )}
+                            <div className="border border-border-color overflow-x-auto">
+                                <div className="min-w-[600px]">
+                                    <div className={`grid ${calculations.numberOfTanks > 0 ? 'grid-cols-4' : 'grid-cols-3'} gap-4 px-4 py-2 bg-dashboard-bg text-[0.6rem] font-heading font-black uppercase tracking-widest text-text-secondary`}>
+                                        <span>Product</span>
+                                        <span>Rate</span>
+                                        <span>Total Needed</span>
+                                        {calculations.numberOfTanks > 0 && <span>Per Tank</span>}
                                     </div>
-                                ))}
+                                    {calculations.productCalcs.map((calc, i) => (
+                                        <div key={i} className={`grid ${calculations.numberOfTanks > 0 ? 'grid-cols-4' : 'grid-cols-3'} gap-4 px-4 py-3 border-t border-border-color items-center`}>
+                                            <span className="text-sm font-sans font-medium text-text-primary">
+                                                {calc.productName}
+                                            </span>
+                                            <span className="text-sm font-sans text-text-secondary">
+                                                {calc.rate} {calc.unit.replace('sqft', ' sq ft')}
+                                            </span>
+                                            <span className="text-sm font-sans font-medium text-turf-green">
+                                                {calc.totalAmount.toFixed(2)} {calc.displayUnit}
+                                            </span>
+                                            {calculations.numberOfTanks > 0 && (
+                                                <span className="text-sm font-sans text-text-secondary">
+                                                    {calc.perTank.toFixed(2)} {calc.displayUnit}
+                                                </span>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         </div>
 
                         {/* Action Buttons */}
-                        <div className="flex justify-end gap-3 pt-2">
+                        <div className="flex flex-wrap justify-end gap-3 pt-2">
                             <button
                                 type="button"
                                 onClick={handlePrintMixInstructions}
-                                className="bg-panel-white border border-border-color text-text-primary px-6 py-3 shadow-sm flex items-center gap-2 font-heading font-black hover:bg-dashboard-bg transition-all text-[0.7rem] uppercase tracking-[0.15em]"
+                                className="bg-panel-white border border-border-color text-text-primary px-6 py-3 shadow-sm flex items-center justify-center gap-2 font-heading font-black hover:bg-dashboard-bg transition-all text-[0.7rem] uppercase tracking-[0.15em] w-full sm:w-auto"
                             >
                                 <Printer className="w-3.5 h-3.5" />
                                 Print Mix Sheet
@@ -724,7 +730,7 @@ export default function SprayCalculator({ onRecordApplication }: SprayCalculator
                                             weather_conditions: conditions?.description || '',
                                         });
                                     }}
-                                    className="bg-turf-green text-white px-6 py-3 shadow-sm flex items-center gap-2 font-heading font-black hover:bg-turf-green-dark hover:-translate-y-0.5 transition-all duration-300 text-[0.7rem] uppercase tracking-[0.15em]"
+                                    className="bg-turf-green text-white px-6 py-3 shadow-sm flex items-center justify-center gap-2 font-heading font-black hover:bg-turf-green-dark hover:-translate-y-0.5 transition-all duration-300 text-[0.7rem] uppercase tracking-[0.15em] w-full sm:w-auto"
                                 >
                                     <ClipboardList className="w-3.5 h-3.5" />
                                     Record This Application

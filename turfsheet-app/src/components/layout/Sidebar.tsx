@@ -5,7 +5,12 @@ import {
   GraduationCap, Settings, LogOut, Tractor
 } from 'lucide-react';
 
-export default function Sidebar() {
+interface SidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const location = useLocation();
 
   const topNav = [
@@ -35,46 +40,57 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="w-[48px] bg-turf-green flex flex-col items-center py-4 h-screen z-100 shrink-0 shadow-lg">
-      <nav className="flex flex-col justify-between h-full w-full">
-        {/* Top Section */}
-        <div className="flex flex-col items-center gap-4">
-          {topNav.map((item) => (
-            <Link
-              key={item.id}
-              to={item.path}
-              className={`w-10 h-10 flex items-center justify-center transition-all duration-200 ${isActive(item.path)
-                ? 'text-white bg-white/20'
-                : 'text-white/80 hover:text-white hover:bg-white/10'
-                }`}
-              title={item.label}
-            >
-              <item.icon className="w-5 h-5 stroke-[1.5]" />
-            </Link>
-          ))}
-        </div>
+    <>
+      {/* Mobile Backdrop */}
+      {isOpen && (
+        <div 
+          className="md:hidden fixed inset-0 bg-black/50 z-[90]" 
+          onClick={onClose}
+        />
+      )}
+      <aside className={`w-[64px] md:w-[48px] bg-turf-green flex flex-col items-center py-4 h-full z-[100] shrink-0 shadow-lg fixed md:static top-0 left-0 transition-transform duration-300 ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+        <nav className="flex flex-col justify-between h-full w-full">
+          {/* Top Section */}
+          <div className="flex flex-col items-center gap-3 md:gap-4">
+            {topNav.map((item) => (
+              <Link
+                key={item.id}
+                to={item.path}
+                onClick={onClose}
+                className={`w-12 h-12 md:w-10 md:h-10 flex items-center justify-center transition-all duration-200 rounded-md md:rounded-none ${isActive(item.path)
+                  ? 'text-white bg-white/20'
+                  : 'text-white/80 hover:text-white hover:bg-white/10'
+                  }`}
+                title={item.label}
+              >
+                <item.icon className="w-6 h-6 md:w-5 md:h-5 stroke-[1.5]" />
+              </Link>
+            ))}
+          </div>
 
         {/* Separator */}
         <div className="w-6 border-t border-white/30 mx-auto" />
 
         {/* Bottom Section */}
-        <div className="flex flex-col items-center gap-4 mb-2">
+        <div className="flex flex-col items-center gap-3 md:gap-4 mb-2">
           {bottomNav.map((item) => (
             <Link
               key={item.id}
               to={item.path}
-              className={`w-10 h-10 flex items-center justify-center transition-all duration-200 ${isActive(item.path)
+              onClick={onClose}
+              className={`w-12 h-12 md:w-10 md:h-10 flex items-center justify-center transition-all duration-200 rounded-md md:rounded-none ${isActive(item.path)
                 ? 'text-white bg-white/20'
                 : 'text-white/80 hover:text-white hover:bg-white/10'
                 }`}
               title={item.label}
             >
-              <item.icon className="w-5 h-5 stroke-[1.5]" />
+              <item.icon className="w-6 h-6 md:w-5 md:h-5 stroke-[1.5]" />
             </Link>
           ))}
         </div>
       </nav>
     </aside>
+    </>
   );
 }
 

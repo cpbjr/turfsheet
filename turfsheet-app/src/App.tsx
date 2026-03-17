@@ -21,6 +21,8 @@ import JobForm from './components/jobs/JobForm';
 
 function App() {
   const [isAddJobModalOpen, setIsAddJobModalOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isDailyBoardOpen, setIsDailyBoardOpen] = useState(false);
 
   const handleCreateJob = (data: any) => {
     console.log('New Job Data:', data);
@@ -32,17 +34,20 @@ function App() {
     <SettingsProvider>
       <div className="flex h-screen w-screen overflow-hidden bg-dashboard-bg text-text-primary">
         {/* Sidebar Navigation */}
-        <Sidebar />
+        <Sidebar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
 
         {/* Main Content Area */}
-        <main className="flex-1 flex flex-col overflow-hidden">
+        <main className="flex-1 flex flex-col overflow-hidden w-full relative">
           {/* Header */}
-          <Header />
+          <Header 
+            onMenuClick={() => setIsMobileMenuOpen(true)} 
+            onDailyBoardClick={() => setIsDailyBoardOpen(true)} 
+          />
 
           {/* Dashboard Grid */}
-          <div className="flex flex-1 overflow-hidden">
+          <div className="flex flex-1 overflow-hidden relative">
             {/* Task Board - Center */}
-            <section className="flex-1 p-12 overflow-y-auto">
+            <section className="flex-1 p-4 md:p-8 lg:p-12 overflow-y-auto min-w-0">
               <Routes>
                 <Route
                   path="/"
@@ -77,7 +82,7 @@ function App() {
             </section>
 
             {/* Right Panel */}
-            <RightPanel />
+            <RightPanel isOpen={isDailyBoardOpen} onClose={() => setIsDailyBoardOpen(false)} />
           </div>
         </main>
 

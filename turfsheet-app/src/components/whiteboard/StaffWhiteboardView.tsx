@@ -305,11 +305,11 @@ export default function StaffWhiteboardView({
       </div>
 
       {/* Two-Panel Layout */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-col xl:flex-row flex-1 overflow-y-auto xl:overflow-hidden">
         {/* Left Panel: Staff + Jobs */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col overflow-x-auto xl:overflow-hidden min-h-[400px] xl:min-h-0">
           {/* Header Row */}
-          <div className="grid grid-cols-[120px_1fr_1fr] gap-2 px-6 py-3 h-10 bg-turf-green border-x border-t border-turf-green/20 shadow-sm items-center">
+          <div className="grid grid-cols-[100px_1fr_1fr] md:grid-cols-[120px_1fr_1fr] gap-2 px-4 md:px-6 py-3 h-10 bg-turf-green border-x border-t border-turf-green/20 shadow-sm items-center min-w-[320px]">
             <span className="text-xs font-heading font-black text-white uppercase tracking-[0.2em]">
               Staff Name
             </span>
@@ -335,7 +335,7 @@ export default function StaffWhiteboardView({
           )}
 
           {!loading && !error && (
-            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar min-w-[320px]">
               {whiteboardRows.length > 0 ? (
                 whiteboardRows.map((row, idx) => (
                   <StaffRow
@@ -365,7 +365,7 @@ export default function StaffWhiteboardView({
         </div>
 
         {/* Right Panel: Second Jobs Board */}
-        <div className="w-80 flex-shrink-0">
+        <div className="w-full xl:w-80 flex-shrink-0 mt-8 xl:mt-0 border-t xl:border-t-0 xl:border-l border-border-color">
           <SecondJobsBoardPanel
             date={dateString}
             allStaff={staffList}

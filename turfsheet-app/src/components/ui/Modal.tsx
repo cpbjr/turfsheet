@@ -47,7 +47,7 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
                 </div>
 
                 {/* Body */}
-                <div className="p-8 overflow-y-auto">
+                <div className="p-4 sm:p-8 overflow-y-auto">
                     {children}
                 </div>
             </div>

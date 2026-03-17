@@ -4,6 +4,11 @@ import { supabase } from '../../lib/supabase';
 import type { Staff, DailyBoard } from '../../types';
 import ManageScheduleModal from './ManageScheduleModal';
 
+interface RightPanelProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
 interface StaffSchedule {
   id: string;
   staff_id: string;
@@ -22,7 +27,7 @@ function getTodayISO() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-export default function RightPanel() {
+export default function RightPanel({ isOpen, onClose }: RightPanelProps) {
   const [workingStaff, setWorkingStaff] = useState<Staff[]>([]);
   const [loading, setLoading] = useState(true);
   const [announcement, setAnnouncement] = useState('');
@@ -107,13 +112,35 @@ export default function RightPanel() {
   };
 
   return (
-    <aside className="w-[340px] bg-white border-l border-border-color overflow-y-auto flex flex-col shrink-0">
-      {/* Announcements Section */}
-      <div className="p-10 space-y-6 border-b border-dashboard-bg bg-panel-white">
-        <div className="flex items-center justify-between border-b border-border-color pb-5">
+    <>
+      {/* Mobile Backdrop */}
+      {isOpen && (
+        <div 
+          className="xl:hidden fixed inset-0 bg-black/50 z-[90]" 
+          onClick={onClose}
+        />
+      )}
+      <aside className={`w-[340px] bg-panel-white border-l border-border-color overflow-y-auto flex flex-col shrink-0 fixed xl:static right-0 top-0 h-full z-[100] transition-transform duration-300 shadow-2xl xl:shadow-none ${isOpen ? 'translate-x-0' : 'translate-x-full xl:translate-x-0'}`}>
+        
+        {/* Mobile Close Button */}
+        <div className="xl:hidden flex items-center justify-between p-4 border-b border-border-color bg-white">
           <h4 className="text-[0.75rem] font-heading font-black text-text-primary uppercase tracking-[0.3em]">
-            Announcements
+            Daily Board
           </h4>
+          <button onClick={onClose} className="p-2 -mr-2 text-text-secondary hover:text-text-primary rounded-full hover:bg-gray-100 transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Announcements Section */}
+        <div className="p-6 xl:p-10 space-y-6 border-b border-dashboard-bg bg-panel-white">
+          <div className="flex items-center justify-between border-b border-border-color pb-4 xl:pb-5">
+            <h4 className="text-[0.75rem] font-heading font-black text-text-primary uppercase tracking-[0.3em] hidden xl:block">
+              Announcements
+            </h4>
+            <h4 className="text-[0.75rem] font-heading font-black text-text-primary uppercase tracking-[0.3em] xl:hidden">
+              Announcements
+            </h4>
           {!editingAnnouncement && (
             <button
               onClick={() => {
@@ -171,8 +198,8 @@ export default function RightPanel() {
       </div>
 
       {/* Working Today Section */}
-      <div className="p-10 flex flex-col bg-white">
-        <h4 className="text-[0.75rem] font-heading font-black mb-10 text-text-primary uppercase tracking-[0.3em] border-b border-border-color pb-5">
+      <div className="p-6 xl:p-10 flex flex-col bg-white flex-1">
+        <h4 className="text-[0.75rem] font-heading font-black mb-6 xl:mb-10 text-text-primary uppercase tracking-[0.3em] border-b border-border-color pb-4 xl:pb-5">
           Working Today
         </h4>
 
@@ -217,6 +244,7 @@ export default function RightPanel() {
         onClose={() => setIsScheduleModalOpen(false)}
         onUpdate={() => fetchWorkingStaff()}
       />
-    </aside>
+      </aside>
+    </>
   );
 }

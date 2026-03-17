@@ -325,12 +325,12 @@ export default function PesticidePage() {
             </div>
 
             {/* Tab Navigation */}
-            <div className="flex gap-0 border-b border-border-color">
+            <div className="flex overflow-x-auto custom-scrollbar border-b border-border-color">
                 {TABS.map((tab) => (
                     <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        className={`flex items-center gap-2 px-6 py-3 font-heading font-black text-[0.7rem] uppercase tracking-[0.15em] border-b-2 transition-colors ${
+                        className={`flex items-center whitespace-nowrap gap-2 px-4 md:px-6 py-3 font-heading font-black text-[0.65rem] md:text-[0.7rem] uppercase tracking-[0.15em] border-b-2 transition-colors ${
                             activeTab === tab.id
                                 ? 'border-turf-green text-turf-green'
                                 : 'border-transparent text-text-secondary hover:text-text-primary hover:border-border-color'
@@ -429,9 +429,17 @@ export default function PesticidePage() {
                 </div>
             )}
 
-            {activeTab === 'products' && <ProductLibrary />}
+            {activeTab === 'products' && (
+                <div className="flex-1 overflow-hidden">
+                    <ProductLibrary />
+                </div>
+            )}
             {/* Task 1: pass onRecordApplication handler */}
-            {activeTab === 'calculator' && <SprayCalculator onRecordApplication={handleRecordFromCalculator} />}
+            {activeTab === 'calculator' && (
+                <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 pb-8">
+                    <SprayCalculator onRecordApplication={handleRecordFromCalculator} />
+                </div>
+            )}
 
             {/* Add Application Modal */}
             <Modal
