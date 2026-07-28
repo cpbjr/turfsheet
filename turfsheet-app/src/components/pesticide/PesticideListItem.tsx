@@ -1,3 +1,4 @@
+import { formatMethod } from '../../lib/pesticideOptions';
 import type { PesticideApplication } from '../../types';
 
 interface PesticideListItemProps {
@@ -10,11 +11,6 @@ export default function PesticideListItem({ application, operatorName, onClick }
     const formatDate = (dateStr: string) => {
         const date = new Date(dateStr + 'T00:00:00');
         return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    };
-
-    const formatMethod = (method?: string) => {
-        if (!method) return '--';
-        return method.charAt(0).toUpperCase() + method.slice(1);
     };
 
     return (

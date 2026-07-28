@@ -47,6 +47,10 @@ export interface ScheduledJobQueueWithJob extends ScheduledJobQueue {
 // ============================================================
 
 export interface Staff {
+  // TODO: the DB column is SERIAL, so this arrives as a number at runtime.
+  // Correcting it cascades into DailyAssignment.staff_id and the whiteboard
+  // components - a repo-wide id-type sweep is its own task. Compare with
+  // sameId() from lib/utils until then.
   id: string;
   role: string;
   sort_order: number; // Hierarchical rank for display order (1=highest)
@@ -271,7 +275,17 @@ export interface ChemicalProduct {
 // Pesticide Applications (regulatory compliance)
 // ============================================================
 
-export type ApplicationMethod = 'spray' | 'granular' | 'injection' | 'drench' | 'other';
+export type KnownApplicationMethod =
+  | 'spray'
+  | 'granular'
+  | 'broadcast_by_hand'
+  | 'spot_treatment'
+  | 'aquatic_treatment'
+  | 'injection'
+  | 'drench';
+
+/** Free text is permitted via the form's "Other" escape hatch; known slugs still autocomplete. */
+export type ApplicationMethod = KnownApplicationMethod | (string & {});
 
 export interface PesticideApplication {
   id: string;
@@ -286,7 +300,7 @@ export interface PesticideApplication {
   area_size?: string;
   target_pest?: string;
   method?: ApplicationMethod;
-  operator_id?: string;
+  operator_id?: number;
   wind_speed?: string;
   temperature?: string;
   weather_conditions?: string;

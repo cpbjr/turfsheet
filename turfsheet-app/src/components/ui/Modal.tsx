@@ -1,14 +1,25 @@
 import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
 
+export type ModalSize = 'sm' | 'md' | 'lg' | 'xl';
+
+// Static map - Tailwind's JIT cannot see an interpolated `max-w-${size}`.
+const SIZE_CLASSES: Record<ModalSize, string> = {
+    sm: 'max-w-md',
+    md: 'max-w-xl',
+    lg: 'max-w-3xl',
+    xl: 'max-w-5xl',
+};
+
 interface ModalProps {
     isOpen: boolean;
     onClose: () => void;
     title: string;
+    size?: ModalSize;
     children: React.ReactNode;
 }
 
-export default function Modal({ isOpen, onClose, title, children }: ModalProps) {
+export default function Modal({ isOpen, onClose, title, size = 'md', children }: ModalProps) {
     // Prevent scrolling when modal is open
     useEffect(() => {
         if (isOpen) {
@@ -32,7 +43,7 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
             />
 
             {/* Modal Content */}
-            <div className="relative bg-panel-white w-full max-w-xl max-h-[90vh] flex flex-col shadow-2xl border border-border-color transform transition-all animate-in fade-in zoom-in duration-300">
+            <div className={`relative bg-panel-white w-full ${SIZE_CLASSES[size]} max-h-[90vh] flex flex-col shadow-2xl border border-border-color transform transition-all animate-in fade-in zoom-in duration-300`}>
                 {/* Header - Turf Green as per Job Cards */}
                 <div className="bg-turf-green px-6 py-4 flex items-center justify-between shrink-0">
                     <h2 className="text-white font-heading font-black text-sm uppercase tracking-[0.2em]">
