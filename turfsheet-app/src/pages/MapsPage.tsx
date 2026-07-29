@@ -72,6 +72,12 @@ export default function MapsPage() {
   const [printing, setPrinting] = useState(false);
   const [readOnlyHandout, setReadOnlyHandout] = useState(false);
 
+  /** Latest session, readable from timers/callbacks without going stale. */
+  const sessionRef = useRef(session);
+  useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
+
   const currentHole = sessionActive ? (session.order[session.index] ?? null) : null;
 
   const flash = useCallback((msg: string, isError = false) => {
@@ -277,23 +283,26 @@ export default function MapsPage() {
     (lat: number, lng: number) => {
       if (!sessionActive || readOnlyHandout) return;
 
+      const hole = sessionRef.current.order[sessionRef.current.index];
+      if (hole == null) return;
+      const pin = measurePin(greenIndex, hole, lat, lng);
+
       setSession((s) => {
-        const hole = s.order[s.index];
-        if (hole == null) return s;
-        const pin = measurePin(greenIndex, hole, lat, lng);
         const skipped = { ...s.skipped };
         delete skipped[hole];
-        if (s.index >= 17) flash(`Hole ${hole} set. Save or finish when ready.`);
         return { ...s, pins: { ...s.pins, [hole]: pin }, skipped };
       });
+      if (sessionRef.current.index >= 17) flash(`Hole ${hole} set. Save or finish when ready.`);
 
       window.setTimeout(() => {
-        setSession((s) => {
-          if (s.index >= 17) return s;
-          const nextIndex = s.index + 1;
-          focusHole(s.order[nextIndex]);
-          return { ...s, index: nextIndex };
-        });
+        const s = sessionRef.current;
+        // Guards from the standalone: bail if the user moved on, or re-tapped this hole.
+        if (s.order[s.index] !== hole) return;
+        if (s.pins[hole] !== pin) return;
+        if (s.index >= 17) return;
+        const nextIndex = s.index + 1;
+        focusHole(s.order[nextIndex]);
+        setSession((prev) => ({ ...prev, index: nextIndex }));
         setHoleNote('');
       }, 350);
     },
