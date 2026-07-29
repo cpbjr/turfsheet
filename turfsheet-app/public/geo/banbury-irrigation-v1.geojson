@@ -1,0 +1,13 @@
+{
+  "type": "FeatureCollection",
+  "properties": {
+    "name": "Banbury irrigation assets",
+    "version": "1",
+    "course": "Banbury Golf Course",
+    "crs": "EPSG:4326",
+    "note": "Point features only. Source of truth is turfsheet.course_features when populated; this file is the map export/interchange. Do not invent heads.",
+    "updated": "2026-07-29",
+    "feature_count": 0
+  },
+  "features": []
+}

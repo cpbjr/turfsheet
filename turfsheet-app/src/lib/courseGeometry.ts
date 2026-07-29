@@ -23,6 +23,8 @@ export const CENTER = { lat: 43.670886, lng: -116.361379 };
 // Read defensively so the pure geometry helpers can also be exercised outside Vite.
 const BASE_URL = (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL ?? '/';
 export const GEO_URL = `${BASE_URL}geo/banbury-course-v1.geojson`;
+/** Irrigation heads/valves export (points). SoR is course_features when populated. */
+export const IRRIGATION_GEO_URL = `${BASE_URL}geo/banbury-irrigation-v1.geojson`;
 export const YARDS_PER_METER = 1.0936133;
 const M_PER_DEG_LAT = 111320;
 
@@ -66,6 +68,7 @@ export const DEFAULT_SHOW: ShowState = {
   tee: false,
   water: true,
   hole: true,
+  irrigation: true,
   other: false,
 };
 
