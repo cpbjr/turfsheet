@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Calculator, FlaskConical, AlertTriangle, Wind, Thermometer, CloudRain, Droplets, Compass, RefreshCw, ClipboardList, Printer, Save, Plus, FolderOpen } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { getCurrentWeather } from '../../services/weather';
+import type { CalculatorRecordPayload } from '../../lib/pesticideMix';
 import type { ChemicalProduct, SprayMixTemplate } from '../../types';
 import type { WeatherData } from '../../types/weather';
 
@@ -21,7 +22,7 @@ interface CurrentConditions {
 }
 
 interface SprayCalculatorProps {
-    onRecordApplication?: (data: Record<string, string>) => void;
+    onRecordApplication?: (data: CalculatorRecordPayload) => void;
 }
 
 function degreesToCardinal(deg: number): string {
@@ -709,25 +710,46 @@ export default function SprayCalculator({ onRecordApplication }: SprayCalculator
                                 <button
                                     type="button"
                                     onClick={() => {
-                                        const firstItem = mixItems.find(m => m.productId !== '');
-                                        const product = firstItem ? products.find(p => p.id === firstItem.productId) : null;
-                                        const firstCalc = calculations.productCalcs[0];
+                                        if (!calculations || calculations.productCalcs.length === 0) return;
+
+                                        const mixProducts = calculations.productCalcs.map((calc) => {
+                                            const product = calc.product;
+                                            return {
+                                                product_name: calc.productName || product?.name || '',
+                                                epa_registration_number: product?.epa_registration || '',
+                                                active_ingredient: product?.active_ingredient || '',
+                                                application_rate: `${calc.rate} ${calc.unit.replace('sqft', ' sq ft')}`,
+                                                rate_unit: calc.unit,
+                                                total_amount_used: `${calc.totalAmount.toFixed(2)} ${calc.displayUnit}`,
+                                                amount_per_tank:
+                                                    calculations.numberOfTanks > 0
+                                                        ? `${calc.perTank.toFixed(2)} ${calc.displayUnit}`
+                                                        : undefined,
+                                                manufacturer: product?.manufacturer || '',
+                                                rei_hours: product?.rei_hours != null ? String(product.rei_hours) : '',
+                                                method: product?.carrier_volume_gal === 0 ? 'granular' : 'spray',
+                                            };
+                                        });
+
+                                        const first = mixProducts[0];
                                         onRecordApplication({
-                                            product_name: product?.name || '',
-                                            epa_registration_number: product?.epa_registration || '',
-                                            active_ingredient: product?.active_ingredient || '',
-                                            application_rate: firstItem ? `${firstItem.rate} ${firstItem.rateUnit.replace('sqft', ' sq ft')}` : '',
-                                            total_amount_used: firstCalc
-                                                ? `${firstCalc.totalAmount.toFixed(2)} ${firstCalc.displayUnit}`
-                                                : '',
-                                            area_size: `${areaSqft} sq ft`,
-                                            method: product?.carrier_volume_gal === 0 ? 'granular' : 'spray',
-                                            rei_hours: product?.rei_hours?.toString() || '',
-                                            temperature: conditions?.temp_f?.toString() || '',
-                                            wind_speed: conditions?.wind_mph?.toString() || '',
-                                            wind_direction: conditions?.wind_direction || '',
-                                            humidity: conditions?.humidity?.toString() || '',
-                                            weather_conditions: conditions?.description || '',
+                                            shared: {
+                                                product_name: first.product_name,
+                                                epa_registration_number: first.epa_registration_number || '',
+                                                active_ingredient: first.active_ingredient || '',
+                                                application_rate: first.application_rate,
+                                                total_amount_used: first.total_amount_used || '',
+                                                amount_per_tank: first.amount_per_tank || '',
+                                                area_size: `${areaSqft} sq ft`,
+                                                method: first.method || 'spray',
+                                                rei_hours: first.rei_hours || '',
+                                                temperature: conditions?.temp_f?.toString() || '',
+                                                wind_speed: conditions?.wind_mph?.toString() || '',
+                                                wind_direction: conditions?.wind_direction || '',
+                                                humidity: conditions?.humidity?.toString() || '',
+                                                weather_conditions: conditions?.description || '',
+                                            },
+                                            mixProducts,
                                         });
                                     }}
                                     className="bg-turf-green text-white px-6 py-3 shadow-sm flex items-center justify-center gap-2 font-heading font-black hover:bg-turf-green-dark hover:-translate-y-0.5 transition-all duration-300 text-[0.7rem] uppercase tracking-[0.15em] w-full sm:w-auto"
