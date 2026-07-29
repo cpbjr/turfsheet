@@ -1,6 +1,14 @@
 /** Types for the Banbury course map + pin sheets (ported from the standalone map). */
 
-export type LayerKey = 'green' | 'fairway' | 'bunker' | 'tee' | 'water' | 'hole' | 'other';
+export type LayerKey =
+  | 'green'
+  | 'fairway'
+  | 'bunker'
+  | 'tee'
+  | 'water'
+  | 'hole'
+  | 'irrigation'
+  | 'other';
 
 export type PinSetStatus = 'draft' | 'scheduled' | 'active' | 'archived';
 

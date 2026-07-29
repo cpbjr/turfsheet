@@ -9,6 +9,7 @@ const LAYERS: { key: LayerKey; label: string }[] = [
   { key: 'tee', label: 'tees' },
   { key: 'water', label: 'water' },
   { key: 'hole', label: 'hole paths' },
+  { key: 'irrigation', label: 'irrigation' },
   { key: 'other', label: 'other' },
 ];
 

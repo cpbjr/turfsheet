@@ -3,6 +3,7 @@ import {
   CENTER,
   COLORS,
   GEO_URL,
+  IRRIGATION_GEO_URL,
   buildGreenIndex,
   formatPinStats,
   passesFilters,
@@ -29,12 +30,31 @@ interface CourseMapProps {
   onError?: (message: string) => void;
 }
 
+interface IrrigationPoint {
+  name: string;
+  featureType: string;
+  holeNumber: number | null;
+  lat: number;
+  lng: number;
+  source?: string | null;
+  confidence?: string | null;
+  notes?: string | null;
+}
+
 function propsOf(feature: google.maps.Data.Feature): CourseFeatureProps {
   const out: Record<string, unknown> = {};
   feature.forEachProperty((val, key) => {
     out[key] = val;
   });
   return out as CourseFeatureProps;
+}
+
+function irrigationPassesHoleFilter(hole: number | null, holeFilter: string): boolean {
+  if (holeFilter === 'all') return true;
+  if (hole == null) return true;
+  if (holeFilter === 'front') return hole <= 9;
+  if (holeFilter === 'back') return hole >= 10;
+  return hole === Number(holeFilter);
 }
 
 const CourseMap = forwardRef<CourseMapHandle, CourseMapProps>(function CourseMap(
@@ -47,6 +67,8 @@ const CourseMap = forwardRef<CourseMapHandle, CourseMapProps>(function CourseMap
   const infoRef = useRef<google.maps.InfoWindow | null>(null);
   const holeLabelsRef = useRef<google.maps.Marker[]>([]);
   const pinMarkersRef = useRef<Record<number, google.maps.Marker>>({});
+  const irrigationMarkersRef = useRef<google.maps.Marker[]>([]);
+  const irrigationPointsRef = useRef<IrrigationPoint[]>([]);
   const greenIndexRef = useRef<GreenIndex>({});
   const clickListenerRef = useRef<google.maps.MapsEventListener | null>(null);
 
@@ -170,6 +192,53 @@ const CourseMap = forwardRef<CourseMapHandle, CourseMapProps>(function CourseMap
     });
   }, [pins]);
 
+  const clearIrrigationMarkers = useCallback(() => {
+    irrigationMarkersRef.current.forEach((m) => m.setMap(null));
+    irrigationMarkersRef.current = [];
+  }, []);
+
+  const redrawIrrigationMarkers = useCallback(() => {
+    const map = mapRef.current;
+    clearIrrigationMarkers();
+    if (!map || !showRef.current.irrigation || pinModeRef.current) return;
+
+    const info = infoRef.current;
+    for (const pt of irrigationPointsRef.current) {
+      if (!irrigationPassesHoleFilter(pt.holeNumber, holeFilterRef.current)) continue;
+      const isValve = pt.featureType === 'valve';
+      const marker = new google.maps.Marker({
+        map,
+        position: { lat: pt.lat, lng: pt.lng },
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: isValve ? 6 : 4.5,
+          fillColor: isValve ? '#ffb300' : '#29b6f6',
+          fillOpacity: 0.95,
+          strokeColor: '#0d47a1',
+          strokeWeight: 1.25,
+        },
+        title: pt.name,
+        zIndex: 1500,
+        clickable: true,
+      });
+      marker.addListener('click', () => {
+        if (!info || pinModeRef.current) return;
+        const lines = [
+          `<strong>${pt.name}</strong>`,
+          `Type: ${pt.featureType}`,
+        ];
+        if (pt.holeNumber != null) lines.push(`Hole # ${pt.holeNumber}`);
+        if (pt.source) lines.push(`Source: ${pt.source}`);
+        if (pt.confidence) lines.push(`Confidence: ${pt.confidence}`);
+        if (pt.notes) lines.push(pt.notes);
+        info.setContent(lines.join('<br>'));
+        info.setPosition({ lat: pt.lat, lng: pt.lng });
+        info.open({ map });
+      });
+      irrigationMarkersRef.current.push(marker);
+    }
+  }, [clearIrrigationMarkers]);
+
   /* ---------- boot ---------- */
 
   useEffect(() => {
@@ -244,8 +313,49 @@ const CourseMap = forwardRef<CourseMapHandle, CourseMapProps>(function CourseMap
 
         refreshStyles();
         redrawPinMarkers();
+        redrawIrrigationMarkers();
 
         onGeoLoaded?.(greenIndexRef.current, String(fc.properties?.version ?? '1'));
+
+        // Irrigation layer (points) — separate file; empty until heads are imported.
+        try {
+          const ires = await fetch(IRRIGATION_GEO_URL, { cache: 'no-cache' });
+          if (ires.ok) {
+            const ifc = (await ires.json()) as {
+              features?: Array<{
+                geometry?: { type?: string; coordinates?: number[] };
+                properties?: Record<string, unknown>;
+              }>;
+            };
+            if (!cancelled) {
+              const pts: IrrigationPoint[] = [];
+              for (const f of ifc.features || []) {
+                if (f.geometry?.type !== 'Point' || !f.geometry.coordinates) continue;
+                const [lng, lat] = f.geometry.coordinates;
+                if (typeof lat !== 'number' || typeof lng !== 'number') continue;
+                const p = f.properties || {};
+                const holeRaw = p.hole_number;
+                pts.push({
+                  name: String(p.name || 'irrigation'),
+                  featureType: String(p.feature_type || 'irrigation_head'),
+                  holeNumber:
+                    holeRaw == null || holeRaw === ''
+                      ? null
+                      : Number(holeRaw),
+                  lat,
+                  lng,
+                  source: (p.source as string) || null,
+                  confidence: (p.confidence as string) || null,
+                  notes: (p.notes as string) || null,
+                });
+              }
+              irrigationPointsRef.current = pts;
+              redrawIrrigationMarkers();
+            }
+          }
+        } catch {
+          // Non-fatal: course map still works without irrigation file.
+        }
       } catch (err) {
         if (!cancelled) onError?.(err instanceof Error ? err.message : String(err));
       }
@@ -254,6 +364,7 @@ const CourseMap = forwardRef<CourseMapHandle, CourseMapProps>(function CourseMap
     return () => {
       cancelled = true;
       clearHoleLabels();
+      clearIrrigationMarkers();
       Object.values(pinMarkersRef.current).forEach((m) => m.setMap(null));
       pinMarkersRef.current = {};
       clickListenerRef.current?.remove();
@@ -270,7 +381,8 @@ const CourseMap = forwardRef<CourseMapHandle, CourseMapProps>(function CourseMap
 
   useEffect(() => {
     refreshStyles();
-  }, [show, holeFilter, pinMode, refreshStyles]);
+    redrawIrrigationMarkers();
+  }, [show, holeFilter, pinMode, refreshStyles, redrawIrrigationMarkers]);
 
   useEffect(() => {
     redrawPinMarkers();
