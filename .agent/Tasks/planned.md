@@ -1,5 +1,37 @@
 # Planned Tasks
 
+## Task 0 - Site Authentication ⬅️ NEXT UP
+
+TurfSheet has **no auth gate at all** — every page is public to anyone with the URL.
+
+This became urgent on 2026-07-29 when `/banbury-map` was retired and `/turfsheet/maps` became the
+sole system of record for tournament pin positions. Anyone who finds the URL can create, edit,
+delete, or publish share tokens for pin sheets. The same exposure applies to staff records, job
+assignments, and the pesticide log (a regulated record).
+
+- [ ] Choose the auth model — Supabase Auth is the obvious fit (already the backend, `@supabase/supabase-js` is present)
+- [ ] Decide the identity source: email/password, magic link, or SSO
+- [ ] Add login route + session handling; gate the app shell
+- [ ] **Preserve public handout access** — `/maps?pinToken=…` must stay reachable *without* login.
+      Printed QR codes in the clubhouse depend on it, and `/banbury-map` now 302s into it.
+      This is the one route that must remain anonymous.
+- [ ] Add RLS policies on `turfsheet.*` — the anon key is in the client bundle, so route-level
+      gating alone is cosmetic. Tables are currently readable/writable by anyone holding it.
+- [ ] Map roles to existing expectations: staff view-only (staff must not put work on the board),
+      Darryl manages maintenance issues / second jobs, OldTom needs to write announcements
+- [ ] Decide how OldTom (AI assistant) authenticates — service role, or its own account
+
+**Note:** dropping the standalone's `accessCode` gate was defensible when `/maps` was a second copy
+of a public app. It is not defensible now that it is the only copy.
+
+## Task 0.1 - Get the gateway Caddyfile into version control
+
+- [ ] `/home/deploy/gateway/Caddyfile` exists only on the production server. A host rebuild or a
+      redeploy from source silently reverts routing, including the `/banbury-map` retirement —
+      which would bring the retired app back and restart it writing to the old database.
+- [ ] Decide where it lives (its own repo, or alongside the other WhitePineTech gateway config)
+- See `System/deployment.md` → *Gateway / Caddy Routing*
+
 ## Task 1 - Settings Page
 - [ ] Create Settings page/route
 - [ ] Add "Workday Hours" configuration section
