@@ -9,6 +9,12 @@ import ApplicationPrintView from '../components/pesticide/ApplicationPrintView';
 import { supabase } from '../lib/supabase';
 import { sameId } from '../lib/utils';
 import { formatMethod } from '../lib/pesticideOptions';
+import {
+    findMixSiblingIds,
+    pickSharedMixFields,
+    type CalculatorRecordPayload,
+    type MixProductPrefill,
+} from '../lib/pesticideMix';
 import type { PesticideApplication, Staff, ChemicalProduct } from '../types';
 
 type TabId = 'applications' | 'products' | 'calculator';
@@ -35,6 +41,9 @@ export default function PesticidePage() {
     const [dateTo, setDateTo] = useState('');
     // Task 1: prefill data from calculator
     const [prefillData, setPrefillData] = useState<Record<string, string> | null>(null);
+    /** Full tank mix lines when recording from Spray Calculator (multi-product insert). */
+    const [mixProducts, setMixProducts] = useState<MixProductPrefill[] | null>(null);
+    const [statusMessage, setStatusMessage] = useState<string | null>(null);
     const printRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -84,30 +93,109 @@ export default function PesticidePage() {
     const getOperatorName = (id?: string | number) =>
         staffMembers.find(s => sameId(s.id, id))?.name || 'Unknown';
 
+    const cascadeSharedToSiblings = async (
+        sourceRow: Pick<PesticideApplication, 'id' | 'application_date' | 'area_applied'>,
+        formData: Record<string, unknown>,
+        appsSnapshot: PesticideApplication[]
+    ) => {
+        const shared = pickSharedMixFields(formData);
+        // Match siblings using post-edit date/area so a corrected area still fans out.
+        const matchKey = {
+            id: sourceRow.id,
+            application_date: String(
+                (shared.application_date as string | undefined) ?? sourceRow.application_date ?? ''
+            ),
+            area_applied: String(
+                (shared.area_applied as string | undefined) ?? sourceRow.area_applied ?? ''
+            ),
+        };
+        const siblingIds = findMixSiblingIds(appsSnapshot, matchKey);
+        if (siblingIds.length === 0) return 0;
+
+        const { error: cascadeError } = await supabase
+            .from('pesticide_applications')
+            .update(shared)
+            .in('id', siblingIds);
+        if (cascadeError) throw cascadeError;
+        return siblingIds.length;
+    };
+
     const handleSave = async (formData: any) => {
         try {
             setError(null);
+            setStatusMessage(null);
+
+            const rows: Record<string, unknown>[] =
+                mixProducts && mixProducts.length > 1
+                    ? mixProducts.map((product) => ({
+                          ...formData,
+                          product_name: product.product_name || formData.product_name,
+                          epa_registration_number:
+                              product.epa_registration_number || formData.epa_registration_number,
+                          active_ingredient: product.active_ingredient || formData.active_ingredient,
+                          application_rate: product.application_rate || formData.application_rate,
+                          rate_unit: product.rate_unit || formData.rate_unit,
+                          total_amount_used: product.total_amount_used || formData.total_amount_used,
+                          amount_per_tank: product.amount_per_tank || formData.amount_per_tank,
+                          manufacturer: product.manufacturer || formData.manufacturer,
+                          rei_hours:
+                              product.rei_hours != null && product.rei_hours !== ''
+                                  ? parseInt(product.rei_hours, 10)
+                                  : formData.rei_hours,
+                          method: product.method || formData.method,
+                      }))
+                    : [formData];
+
             const { data, error: insertError } = await supabase
                 .from('pesticide_applications')
-                .insert([formData])
+                .insert(rows)
                 .select();
 
             if (insertError) throw insertError;
 
-            setApplications([...(data || []), ...applications]);
+            const inserted = (data as PesticideApplication[]) || [];
+            let cascaded = 0;
+            // If only one row was inserted but siblings already exist (import + fill ops),
+            // fan shared fields out to matching date+area rows.
+            if (inserted.length === 1) {
+                cascaded = await cascadeSharedToSiblings(
+                    inserted[0],
+                    formData,
+                    [...inserted, ...applications]
+                );
+            }
+
+            const { data: refreshed } = await supabase
+                .from('pesticide_applications')
+                .select('*')
+                .order('application_date', { ascending: false });
+            if (refreshed) setApplications(refreshed);
+            else setApplications([...inserted, ...applications]);
+
             setIsAddModalOpen(false);
             setPrefillData(null);
+            setMixProducts(null);
+            if (inserted.length > 1) {
+                setStatusMessage(
+                    `Recorded ${inserted.length} product rows for this tank mix (shared operator/weather/equipment).`
+                );
+            } else if (cascaded > 0) {
+                setStatusMessage(
+                    `Saved. Also updated ${cascaded} other product row${cascaded === 1 ? '' : 's'} in this tank mix.`
+                );
+            }
         } catch (err) {
             const message = err instanceof Error ? err.message : 'Failed to record application';
             setError(message);
         }
     };
 
-    // Task 7: Edit handler
+    // Task 7: Edit handler — cascade shared ops fields to tank-mix siblings
     const handleEditApplication = async (formData: any) => {
         if (!editingApplication) return;
         try {
             setError(null);
+            setStatusMessage(null);
             const { error: updateError } = await supabase
                 .from('pesticide_applications')
                 .update(formData)
@@ -115,12 +203,23 @@ export default function PesticidePage() {
 
             if (updateError) throw updateError;
 
+            const cascaded = await cascadeSharedToSiblings(
+                editingApplication,
+                formData,
+                applications
+            );
+
             const { data: updated } = await supabase
                 .from('pesticide_applications')
                 .select('*')
                 .order('application_date', { ascending: false });
             if (updated) setApplications(updated);
             setEditingApplication(null);
+            if (cascaded > 0) {
+                setStatusMessage(
+                    `Updated. Also synced operator/weather/equipment to ${cascaded} other product row${cascaded === 1 ? '' : 's'} in this tank mix.`
+                );
+            }
         } catch (err) {
             const message = err instanceof Error ? err.message : 'Failed to update application';
             setError(message);
@@ -153,9 +252,16 @@ export default function PesticidePage() {
         setIsDetailModalOpen(true);
     };
 
-    // Task 1: Bridge from calculator
-    const handleRecordFromCalculator = (data: Record<string, string>) => {
-        setPrefillData(data);
+    // Task 1: Bridge from calculator (supports multi-product tank mix)
+    const handleRecordFromCalculator = (payload: CalculatorRecordPayload | Record<string, string>) => {
+        if (payload && typeof payload === 'object' && 'shared' in payload && 'mixProducts' in payload) {
+            const full = payload as CalculatorRecordPayload;
+            setPrefillData(full.shared);
+            setMixProducts(full.mixProducts.length > 0 ? full.mixProducts : null);
+        } else {
+            setPrefillData(payload as Record<string, string>);
+            setMixProducts(null);
+        }
         setActiveTab('applications');
         setIsAddModalOpen(true);
     };
@@ -391,6 +497,18 @@ export default function PesticidePage() {
 
                     {/* List Content */}
                     <div className="-mt-2">
+                        {statusMessage && (
+                            <div className="mx-0 mb-3 px-4 py-3 bg-green-50 border border-green-200 text-green-900 text-sm font-sans">
+                                {statusMessage}
+                                <button
+                                    type="button"
+                                    className="ml-3 underline text-green-800"
+                                    onClick={() => setStatusMessage(null)}
+                                >
+                                    Dismiss
+                                </button>
+                            </div>
+                        )}
                         {loading && (
                             <div className="flex items-center justify-center p-12">
                                 <p className="text-text-secondary">Loading applications...</p>
@@ -441,13 +559,17 @@ export default function PesticidePage() {
             {/* Add Application Modal */}
             <Modal
                 isOpen={isAddModalOpen}
-                onClose={() => { setIsAddModalOpen(false); setPrefillData(null); }}
-                title="Record Application"
+                onClose={() => { setIsAddModalOpen(false); setPrefillData(null); setMixProducts(null); }}
+                title={
+                    mixProducts && mixProducts.length > 1
+                        ? `Record Application (${mixProducts.length} products in mix)`
+                        : 'Record Application'
+                }
                 size="lg"
             >
                 <PesticideForm
                     onSubmit={handleSave}
-                    onCancel={() => { setIsAddModalOpen(false); setPrefillData(null); }}
+                    onCancel={() => { setIsAddModalOpen(false); setPrefillData(null); setMixProducts(null); }}
                     staffMembers={staffMembers}
                     products={products}
                     prefillData={prefillData}
