@@ -27,7 +27,48 @@ Shipped portion recorded in `completed/2026-07/1-chemicals-page-clean-up.md`
 - [ ] Optionally update the 2026-07-28 Cutrine record (currently `granular` / blank equipment) to
       *Broadcast (By Hand)* / *By Hand* now that those options exist.
 
+### Maps — tap-cycle double-advance (UNRESOLVED, two failed fixes)
+Feature shipped and live at `/turfsheet/maps`. Plan: `Implementation/2026-07-28-maps-banbury-course-map.md`
+
+- [ ] **Two quick taps advance two holes.** Reproduced by Chris on production. Should advance one.
+      Only affects fast double-taps (adjusting a pin just placed); taps >350ms apart advancing
+      twice is correct behaviour and matches the standalone.
+
+      **Two fixes attempted, both failed:**
+      1. `da43594`→`bf6bbc4` — ported the standalone's state-comparison guards
+         (`s.order[s.index] !== hole`, `s.pins[hole] !== pin`). Still double-advanced.
+      2. `5b0df2e` — single-timer model: pending advance held in `advanceTimerRef`, cancelled on
+         every tap. **This should make two advances structurally impossible** and it still failed,
+         which means the advance is NOT coming from the timer in `handleMapClick`, or the tested
+         bundle wasn't the deployed one.
+
+      **Ruled out by code reading:** `measurePin` returns a fresh object literal every call, so the
+      identity guard was sound. `goRelative`/`jumpToHole`/`skipCurrent`/`PinPanel.onNext` are the
+      only other advance paths and none are wired to map clicks. `CourseMap` registers exactly one
+      map click listener, guarded by `pinMode`.
+
+      **Next steps — get runtime evidence first, do not attempt a third blind fix:**
+      - Confirm the browser is actually running the fixed bundle (hash `index-DkJIf2zA.js` or later).
+        A cached `index.html` pointing at an old JS hash would explain everything. Hard-refresh.
+      - Check whether `MapsPage` mounts twice (two components = two independent timer refs).
+      - Instrument `handleMapClick` and the timer callback with `console.log` and read the real
+        firing sequence.
+
+      **Blocker:** no working browser automation in this environment (see follow-ups below), so all
+      three attempts were verified by `tsc`/`eslint` only and tested by hand by Chris.
+
 ### Follow-ups surfaced this session (not started)
+- [ ] **Browser automation is non-functional — fix before further UI debugging.** Both paths are
+      dead: `npx tsx run.ts chrome:console|errors` hangs indefinitely and is killed by timeout, and
+      the Chrome extension reports `Browser extension is not connected`. This is the root cause of
+      the maps debugging above going three rounds without evidence. Fix: install the extension from
+      https://claude.ai/chrome, log into claude.ai with the same account as Claude Code, restart
+      Chrome.
+- [ ] Google Maps key has no working localhost referrer entry. `http://localhost:*/*` is rejected by
+      GCP as an invalid domain (no port wildcards); explicit `http://localhost:5179/*` and
+      `:5180/*` were added but still returned `RefererNotAllowedMapError`. Possibly a new key was
+      created while `turfsheet-app/.env.local` still holds the old one. Local `/maps` dev is blocked
+      until resolved.
 - [ ] `applicator_license` is blank on every record and is a real Idaho ISDA field. It is free text
       re-typed per application, so it never gets filled. Belongs on `staff`, autofilled from the
       selected operator.
