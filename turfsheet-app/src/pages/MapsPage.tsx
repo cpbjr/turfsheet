@@ -105,6 +105,12 @@ export default function MapsPage() {
     mapRef.current?.focusHole(hole);
   }, []);
 
+  /** Hole dropdown: filter geometry and zoom the map to the selection. */
+  const handleHoleFilterChange = useCallback((value: string) => {
+    setHoleFilter(value);
+    mapRef.current?.focusHoleFilter(value);
+  }, []);
+
   const applyRow = useCallback(
     (row: PinSetRow, index: GreenIndex): PinSession => ({
       id: row.id,
@@ -460,7 +466,7 @@ export default function MapsPage() {
           show={show}
           onToggleLayer={(key: LayerKey, value) => setShow((s) => ({ ...s, [key]: value }))}
           holeFilter={holeFilter}
-          onHoleFilterChange={setHoleFilter}
+          onHoleFilterChange={handleHoleFilterChange}
           holeFilterDisabled={sessionActive}
           onRecenter={() => {
             setHoleFilter('all');

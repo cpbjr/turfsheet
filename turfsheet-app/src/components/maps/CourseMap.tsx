@@ -16,6 +16,11 @@ import type { CourseFeatureProps, GreenIndex, PinMap } from '@/types/courseMap';
 export interface CourseMapHandle {
   /** Zooms to a hole's green (used as the pin session steps through holes). */
   focusHole: (hole: number) => void;
+  /**
+   * Zooms for a hole-filter control value: single hole (1–18), front/back nine,
+   * or full-course recenter for "all".
+   */
+  focusHoleFilter: (filter: string) => void;
   recenter: () => void;
 }
 
@@ -406,8 +411,8 @@ const CourseMap = forwardRef<CourseMapHandle, CourseMapProps>(function CourseMap
 
   useImperativeHandle(
     ref,
-    () => ({
-      focusHole(hole: number) {
+    () => {
+      const focusHole = (hole: number) => {
         const map = mapRef.current;
         const g = greenIndexRef.current[hole];
         if (!map || !g) return;
@@ -416,17 +421,59 @@ const CourseMap = forwardRef<CourseMapHandle, CourseMapProps>(function CourseMap
           { lat: g.bounds.maxLat, lng: g.bounds.maxLng }
         );
         map.fitBounds(bounds, 80);
-        const z = map.getZoom();
-        if (z != null && z < 18) map.setZoom(Math.min(19, Math.max(18, z)));
-        if (z != null && z > 20) map.setZoom(19);
-      },
-      recenter() {
+        // fitBounds is async; clamp after the camera settles.
+        google.maps.event.addListenerOnce(map, 'idle', () => {
+          const z = map.getZoom();
+          if (z == null) return;
+          if (z < 18) map.setZoom(18);
+          else if (z > 19) map.setZoom(19);
+        });
+      };
+
+      const focusHoleRange = (from: number, to: number) => {
+        const map = mapRef.current;
+        if (!map) return;
+        const bounds = new google.maps.LatLngBounds();
+        let any = false;
+        for (let h = from; h <= to; h++) {
+          const g = greenIndexRef.current[h];
+          if (!g) continue;
+          bounds.extend({ lat: g.bounds.minLat, lng: g.bounds.minLng });
+          bounds.extend({ lat: g.bounds.maxLat, lng: g.bounds.maxLng });
+          any = true;
+        }
+        if (!any) return;
+        map.fitBounds(bounds, 64);
+      };
+
+      const recenter = () => {
         const map = mapRef.current;
         if (!map) return;
         map.setCenter(CENTER);
         map.setZoom(16);
-      },
-    }),
+      };
+
+      return {
+        focusHole,
+        focusHoleFilter(filter: string) {
+          if (filter === 'all') {
+            recenter();
+            return;
+          }
+          if (filter === 'front') {
+            focusHoleRange(1, 9);
+            return;
+          }
+          if (filter === 'back') {
+            focusHoleRange(10, 18);
+            return;
+          }
+          const n = Number(filter);
+          if (Number.isFinite(n) && n >= 1 && n <= 18) focusHole(n);
+        },
+        recenter,
+      };
+    },
     []
   );
 
