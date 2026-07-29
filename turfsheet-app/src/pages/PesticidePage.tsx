@@ -267,8 +267,28 @@ export default function PesticidePage() {
     };
 
     const handlePrint = () => {
+        if (loading) {
+            setStatusMessage('Still loading application records — try Print again in a moment.');
+            return;
+        }
+        if (error) {
+            setStatusMessage(`Cannot print: ${error}`);
+            return;
+        }
+        if (filteredApplications.length === 0) {
+            setStatusMessage(
+                applications.length === 0
+                    ? 'No application records loaded from the database.'
+                    : 'No records match the current search/date filters.'
+            );
+            return;
+        }
+
         const printWindow = window.open('', '_blank');
-        if (!printWindow) return;
+        if (!printWindow) {
+            setStatusMessage('Pop-up blocked — allow pop-ups for whitepine-tech.com to print the log.');
+            return;
+        }
 
         const today = new Date().toLocaleDateString('en-US', {
             month: 'long', day: 'numeric', year: 'numeric',
@@ -277,33 +297,40 @@ export default function PesticidePage() {
         const getStaffName = (id?: string | number) =>
             staffMembers.find(s => sameId(s.id, id))?.name || '--';
 
+        const esc = (value: unknown) =>
+            String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+
         const rows = filteredApplications.map(app => {
             return `
             <tr>
-                <td>${formatDate(app.application_date)}</td>
-                <td>${app.application_time || '--'}</td>
-                <td style="font-weight:bold">${app.product_name}</td>
-                <td>${app.epa_registration_number || '--'}</td>
-                <td>${app.active_ingredient || '--'}</td>
-                <td>${app.manufacturer || '--'}</td>
-                <td>${app.epa_lot_number || '--'}</td>
-                <td>${app.application_rate}</td>
-                <td>${app.total_amount_used || '--'}</td>
-                <td>${app.amount_per_tank || '--'}</td>
-                <td>${app.area_applied}</td>
-                <td>${app.area_size || '--'}</td>
-                <td>${app.target_pest || '--'}</td>
-                <td>${formatMethod(app.method)}</td>
-                <td>${app.equipment_used || '--'}</td>
-                <td>${getOperatorName(app.operator_id)}</td>
-                <td>${app.applicator_license || '--'}</td>
-                <td>${getStaffName(app.recommended_by)}</td>
+                <td>${esc(formatDate(app.application_date))}</td>
+                <td>${esc(app.application_time || '--')}</td>
+                <td style="font-weight:bold">${esc(app.product_name || '--')}</td>
+                <td>${esc(app.epa_registration_number || '--')}</td>
+                <td>${esc(app.active_ingredient || '--')}</td>
+                <td>${esc(app.manufacturer || '--')}</td>
+                <td>${esc(app.epa_lot_number || '--')}</td>
+                <td>${esc(app.application_rate ?? '--')}</td>
+                <td>${esc(app.total_amount_used || '--')}</td>
+                <td>${esc(app.amount_per_tank || '--')}</td>
+                <td>${esc(app.area_applied || '--')}</td>
+                <td>${esc(app.area_size || '--')}</td>
+                <td>${esc(app.target_pest || '--')}</td>
+                <td>${esc(formatMethod(app.method))}</td>
+                <td>${esc(app.equipment_used || '--')}</td>
+                <td>${esc(getOperatorName(app.operator_id))}</td>
+                <td>${esc(app.applicator_license || '--')}</td>
+                <td>${esc(getStaffName(app.recommended_by))}</td>
                 <td>${app.worker_protection_exchange ? '✓' : '✗'}</td>
-                <td>${app.rei_hours != null ? `${app.rei_hours}h` : '--'}</td>
-                <td>${app.temperature || '--'}</td>
-                <td>${app.wind_speed || '--'}</td>
-                <td>${app.wind_direction || '--'}</td>
-                <td>${app.weather_conditions || '--'}</td>
+                <td>${app.rei_hours != null ? `${esc(app.rei_hours)}h` : '--'}</td>
+                <td>${esc(app.temperature ?? '--')}</td>
+                <td>${esc(app.wind_speed ?? '--')}</td>
+                <td>${esc(app.wind_direction || '--')}</td>
+                <td>${esc(app.weather_conditions || '--')}</td>
             </tr>`;
         }).join('');
 
@@ -379,9 +406,10 @@ export default function PesticidePage() {
     };
 
     const filteredApplications = applications.filter(app => {
-        const query = searchQuery.toLowerCase();
-        const matchesSearch = app.product_name.toLowerCase().includes(query) ||
-            app.area_applied.toLowerCase().includes(query);
+        const query = searchQuery.toLowerCase().trim();
+        const product = (app.product_name ?? '').toLowerCase();
+        const area = (app.area_applied ?? '').toLowerCase();
+        const matchesSearch = !query || product.includes(query) || area.includes(query);
         const matchesDateFrom = !dateFrom || app.application_date >= dateFrom;
         const matchesDateTo = !dateTo || app.application_date <= dateTo;
         return matchesSearch && matchesDateFrom && matchesDateTo;
