@@ -3,6 +3,8 @@ import { Cloud, AlertTriangle, RefreshCw } from 'lucide-react';
 import type { Staff, ChemicalProduct, PesticideApplication } from '../../types';
 import { getCurrentWeather } from '../../services/weather';
 import type { WeatherData } from '../../types/weather';
+import SelectWithOther from '../ui/SelectWithOther';
+import { METHOD_OPTIONS, EQUIPMENT_OPTIONS } from '../../lib/pesticideOptions';
 
 interface PesticideFormProps {
     onSubmit: (data: any) => void;
@@ -38,7 +40,7 @@ export default function PesticideForm({ onSubmit, onCancel, staffMembers, produc
             return {
                 application_date: initialData.application_date || today,
                 application_time: initialData.application_time || '',
-                operator_id: initialData.operator_id || '',
+                operator_id: initialData.operator_id?.toString() ?? '',
                 applicator_license: initialData.applicator_license || '',
                 product_name: initialData.product_name || '',
                 epa_registration_number: initialData.epa_registration_number || '',
@@ -132,7 +134,13 @@ export default function PesticideForm({ onSubmit, onCancel, staffMembers, produc
         }
     }, []);
 
-    const [selectedProductId, setSelectedProductId] = useState<string>('');
+    // Match the saved product on edit so REI and label warnings show up again.
+    const [selectedProductId, setSelectedProductId] = useState<string>(() => {
+        const match = initialData?.product_name
+            ? products.find(p => p.name === initialData.product_name)
+            : undefined;
+        return match ? String(match.id) : '';
+    });
 
     // Apply prefill data from calculator
     useEffect(() => {
@@ -165,8 +173,8 @@ export default function PesticideForm({ onSubmit, onCancel, staffMembers, produc
             application_rate: product.default_rate
                 ? `${product.default_rate} ${product.rate_unit.replace('sqft', ' sq ft')}`
                 : '',
-            rei_hours: product.rei_hours ? product.rei_hours.toString() : '',
-            method: product.carrier_volume_gal === 0 ? 'granular' : (prev.method || 'spray'),
+            rei_hours: product.rei_hours != null ? product.rei_hours.toString() : '',
+            method: prev.method || (product.carrier_volume_gal === 0 ? 'granular' : 'spray'),
             manufacturer: product.manufacturer || '',
             worker_protection_requirements: product.warnings || '',
         }));
@@ -204,7 +212,7 @@ export default function PesticideForm({ onSubmit, onCancel, staffMembers, produc
         }
         const cleanedData = {
             ...formData,
-            operator_id: formData.operator_id || undefined,
+            operator_id: formData.operator_id ? parseInt(formData.operator_id, 10) : undefined,
             applicator_license: formData.applicator_license || undefined,
             application_time: formData.application_time || undefined,
             epa_registration_number: formData.epa_registration_number || undefined,
@@ -507,21 +515,16 @@ export default function PesticideForm({ onSubmit, onCancel, staffMembers, produc
 
             {/* Method | REI Hours */}
             <div className="grid grid-cols-2 gap-4">
-                <div>
-                    <label className={labelClasses}>Application Method</label>
-                    <select
-                        className={inputClasses}
-                        value={formData.method}
-                        onChange={(e) => setFormData({ ...formData, method: e.target.value })}
-                    >
-                        <option value="">Select method...</option>
-                        <option value="spray">Spray</option>
-                        <option value="granular">Granular</option>
-                        <option value="injection">Injection</option>
-                        <option value="drench">Drench</option>
-                        <option value="other">Other</option>
-                    </select>
-                </div>
+                <SelectWithOther
+                    label="Application Method"
+                    options={METHOD_OPTIONS}
+                    value={formData.method}
+                    onChange={(v) => setFormData({ ...formData, method: v })}
+                    placeholder="Select method..."
+                    otherPlaceholder="Describe the method..."
+                    inputClasses={inputClasses}
+                    labelClasses={labelClasses}
+                />
                 <div>
                     <label className={labelClasses}>REI (Hours)</label>
                     <input
@@ -536,21 +539,16 @@ export default function PesticideForm({ onSubmit, onCancel, staffMembers, produc
             </div>
 
             {/* Equipment Used */}
-            <div>
-                <label className={labelClasses}>Equipment Used</label>
-                <select
-                    className={inputClasses}
-                    value={formData.equipment_used}
-                    onChange={(e) => setFormData({ ...formData, equipment_used: e.target.value })}
-                >
-                    <option value="">Select equipment...</option>
-                    <option value="Spray Rig">Spray Rig</option>
-                    <option value="Backpack Sprayer">Backpack Sprayer</option>
-                    <option value="Spreader">Spreader</option>
-                    <option value="Boom Sprayer">Boom Sprayer</option>
-                    <option value="Hand Sprayer">Hand Sprayer</option>
-                </select>
-            </div>
+            <SelectWithOther
+                label="Equipment Used"
+                options={EQUIPMENT_OPTIONS}
+                value={formData.equipment_used}
+                onChange={(v) => setFormData({ ...formData, equipment_used: v })}
+                placeholder="Select equipment..."
+                otherPlaceholder="Describe the equipment..."
+                inputClasses={inputClasses}
+                labelClasses={labelClasses}
+            />
 
             {/* Weather Conditions - Idaho compliance */}
             <div className="border-t border-border-color pt-4">

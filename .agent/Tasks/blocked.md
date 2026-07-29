@@ -1,5 +1,41 @@
 # Blocked Tasks
 
+## ⏸️ PAUSED: Blue/Orange Schedules + Memory System (2026-07-28)
+
+**Status:** Paused indefinitely. May or may not be picked back up.
+
+### ⚠️ Read this before running `git add .` or `npx supabase db push`
+
+Six migration files for an unfinished **memory / pgvector system** are sitting **untracked** in
+`supabase/migrations/`. They arrived with the `feature/blue-orange-schedules` work and follow
+along onto any branch created from it:
+
+```
+20260321120000_add_unique_source_hash.sql
+20260322010000_enable_pgvector.sql
+20260322010100_create_memory_documents.sql
+20260322010200_create_memory_chunks.sql
+20260322010300_create_match_memory_chunks_rpc.sql
+20260322010400_create_memory_events.sql
+```
+
+**None of them have ever been applied to any database.** They are drafts for paused work.
+
+- **Do NOT `git add .`** — they will be swept into an unrelated commit and land on `main` at merge.
+  Stage explicit paths instead.
+- **Do NOT `npx supabase db push`** — unsafe on this project for a separate reason too; see
+  `completed/2026-07/1-chemicals-page-clean-up.md` for the full explanation of the migration
+  history situation.
+- The matching plan is `Implementation/implementation-blue-orange-schedules.md` (also untracked).
+
+**If the work resumes:** review each migration against current schema before applying — they were
+written 2026-03 and the schema has moved since.
+
+**If the work is abandoned:** delete the six files and the implementation plan so they stop
+shadowing every future branch.
+
+---
+
 ## Task: Complete Supabase Schema Integration with turfsheet Schema
 
 **Status:** ✅ RESOLVED (2026-02-04)

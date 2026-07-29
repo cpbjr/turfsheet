@@ -15,6 +15,7 @@ export default function MaintenancePage() {
     const [error, setError] = useState<string | null>(null);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [selectedIssue, setSelectedIssue] = useState<MaintenanceIssue | null>(null);
+    const [fullScreenPhoto, setFullScreenPhoto] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState<string | null>(null);
     const [priorityFilter, setPriorityFilter] = useState<string | null>(null);
@@ -262,8 +263,10 @@ export default function MaintenancePage() {
                                 <img
                                     src={selectedIssue.photo_url}
                                     alt="Issue photo"
-                                    className="w-full max-h-64 object-cover border border-border-color"
+                                    className="w-full max-h-64 object-cover border border-border-color cursor-pointer hover:opacity-90 transition-opacity"
+                                    onClick={() => setFullScreenPhoto(selectedIssue.photo_url!)}
                                 />
+                                <p className="text-xs text-text-muted mt-1 italic">Click photo to enlarge</p>
                             </div>
                         )}
 
@@ -366,6 +369,30 @@ export default function MaintenancePage() {
                     </div>
                 )}
             </Modal>
+
+            {/* Full Screen Photo Overlay */}
+            {fullScreenPhoto && (
+                <div 
+                    className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center p-4 backdrop-blur-sm cursor-zoom-out"
+                    onClick={() => setFullScreenPhoto(null)}
+                >
+                    <button 
+                        className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors p-2"
+                        onClick={() => setFullScreenPhoto(null)}
+                        aria-label="Close fullscreen view"
+                    >
+                        <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                    <img 
+                        src={fullScreenPhoto} 
+                        alt="Full size issue photo" 
+                        className="max-w-full max-h-full object-contain shadow-2xl rounded-sm cursor-default"
+                        onClick={(e) => e.stopPropagation()}
+                    />
+                </div>
+            )}
         </div>
     );
 }

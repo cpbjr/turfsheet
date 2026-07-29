@@ -7,6 +7,8 @@ import ProductLibrary from '../components/pesticide/ProductLibrary';
 import SprayCalculator from '../components/pesticide/SprayCalculator';
 import ApplicationPrintView from '../components/pesticide/ApplicationPrintView';
 import { supabase } from '../lib/supabase';
+import { sameId } from '../lib/utils';
+import { formatMethod } from '../lib/pesticideOptions';
 import type { PesticideApplication, Staff, ChemicalProduct } from '../types';
 
 type TabId = 'applications' | 'products' | 'calculator';
@@ -79,8 +81,8 @@ export default function PesticidePage() {
         }
     };
 
-    const getOperatorName = (id?: string) =>
-        staffMembers.find(s => s.id === id)?.name || 'Unknown';
+    const getOperatorName = (id?: string | number) =>
+        staffMembers.find(s => sameId(s.id, id))?.name || 'Unknown';
 
     const handleSave = async (formData: any) => {
         try {
@@ -166,8 +168,8 @@ export default function PesticidePage() {
             month: 'long', day: 'numeric', year: 'numeric',
         });
 
-        const getStaffName = (id?: number) =>
-            staffMembers.find(s => s.id === String(id))?.name || '--';
+        const getStaffName = (id?: string | number) =>
+            staffMembers.find(s => sameId(s.id, id))?.name || '--';
 
         const rows = filteredApplications.map(app => {
             return `
@@ -191,7 +193,7 @@ export default function PesticidePage() {
                 <td>${app.applicator_license || '--'}</td>
                 <td>${getStaffName(app.recommended_by)}</td>
                 <td>${app.worker_protection_exchange ? '✓' : '✗'}</td>
-                <td>${app.rei_hours ? `${app.rei_hours}h` : '--'}</td>
+                <td>${app.rei_hours != null ? `${app.rei_hours}h` : '--'}</td>
                 <td>${app.temperature || '--'}</td>
                 <td>${app.wind_speed || '--'}</td>
                 <td>${app.wind_direction || '--'}</td>
@@ -285,11 +287,6 @@ export default function PesticidePage() {
     const formatDate = (dateStr: string) => {
         const date = new Date(dateStr + 'T00:00:00');
         return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    };
-
-    const formatMethod = (method?: string) => {
-        if (!method) return '--';
-        return method.charAt(0).toUpperCase() + method.slice(1);
     };
 
     return (
@@ -446,6 +443,7 @@ export default function PesticidePage() {
                 isOpen={isAddModalOpen}
                 onClose={() => { setIsAddModalOpen(false); setPrefillData(null); }}
                 title="Record Application"
+                size="lg"
             >
                 <PesticideForm
                     onSubmit={handleSave}
@@ -461,6 +459,7 @@ export default function PesticidePage() {
                 isOpen={!!editingApplication}
                 onClose={() => setEditingApplication(null)}
                 title="Edit Application"
+                size="lg"
             >
                 {editingApplication && (
                     <PesticideForm
@@ -478,6 +477,7 @@ export default function PesticidePage() {
                 isOpen={isDetailModalOpen}
                 onClose={() => setIsDetailModalOpen(false)}
                 title="Application Details"
+                size="lg"
             >
                 {selectedApplication && (
                     <div className="space-y-6 font-sans">
@@ -617,7 +617,7 @@ export default function PesticidePage() {
                                 {selectedApplication.recommended_by && (
                                     <div>
                                         <label className={detailLabelClasses}>Recommended By</label>
-                                        <p className="text-sm text-text-primary">{staffMembers.find(s => s.id === String(selectedApplication.recommended_by))?.name || '--'}</p>
+                                        <p className="text-sm text-text-primary">{staffMembers.find(s => sameId(s.id, selectedApplication.recommended_by))?.name || '--'}</p>
                                     </div>
                                 )}
                                 {selectedApplication.manufacturer && (

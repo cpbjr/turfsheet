@@ -1,4 +1,6 @@
 import { forwardRef } from 'react';
+import { sameId } from '../../lib/utils';
+import { formatMethod } from '../../lib/pesticideOptions';
 import type { PesticideApplication, Staff } from '../../types';
 
 interface ApplicationPrintViewProps {
@@ -9,8 +11,8 @@ interface ApplicationPrintViewProps {
 
 const ApplicationPrintView = forwardRef<HTMLDivElement, ApplicationPrintViewProps>(
     ({ applications, staffMembers, dateRange }, ref) => {
-        const getOperatorName = (id?: string) =>
-            staffMembers.find(s => s.id === id)?.name || 'Unknown';
+        const getOperatorName = (id?: string | number) =>
+            staffMembers.find(s => sameId(s.id, id))?.name || 'Unknown';
 
         const formatDate = (dateStr: string) => {
             const date = new Date(dateStr + 'T00:00:00');
@@ -19,11 +21,6 @@ const ApplicationPrintView = forwardRef<HTMLDivElement, ApplicationPrintViewProp
                 day: 'numeric',
                 year: 'numeric',
             });
-        };
-
-        const formatMethod = (method?: string) => {
-            if (!method) return '--';
-            return method.charAt(0).toUpperCase() + method.slice(1);
         };
 
         const today = new Date().toLocaleDateString('en-US', {
@@ -180,7 +177,7 @@ const ApplicationPrintView = forwardRef<HTMLDivElement, ApplicationPrintViewProp
                                 <td>{app.area_size || '--'}</td>
                                 <td>{formatMethod(app.method)}</td>
                                 <td>{getOperatorName(app.operator_id)}</td>
-                                <td>{app.rei_hours ? `${app.rei_hours}h` : '--'}</td>
+                                <td>{app.rei_hours != null ? `${app.rei_hours}h` : '--'}</td>
                                 <td>{app.weather_conditions || '--'}</td>
                                 <td>{app.temperature || '--'}</td>
                                 <td>{app.wind_speed || '--'}</td>

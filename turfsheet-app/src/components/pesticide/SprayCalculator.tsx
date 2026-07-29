@@ -721,7 +721,7 @@ export default function SprayCalculator({ onRecordApplication }: SprayCalculator
                                                 ? `${firstCalc.totalAmount.toFixed(2)} ${firstCalc.displayUnit}`
                                                 : '',
                                             area_size: `${areaSqft} sq ft`,
-                                            method: 'spray',
+                                            method: product?.carrier_volume_gal === 0 ? 'granular' : 'spray',
                                             rei_hours: product?.rei_hours?.toString() || '',
                                             temperature: conditions?.temp_f?.toString() || '',
                                             wind_speed: conditions?.wind_mph?.toString() || '',
