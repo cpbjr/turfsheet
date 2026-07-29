@@ -3,7 +3,10 @@
 
 # Active Tasks
 
-Last Updated: 2026-07-28
+Last Updated: 2026-07-29
+
+**Next up:** Site authentication — see `planned.md` Task 0. `/maps` is now the sole system of
+record for tournament pin positions on a site with no auth gate.
 
 ## Active Tasks
 
@@ -28,7 +31,8 @@ Shipped portion recorded in `completed/2026-07/1-chemicals-page-clean-up.md`
       *Broadcast (By Hand)* / *By Hand* now that those options exist.
 
 ### Maps — tap-cycle double-advance (UNRESOLVED, two failed fixes)
-Feature shipped and live at `/turfsheet/maps`. Plan: `Implementation/2026-07-28-maps-banbury-course-map.md`
+Feature shipped and live at `/turfsheet/maps` — see `completed/2026-07/2-maps-banbury-course-map.md`.
+Plan retained for its parity checklist: `Implementation/2026-07-28-maps-banbury-course-map.md`
 
 - [ ] **Two quick taps advance two holes.** Reproduced by Chris on production. Should advance one.
       Only affects fast double-taps (adjusting a pin just placed); taps >350ms apart advancing
@@ -82,6 +86,9 @@ Feature shipped and live at `/turfsheet/maps`. Plan: `Implementation/2026-07-28-
 
 ## Recently Completed ✅
 
+- ✅ Banbury Course Map merged into `/maps` — full port from the standalone, pin data migrated into
+  the TurfSheet DB, geometry parity proven (0 mismatches / 90 fields), `/banbury-map` retired to a
+  302. One open defect: tap-cycle double-advance, above. (2026-07-29)
 - ✅ Chemicals Page Clean-Up — method/equipment options + Other free text, Recommended By fix,
   wider modal, form correctness fixes (2026-07-28)
 

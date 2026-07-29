@@ -22,6 +22,8 @@
 
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
+- `VITE_GOOGLE_MAPS_API_KEY` (added 2026-07-29 — required by `/maps`; Vite inlines
+  `import.meta.env` at build time, so without it the bundle throws `MissingMapsKeyError`)
 - `SSH_PRIVATE_KEY`
 - `SSH_USER` (deploy)
 - `SERVER_HOST` (5.78.128.255)
@@ -49,4 +51,68 @@ Always run `npx tsc -b --noEmit` locally before pushing to catch type errors.
 
 Vite config uses `base: '/turfsheet/'` for subpath serving.
 
-*Last Updated: 2026-02-25*
+---
+
+## Gateway / Caddy Routing
+
+**Caddy is a container, not a host service.** `systemctl is-active caddy` reports inactive and
+`/etc/caddy/Caddyfile` does not exist on the host — both are dead ends.
+
+| Thing | Location |
+|-------|----------|
+| Container | `gateway-caddy-1` (image `caddy:2-alpine`), owns :80 / :443 |
+| Config (host) | `/home/deploy/gateway/Caddyfile` → mounted to `/etc/caddy/Caddyfile` |
+| Static sites | `/home/deploy/websites/<name>` → mounted at the same path |
+| Compose project | `/home/deploy/gateway` |
+
+Each frontend is a route block:
+
+```
+route /turfsheet* {
+    uri strip_prefix /turfsheet
+    root * /home/deploy/websites/turfsheet
+    try_files {path} {path}/ /index.html
+    file_server
+}
+```
+
+### Changing routing safely
+
+Always validate before reloading — a syntax error takes **every site on the box** down, not just
+TurfSheet.
+
+```bash
+ssh whitepine
+cp /home/deploy/gateway/Caddyfile /home/deploy/gateway/Caddyfile.bak-$(date +%F)
+# edit /home/deploy/gateway/Caddyfile
+docker exec gateway-caddy-1 caddy validate --config /etc/caddy/Caddyfile
+docker exec gateway-caddy-1 caddy reload  --config /etc/caddy/Caddyfile
+```
+
+### ⚠️ The Caddyfile is not in version control
+
+It exists only on the server. **Any host rebuild or redeploy of `/home/deploy/gateway` from source
+silently reverts routing changes**, including the `/banbury-map` retirement below — which would
+resurrect the retired app and restart it writing to the old database. Getting this directory into
+a repo is an open task (see `Tasks/planned.md`).
+
+### Retired routes
+
+**`/banbury-map` — retired 2026-07-29.** Superseded by TurfSheet `/turfsheet/maps`. Its route is now:
+
+```
+route /banbury-map* {
+    redir * /turfsheet/maps?{query}
+}
+```
+
+- **302, not 301** — browsers cache 301 permanently, which would make this hard to undo.
+- **Query string preserved** so printed `?pinToken=` QR clubhouse handouts still resolve.
+- Backup: `/home/deploy/gateway/Caddyfile.bak-2026-07-29-retire-banbury`
+- Standalone files remain at `/home/deploy/websites/banbury-map` (unreachable, not deleted).
+- Its `config.js` there still holds a **live Google Maps key with no consumer** — revoke or restrict.
+- Source table `wpa.banbury_pin_sets` (project `white-pine-projects`) is orphaned but still live.
+  Verified 2026-07-29: it and `turfsheet.banbury_pin_sets` held identical rows, so nothing was
+  stranded by the cutover.
+
+*Last Updated: 2026-07-29*
