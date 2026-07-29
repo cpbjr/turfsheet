@@ -57,7 +57,13 @@ export interface GreenIndexEntry {
   rightV: number;
   depthYd: number;
   widthYd: number;
+  /** Green-only envelope (pin placement / close green work). */
   bounds: LatLngBoundsLiteral;
+  /**
+   * Tee-to-green envelope: green ring ∪ hole centreline (and any hole-tagged
+   * tees/fairways/bunkers when present in the GeoJSON).
+   */
+  holeBounds: LatLngBoundsLiteral;
 }
 
 export type GreenIndex = Record<number, GreenIndexEntry>;

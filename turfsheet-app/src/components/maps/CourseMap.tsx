@@ -16,6 +16,11 @@ import type { CourseFeatureProps, GreenIndex, PinMap } from '@/types/courseMap';
 export interface CourseMapHandle {
   /** Zooms to a hole's green (used as the pin session steps through holes). */
   focusHole: (hole: number) => void;
+  /**
+   * Zooms for a hole-filter control value: single hole (1–18), front/back nine,
+   * or full-course recenter for "all".
+   */
+  focusHoleFilter: (filter: string) => void;
   recenter: () => void;
 }
 
@@ -406,27 +411,91 @@ const CourseMap = forwardRef<CourseMapHandle, CourseMapProps>(function CourseMap
 
   useImperativeHandle(
     ref,
-    () => ({
-      focusHole(hole: number) {
+    () => {
+      const fitLiteral = (box: { minLat: number; maxLat: number; minLng: number; maxLng: number }, padding: number) => {
+        const map = mapRef.current;
+        if (!map) return;
+        if (
+          !Number.isFinite(box.minLat) ||
+          !Number.isFinite(box.maxLat) ||
+          !Number.isFinite(box.minLng) ||
+          !Number.isFinite(box.maxLng)
+        ) {
+          return;
+        }
+        const bounds = new google.maps.LatLngBounds(
+          { lat: box.minLat, lng: box.minLng },
+          { lat: box.maxLat, lng: box.maxLng }
+        );
+        map.fitBounds(bounds, padding);
+      };
+
+      /** Close green frame — pin session stepping. */
+      const focusHole = (hole: number) => {
         const map = mapRef.current;
         const g = greenIndexRef.current[hole];
         if (!map || !g) return;
-        const bounds = new google.maps.LatLngBounds(
-          { lat: g.bounds.minLat, lng: g.bounds.minLng },
-          { lat: g.bounds.maxLat, lng: g.bounds.maxLng }
-        );
-        map.fitBounds(bounds, 80);
-        const z = map.getZoom();
-        if (z != null && z < 18) map.setZoom(Math.min(19, Math.max(18, z)));
-        if (z != null && z > 20) map.setZoom(19);
-      },
-      recenter() {
+        fitLiteral(g.bounds, 80);
+        google.maps.event.addListenerOnce(map, 'idle', () => {
+          const z = map.getZoom();
+          if (z == null) return;
+          if (z < 18) map.setZoom(18);
+          else if (z > 19) map.setZoom(19);
+        });
+      };
+
+      /** Tee-to-green frame for a single hole (dropdown / ops view). */
+      const focusEntireHole = (hole: number) => {
+        const g = greenIndexRef.current[hole];
+        if (!g) return;
+        fitLiteral(g.holeBounds ?? g.bounds, 72);
+      };
+
+      const focusHoleRange = (from: number, to: number) => {
+        const map = mapRef.current;
+        if (!map) return;
+        const bounds = new google.maps.LatLngBounds();
+        let any = false;
+        for (let h = from; h <= to; h++) {
+          const g = greenIndexRef.current[h];
+          if (!g) continue;
+          const box = g.holeBounds ?? g.bounds;
+          bounds.extend({ lat: box.minLat, lng: box.minLng });
+          bounds.extend({ lat: box.maxLat, lng: box.maxLng });
+          any = true;
+        }
+        if (!any) return;
+        map.fitBounds(bounds, 64);
+      };
+
+      const recenter = () => {
         const map = mapRef.current;
         if (!map) return;
         map.setCenter(CENTER);
         map.setZoom(16);
-      },
-    }),
+      };
+
+      return {
+        focusHole,
+        focusHoleFilter(filter: string) {
+          if (filter === 'all') {
+            recenter();
+            return;
+          }
+          if (filter === 'front') {
+            focusHoleRange(1, 9);
+            return;
+          }
+          if (filter === 'back') {
+            focusHoleRange(10, 18);
+            return;
+          }
+          const n = Number(filter);
+          if (Number.isFinite(n) && n >= 1 && n <= 18) focusEntireHole(n);
+        },
+        recenter,
+      };
+    },
     []
   );
 

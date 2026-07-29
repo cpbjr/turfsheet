@@ -179,9 +179,40 @@ export interface CourseGeoJson {
   features: GeoFeature[];
 }
 
+function emptyBounds(): LatLngBoundsLiteral {
+  return {
+    minLat: Infinity,
+    maxLat: -Infinity,
+    minLng: Infinity,
+    maxLng: -Infinity,
+  };
+}
+
+function extendBounds(b: LatLngBoundsLiteral, lat: number, lng: number): void {
+  b.minLat = Math.min(b.minLat, lat);
+  b.maxLat = Math.max(b.maxLat, lat);
+  b.minLng = Math.min(b.minLng, lng);
+  b.maxLng = Math.max(b.maxLng, lng);
+}
+
+/** Walk GeoJSON coordinates (Point / LineString / Polygon / Multi*) into a bounds box. */
+function extendBoundsFromGeometry(b: LatLngBoundsLiteral, geometry: CourseGeoJson['features'][number]['geometry']): void {
+  if (!geometry) return;
+  const walk = (coords: unknown): void => {
+    if (!Array.isArray(coords) || coords.length === 0) return;
+    if (typeof coords[0] === 'number' && typeof coords[1] === 'number') {
+      extendBounds(b, coords[1] as number, coords[0] as number);
+      return;
+    }
+    for (const c of coords) walk(c);
+  };
+  walk((geometry as { coordinates?: unknown }).coordinates);
+}
+
 /**
  * Pairs each hole centreline with its green, then builds a local frame per green:
  * u runs along the approach (front → back), v runs across it (left → right).
+ * Also builds a tee-to-green holeBounds for map framing.
  */
 export function buildGreenIndex(fc: CourseGeoJson): GreenIndex {
   const greens: {
@@ -190,6 +221,8 @@ export function buildGreenIndex(fc: CourseGeoJson): GreenIndex {
     tagged: number | null;
   }[] = [];
   const paths: Record<number, [number, number][]> = {};
+  /** Extra hole-tagged playable features (tee / fairway / bunker) for framing. */
+  const extrasByHole: Record<number, CourseGeoJson['features'][number]['geometry'][]> = {};
 
   (fc.features || []).forEach((f) => {
     const p = f.properties || {};
@@ -204,6 +237,15 @@ export function buildGreenIndex(fc: CourseGeoJson): GreenIndex {
     }
     if (t === 'hole' && f.geometry && f.geometry.type === 'LineString' && p.hole_number != null) {
       paths[Number(p.hole_number)] = f.geometry.coordinates as [number, number][];
+    }
+    if (
+      p.hole_number != null &&
+      f.geometry &&
+      (t === 'tee' || t === 'fairway' || t === 'bunker' || t === 'lateral_water_hazard' || t === 'water_hazard')
+    ) {
+      const hn = Number(p.hole_number);
+      if (!extrasByHole[hn]) extrasByHole[hn] = [];
+      extrasByHole[hn].push(f.geometry);
     }
   });
 
@@ -252,21 +294,20 @@ export function buildGreenIndex(fc: CourseGeoJson): GreenIndex {
 
     const us: number[] = [];
     const vs: number[] = [];
-    const bounds: LatLngBoundsLiteral = {
-      minLat: Infinity,
-      maxLat: -Infinity,
-      minLng: Infinity,
-      maxLng: -Infinity,
-    };
+    const bounds = emptyBounds();
     g.ring.forEach(([lng, lat]) => {
       const pxy = toLocalXY(lng, lat, origin);
       us.push(pxy.x * u.x + pxy.y * u.y);
       vs.push(pxy.x * v.x + pxy.y * v.y);
-      bounds.minLat = Math.min(bounds.minLat, lat);
-      bounds.maxLat = Math.max(bounds.maxLat, lat);
-      bounds.minLng = Math.min(bounds.minLng, lng);
-      bounds.maxLng = Math.max(bounds.maxLng, lng);
+      extendBounds(bounds, lat, lng);
     });
+
+    // Tee → green view: centreline + green, plus any hole-tagged extras.
+    const holeBounds = emptyBounds();
+    g.ring.forEach(([lng, lat]) => extendBounds(holeBounds, lat, lng));
+    path.forEach(([lng, lat]) => extendBounds(holeBounds, lat, lng));
+    (extrasByHole[hn] || []).forEach((geom) => extendBoundsFromGeometry(holeBounds, geom));
+
     const frontU = Math.min(...us);
     const backU = Math.max(...us);
     const leftV = Math.min(...vs);
@@ -288,6 +329,7 @@ export function buildGreenIndex(fc: CourseGeoJson): GreenIndex {
       depthYd: depthM * YARDS_PER_METER,
       widthYd: widthM * YARDS_PER_METER,
       bounds,
+      holeBounds,
     };
   }
 
