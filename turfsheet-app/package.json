@@ -26,6 +26,7 @@
     "@angular/cdk": "^21.1.2",
     "@eslint/js": "^9.39.1",
     "@tailwindcss/postcss": "^4.1.18",
+    "@types/google.maps": "^3.65.3",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.5",
     "@types/react-big-calendar": "^1.16.3",
