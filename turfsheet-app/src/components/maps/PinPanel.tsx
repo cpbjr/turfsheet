@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { RefreshCw, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, RefreshCw, Trash2, X } from 'lucide-react';
 import { AVOID_KINDS, formatPinStats } from '@/lib/courseGeometry';
 import { listPinSets } from '@/lib/pinSets';
 import type { PinSession, PinSetStatus, PinSetSummary } from '@/types/courseMap';
@@ -17,7 +17,9 @@ interface PinPanelProps {
 
   onStart: () => void;
   onResume: () => void;
+  onDiscardLocalDraft: () => void;
   onLoadSet: (id: string) => void;
+  onDeleteSet: (id: string) => Promise<void> | void;
 
   onMetaChange: (patch: Partial<Pick<PinSession, 'label' | 'playDate' | 'status' | 'startHole'>>) => void;
 
@@ -59,7 +61,9 @@ export default function PinPanel(props: PinPanelProps) {
     reloadListToken,
     onStart,
     onResume,
+    onDiscardLocalDraft,
     onLoadSet,
+    onDeleteSet,
     onMetaChange,
     onBack,
     onSkip,
@@ -81,6 +85,9 @@ export default function PinPanel(props: PinPanelProps) {
   const [sets, setSets] = useState<PinSetSummary[]>([]);
   const [listMsg, setListMsg] = useState('Loading saved sets…');
   const [listReload, setListReload] = useState(0);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  /** Mobile: collapsed sheet leaves most of the map free for pin taps. */
+  const [mobileExpanded, setMobileExpanded] = useState(true);
 
   useEffect(() => {
     if (active) return;
@@ -101,6 +108,12 @@ export default function PinPanel(props: PinPanelProps) {
     };
   }, [active, listReload, reloadListToken]);
 
+  // When starting a pin session on a phone, collapse so the green is tappable.
+  useEffect(() => {
+    if (active) setMobileExpanded(false);
+    else setMobileExpanded(true);
+  }, [active]);
+
   const today = new Date().toISOString().slice(0, 10);
   const upcoming = sets.filter((r) => r.play_date >= today && r.status !== 'archived');
   const past = sets.filter((r) => r.play_date < today || r.status === 'archived');
@@ -111,6 +124,24 @@ export default function PinPanel(props: PinPanelProps) {
   );
   const courseAvoidKinds = (session.avoid.course || []).map((x) => x.kind);
 
+  const handleDelete = async (id: string, label: string) => {
+    const name = label || 'this pin set';
+    if (!window.confirm(`Delete “${name}”? This cannot be undone.`)) return;
+    setDeletingId(id);
+    try {
+      await onDeleteSet(id);
+      setSets((prev) => {
+        const next = prev.filter((r) => r.id !== id);
+        if (!next.length) setListMsg('No saved sets yet.');
+        return next;
+      });
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : String(err));
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const renderSection = (title: string, rows: PinSetSummary[]) =>
     rows.length > 0 && (
       <div key={title}>
@@ -118,20 +149,35 @@ export default function PinPanel(props: PinPanelProps) {
           {title}
         </div>
         {rows.map((r) => (
-          <button
+          <div
             key={r.id}
-            type="button"
-            onClick={() => onLoadSet(r.id)}
-            className="w-full flex items-center gap-2 border border-border-color bg-panel-white px-2 py-1.5 mb-1 text-left hover:border-turf-green transition-colors"
+            className="w-full flex items-center gap-1 border border-border-color bg-panel-white mb-1"
           >
-            <span className="text-xs font-sans text-text-primary tabular-nums">{r.play_date}</span>
-            <span className="flex-1 text-xs font-sans text-text-secondary truncate">
-              {r.label || '(no label)'}
-            </span>
-            <span className="text-[10px] font-heading font-black uppercase tracking-wide text-turf-green">
-              {r.status}
-            </span>
-          </button>
+            <button
+              type="button"
+              onClick={() => onLoadSet(r.id)}
+              className="flex-1 min-w-0 flex items-center gap-2 px-2 py-1.5 text-left hover:bg-turf-green/5 transition-colors"
+            >
+              <span className="text-xs font-sans text-text-primary tabular-nums shrink-0">
+                {r.play_date}
+              </span>
+              <span className="flex-1 text-xs font-sans text-text-secondary truncate">
+                {r.label || '(no label)'}
+              </span>
+              <span className="text-[10px] font-heading font-black uppercase tracking-wide text-turf-green shrink-0">
+                {r.status}
+              </span>
+            </button>
+            <button
+              type="button"
+              title={`Delete ${r.label || r.play_date}`}
+              disabled={deletingId === r.id}
+              onClick={() => void handleDelete(r.id, r.label || r.play_date)}
+              className="shrink-0 px-2 py-1.5 text-red-600 hover:bg-red-50 disabled:opacity-40 border-l border-border-color"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
         ))}
       </div>
     );
@@ -158,15 +204,94 @@ export default function PinPanel(props: PinPanelProps) {
     </div>
   );
 
+  const navStrip = (
+    <div className="grid grid-cols-4 gap-1">
+      <button type="button" onClick={onBack} className={btnClass}>
+        Back
+      </button>
+      <button type="button" onClick={onSkip} className={btnClass}>
+        Skip
+      </button>
+      <button type="button" onClick={onClearPin} className={btnClass}>
+        Clear
+      </button>
+      <button type="button" onClick={onNext} className={btnPrimary}>
+        Next
+      </button>
+    </div>
+  );
+
+  const holeGrid = (
+    <div className="grid grid-cols-9 gap-1">
+      {Array.from({ length: 18 }, (_, i) => i + 1).map((h) => {
+        const isSet = !!session.pins[h];
+        const isSkipped = !!session.skipped[h] && !isSet;
+        const isCurrent = currentHole === h;
+        const hasAvoid = (session.avoid.holes[String(h)] || []).length > 0;
+        return (
+          <button
+            key={h}
+            type="button"
+            onClick={() => onJumpToHole(h)}
+            title={isSet ? `Hole ${h}: ${formatPinStats(session.pins[h])}` : `Jump to hole ${h}`}
+            className={`relative py-1 text-[11px] font-heading font-black tabular-nums border transition-colors ${
+              isCurrent
+                ? 'border-turf-green ring-1 ring-turf-green text-turf-green bg-turf-green/10'
+                : isSet
+                  ? 'bg-turf-green text-white border-turf-green'
+                  : isSkipped
+                    ? 'bg-panel-white text-text-muted border-dashed border-text-muted'
+                    : 'bg-panel-white text-text-secondary border-border-color hover:border-text-muted'
+            }`}
+          >
+            {h}
+            {hasAvoid && <span className="absolute top-0 right-0 w-1.5 h-1.5 bg-accent-orange" />}
+          </button>
+        );
+      })}
+    </div>
+  );
+
   return (
     <aside
       aria-label="Pin sheet setup"
-      className="absolute top-0 right-0 z-20 h-full w-full max-w-sm overflow-y-auto border-l border-border-color bg-dashboard-bg shadow-lg"
+      className={
+        // Mobile: bottom sheet so the map stays tappable above.
+        // Desktop (md+): full-height right rail (previous layout).
+        `absolute z-20 border-border-color bg-dashboard-bg shadow-lg flex flex-col ` +
+        `left-0 right-0 bottom-0 border-t max-h-[min(48vh,420px)] ` +
+        `md:left-auto md:top-0 md:bottom-0 md:right-0 md:h-full md:w-full md:max-w-sm md:max-h-none md:border-t-0 md:border-l ` +
+        (active && !mobileExpanded
+          ? 'max-h-none h-auto'
+          : mobileExpanded
+            ? ''
+            : '')
+      }
     >
-      <div className="flex items-center justify-between border-b border-border-color bg-panel-white px-4 py-3 sticky top-0 z-10">
-        <h2 className="text-sm font-heading font-black uppercase tracking-tight text-text-primary">
-          Pin Sheet
-        </h2>
+      <div className="flex items-center justify-between border-b border-border-color bg-panel-white px-4 py-3 sticky top-0 z-10 shrink-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <h2 className="text-sm font-heading font-black uppercase tracking-tight text-text-primary">
+            Pin Sheet
+          </h2>
+          {active && (
+            <button
+              type="button"
+              className="md:hidden inline-flex items-center gap-1 text-[10px] font-heading font-black uppercase tracking-wide text-turf-green border border-turf-green/40 px-2 py-0.5"
+              onClick={() => setMobileExpanded((v) => !v)}
+              title={mobileExpanded ? 'Collapse panel to free the map' : 'Expand panel'}
+            >
+              {mobileExpanded ? (
+                <>
+                  Map <ChevronDown className="w-3 h-3" />
+                </>
+              ) : (
+                <>
+                  Details <ChevronUp className="w-3 h-3" />
+                </>
+              )}
+            </button>
+          )}
+        </div>
         <button
           type="button"
           onClick={onClose}
@@ -177,7 +302,42 @@ export default function PinPanel(props: PinPanelProps) {
         </button>
       </div>
 
-      <div className="p-4 space-y-4">
+      {/* Compact mobile bar while placing pins — map fills the rest of the screen */}
+      {active && !mobileExpanded && (
+        <div className="md:hidden p-3 space-y-2 border-b border-border-color bg-panel-white">
+          <div className="flex items-center gap-3">
+            <div className="text-2xl font-heading font-black text-turf-green tabular-nums leading-none">
+              {currentHole ?? '—'}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-[11px] font-heading font-black uppercase tracking-wide text-text-primary">
+                Hole {currentHole ?? '—'} · {session.index + 1}/18
+              </div>
+              <div
+                className={`text-[11px] font-sans truncate ${
+                  currentPin ? 'text-text-primary' : 'text-text-muted'
+                }`}
+              >
+                {currentPin
+                  ? formatPinStats(currentPin)
+                  : currentHole != null && session.skipped[currentHole]
+                    ? 'Skipped'
+                    : 'Tap the green to drop the pin'}
+              </div>
+            </div>
+          </div>
+          {navStrip}
+          {holeGrid}
+          {saveMsg && <div className="text-[11px] font-sans text-text-secondary">{saveMsg}</div>}
+        </div>
+      )}
+
+      <div
+        className={
+          `p-4 space-y-4 overflow-y-auto flex-1 min-h-0 ` +
+          (active && !mobileExpanded ? 'hidden md:block' : '')
+        }
+      >
         <p className="text-xs font-sans text-text-secondary">
           Compose pins on the map, mark avoid/no-cut, save for the day, hand the clubhouse a PDF.
         </p>
@@ -241,9 +401,22 @@ export default function PinPanel(props: PinPanelProps) {
               Start pin set
             </button>
             {draftAvailable && (
-              <button type="button" onClick={onResume} className={`${btnClass} w-full`}>
-                Resume draft
-              </button>
+              <div className="grid grid-cols-2 gap-2">
+                <button type="button" onClick={onResume} className={btnClass}>
+                  Resume draft
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm('Discard the local in-progress draft on this device?')) {
+                      onDiscardLocalDraft();
+                    }
+                  }}
+                  className="px-3 py-1.5 text-xs font-heading font-black uppercase tracking-wide border border-red-300 bg-panel-white text-red-600 hover:bg-red-50 transition-colors"
+                >
+                  Discard draft
+                </button>
+              </div>
             )}
 
             <div className="flex items-center justify-between pt-2 border-t border-border-color">
@@ -330,53 +503,8 @@ export default function PinPanel(props: PinPanelProps) {
               />
             </label>
 
-            <div className="grid grid-cols-4 gap-1">
-              <button type="button" onClick={onBack} className={btnClass}>
-                Back
-              </button>
-              <button type="button" onClick={onSkip} className={btnClass}>
-                Skip
-              </button>
-              <button type="button" onClick={onClearPin} className={btnClass}>
-                Clear
-              </button>
-              <button type="button" onClick={onNext} className={btnPrimary}>
-                Next
-              </button>
-            </div>
-
-            <div className="grid grid-cols-9 gap-1">
-              {Array.from({ length: 18 }, (_, i) => i + 1).map((h) => {
-                const isSet = !!session.pins[h];
-                const isSkipped = !!session.skipped[h] && !isSet;
-                const isCurrent = currentHole === h;
-                const hasAvoid = (session.avoid.holes[String(h)] || []).length > 0;
-                return (
-                  <button
-                    key={h}
-                    type="button"
-                    onClick={() => onJumpToHole(h)}
-                    title={
-                      isSet ? `Hole ${h}: ${formatPinStats(session.pins[h])}` : `Jump to hole ${h}`
-                    }
-                    className={`relative py-1 text-[11px] font-heading font-black tabular-nums border transition-colors ${
-                      isCurrent
-                        ? 'border-turf-green ring-1 ring-turf-green text-turf-green bg-turf-green/10'
-                        : isSet
-                          ? 'bg-turf-green text-white border-turf-green'
-                          : isSkipped
-                            ? 'bg-panel-white text-text-muted border-dashed border-text-muted'
-                            : 'bg-panel-white text-text-secondary border-border-color hover:border-text-muted'
-                    }`}
-                  >
-                    {h}
-                    {hasAvoid && (
-                      <span className="absolute top-0 right-0 w-1.5 h-1.5 bg-accent-orange" />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+            {navStrip}
+            {holeGrid}
 
             <div className="border border-border-color bg-panel-white p-3 space-y-3">
               <div className="text-[11px] font-heading font-black uppercase tracking-wide text-text-primary">
