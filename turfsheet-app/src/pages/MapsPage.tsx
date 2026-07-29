@@ -16,6 +16,7 @@ import {
 import type { ShowState } from '@/lib/courseGeometry';
 import {
   clearDraft,
+  deletePinSet,
   draftHasPins,
   getPinSet,
   handoutUrl,
@@ -406,6 +407,23 @@ export default function MapsPage() {
     [applyRow, flash, focusHole, greenIndex]
   );
 
+  const discardLocalDraft = useCallback(() => {
+    clearDraft();
+    setDraftAvailable(false);
+    flash('Local draft discarded.');
+  }, [flash]);
+
+  const removeSavedSet = useCallback(
+    async (id: string) => {
+      await deletePinSet(id);
+      // If the open session is that row, drop the id so Save creates a new row.
+      setSession((s) => (s.id === id ? { ...s, id: null, publicToken: null } : s));
+      setListToken((n) => n + 1);
+      flash('Pin set deleted.');
+    },
+    [flash]
+  );
+
   const enablePublicLink = useCallback(async () => {
     try {
       const id = session.id ?? (await doSave());
@@ -539,7 +557,9 @@ export default function MapsPage() {
             reloadListToken={listToken}
             onStart={() => startSession(false)}
             onResume={() => startSession(true)}
+            onDiscardLocalDraft={discardLocalDraft}
             onLoadSet={loadSet}
+            onDeleteSet={removeSavedSet}
             onMetaChange={(patch) =>
               setSession((s) => ({
                 ...s,

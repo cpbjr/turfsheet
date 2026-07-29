@@ -63,6 +63,12 @@ export async function setPublicToken(id: string, token: string): Promise<PinSetR
   return data as PinSetRow;
 }
 
+/** Hard-deletes a saved pin set (draft or otherwise). */
+export async function deletePinSet(id: string): Promise<void> {
+  const { error } = await supabase.from(TABLE).delete().eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
 /** Resolves a clubhouse handout link. Returns null when the token is unknown or expired. */
 export async function pinSetByToken(token: string): Promise<PinSetRow | null> {
   const { data, error } = await supabase.rpc('banbury_pin_set_by_token', { p_token: token });
