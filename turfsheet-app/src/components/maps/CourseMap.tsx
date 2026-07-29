@@ -412,22 +412,43 @@ const CourseMap = forwardRef<CourseMapHandle, CourseMapProps>(function CourseMap
   useImperativeHandle(
     ref,
     () => {
+      const fitLiteral = (box: { minLat: number; maxLat: number; minLng: number; maxLng: number }, padding: number) => {
+        const map = mapRef.current;
+        if (!map) return;
+        if (
+          !Number.isFinite(box.minLat) ||
+          !Number.isFinite(box.maxLat) ||
+          !Number.isFinite(box.minLng) ||
+          !Number.isFinite(box.maxLng)
+        ) {
+          return;
+        }
+        const bounds = new google.maps.LatLngBounds(
+          { lat: box.minLat, lng: box.minLng },
+          { lat: box.maxLat, lng: box.maxLng }
+        );
+        map.fitBounds(bounds, padding);
+      };
+
+      /** Close green frame — pin session stepping. */
       const focusHole = (hole: number) => {
         const map = mapRef.current;
         const g = greenIndexRef.current[hole];
         if (!map || !g) return;
-        const bounds = new google.maps.LatLngBounds(
-          { lat: g.bounds.minLat, lng: g.bounds.minLng },
-          { lat: g.bounds.maxLat, lng: g.bounds.maxLng }
-        );
-        map.fitBounds(bounds, 80);
-        // fitBounds is async; clamp after the camera settles.
+        fitLiteral(g.bounds, 80);
         google.maps.event.addListenerOnce(map, 'idle', () => {
           const z = map.getZoom();
           if (z == null) return;
           if (z < 18) map.setZoom(18);
           else if (z > 19) map.setZoom(19);
         });
+      };
+
+      /** Tee-to-green frame for a single hole (dropdown / ops view). */
+      const focusEntireHole = (hole: number) => {
+        const g = greenIndexRef.current[hole];
+        if (!g) return;
+        fitLiteral(g.holeBounds ?? g.bounds, 72);
       };
 
       const focusHoleRange = (from: number, to: number) => {
@@ -438,8 +459,9 @@ const CourseMap = forwardRef<CourseMapHandle, CourseMapProps>(function CourseMap
         for (let h = from; h <= to; h++) {
           const g = greenIndexRef.current[h];
           if (!g) continue;
-          bounds.extend({ lat: g.bounds.minLat, lng: g.bounds.minLng });
-          bounds.extend({ lat: g.bounds.maxLat, lng: g.bounds.maxLng });
+          const box = g.holeBounds ?? g.bounds;
+          bounds.extend({ lat: box.minLat, lng: box.minLng });
+          bounds.extend({ lat: box.maxLat, lng: box.maxLng });
           any = true;
         }
         if (!any) return;
@@ -469,7 +491,7 @@ const CourseMap = forwardRef<CourseMapHandle, CourseMapProps>(function CourseMap
             return;
           }
           const n = Number(filter);
-          if (Number.isFinite(n) && n >= 1 && n <= 18) focusHole(n);
+          if (Number.isFinite(n) && n >= 1 && n <= 18) focusEntireHole(n);
         },
         recenter,
       };
