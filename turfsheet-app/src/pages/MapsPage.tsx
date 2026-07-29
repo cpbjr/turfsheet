@@ -78,6 +78,15 @@ export default function MapsPage() {
     sessionRef.current = session;
   }, [session]);
 
+  /** Pending tap-cycle auto-advance, so a re-tap can cancel it. */
+  const advanceTimerRef = useRef<number | null>(null);
+  useEffect(
+    () => () => {
+      if (advanceTimerRef.current !== null) window.clearTimeout(advanceTimerRef.current);
+    },
+    []
+  );
+
   const currentHole = sessionActive ? (session.order[session.index] ?? null) : null;
 
   const flash = useCallback((msg: string, isError = false) => {
@@ -294,11 +303,13 @@ export default function MapsPage() {
       });
       if (sessionRef.current.index >= 17) flash(`Hole ${hole} set. Save or finish when ready.`);
 
-      window.setTimeout(() => {
+      // At most one advance may ever be in flight: a re-tap cancels the previous one.
+      if (advanceTimerRef.current !== null) window.clearTimeout(advanceTimerRef.current);
+      advanceTimerRef.current = window.setTimeout(() => {
+        advanceTimerRef.current = null;
         const s = sessionRef.current;
-        // Guards from the standalone: bail if the user moved on, or re-tapped this hole.
+        // The user moved on by another route (Next / strip chip / skip).
         if (s.order[s.index] !== hole) return;
-        if (s.pins[hole] !== pin) return;
         if (s.index >= 17) return;
         const nextIndex = s.index + 1;
         focusHole(s.order[nextIndex]);
