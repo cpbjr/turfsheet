@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Search, Plus, Printer, ClipboardList, Package, Calculator, Edit2, Trash2 } from 'lucide-react';
+import { Search, Plus, Printer, Download, ClipboardList, Package, Calculator, Edit2, Trash2 } from 'lucide-react';
 import Modal from '../components/ui/Modal';
 import PesticideForm from '../components/pesticide/PesticideForm';
 import PesticideListItem from '../components/pesticide/PesticideListItem';
@@ -9,6 +9,10 @@ import ApplicationPrintView from '../components/pesticide/ApplicationPrintView';
 import { supabase } from '../lib/supabase';
 import { sameId } from '../lib/utils';
 import { formatMethod } from '../lib/pesticideOptions';
+import {
+    buildPesticideLogPrintHtml,
+    downloadPesticideLogPdf,
+} from '../lib/pesticideLogExport';
 import {
     findMixSiblingIds,
     pickSharedMixFields,
@@ -266,145 +270,6 @@ export default function PesticidePage() {
         setIsAddModalOpen(true);
     };
 
-    const handlePrint = () => {
-        if (loading) {
-            setStatusMessage('Still loading application records — try Print again in a moment.');
-            return;
-        }
-        if (error) {
-            setStatusMessage(`Cannot print: ${error}`);
-            return;
-        }
-        if (filteredApplications.length === 0) {
-            setStatusMessage(
-                applications.length === 0
-                    ? 'No application records loaded from the database.'
-                    : 'No records match the current search/date filters.'
-            );
-            return;
-        }
-
-        const printWindow = window.open('', '_blank');
-        if (!printWindow) {
-            setStatusMessage('Pop-up blocked — allow pop-ups for whitepine-tech.com to print the log.');
-            return;
-        }
-
-        const today = new Date().toLocaleDateString('en-US', {
-            month: 'long', day: 'numeric', year: 'numeric',
-        });
-
-        const getStaffName = (id?: string | number) =>
-            staffMembers.find(s => sameId(s.id, id))?.name || '--';
-
-        const esc = (value: unknown) =>
-            String(value ?? '')
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;');
-
-        const rows = filteredApplications.map(app => {
-            return `
-            <tr>
-                <td>${esc(formatDate(app.application_date))}</td>
-                <td>${esc(app.application_time || '--')}</td>
-                <td style="font-weight:bold">${esc(app.product_name || '--')}</td>
-                <td>${esc(app.epa_registration_number || '--')}</td>
-                <td>${esc(app.active_ingredient || '--')}</td>
-                <td>${esc(app.manufacturer || '--')}</td>
-                <td>${esc(app.epa_lot_number || '--')}</td>
-                <td>${esc(app.application_rate ?? '--')}</td>
-                <td>${esc(app.total_amount_used || '--')}</td>
-                <td>${esc(app.amount_per_tank || '--')}</td>
-                <td>${esc(app.area_applied || '--')}</td>
-                <td>${esc(app.area_size || '--')}</td>
-                <td>${esc(app.target_pest || '--')}</td>
-                <td>${esc(formatMethod(app.method))}</td>
-                <td>${esc(app.equipment_used || '--')}</td>
-                <td>${esc(getOperatorName(app.operator_id))}</td>
-                <td>${esc(app.applicator_license || '--')}</td>
-                <td>${esc(getStaffName(app.recommended_by))}</td>
-                <td>${app.worker_protection_exchange ? '✓' : '✗'}</td>
-                <td>${app.rei_hours != null ? `${esc(app.rei_hours)}h` : '--'}</td>
-                <td>${esc(app.temperature ?? '--')}</td>
-                <td>${esc(app.wind_speed ?? '--')}</td>
-                <td>${esc(app.wind_direction || '--')}</td>
-                <td>${esc(app.weather_conditions || '--')}</td>
-            </tr>`;
-        }).join('');
-
-        printWindow.document.write(`<!DOCTYPE html>
-<html>
-<head>
-    <title>Pesticide Application Log</title>
-    <style>
-        body { font-family: Arial, sans-serif; font-size: 8pt; margin: 0.4in; color: #000; }
-        h1 { font-size: 14pt; text-align: center; margin: 0 0 4px; }
-        .subtitle { text-align: center; font-size: 9pt; color: #555; margin-bottom: 8px; border-bottom: 2px solid #333; padding-bottom: 8px; }
-        .compliance { font-size: 7pt; color: #666; text-align: center; font-style: italic; margin-bottom: 12px; }
-        table { width: 100%; border-collapse: collapse; }
-        th { background: #f0f0f0; font-size: 6.5pt; text-transform: uppercase; font-weight: bold; border: 1px solid #999; padding: 3px 4px; text-align: left; }
-        td { border: 1px solid #ccc; padding: 3px 4px; font-size: 7.5pt; }
-        tr:nth-child(even) { background: #fafafa; }
-        .sig { margin-top: 32px; display: flex; gap: 40px; }
-        .sig div { flex: 1; border-top: 1px solid #333; padding-top: 3px; font-size: 7pt; color: #666; }
-        .footer { margin-top: 16px; text-align: center; font-size: 7pt; color: #999; border-top: 1px solid #ddd; padding-top: 6px; }
-        @page { size: letter landscape; margin: 0.4in; }
-    </style>
-</head>
-<body>
-    <h1>PESTICIDE &amp; FERTILIZER APPLICATION LOG</h1>
-    <div class="subtitle">
-        Generated ${today} | ${filteredApplications.length} Application${filteredApplications.length !== 1 ? 's' : ''}${dateFrom || dateTo ? ` | Showing: ${dateFrom || 'All'} to ${dateTo || 'Present'}` : ''}
-    </div>
-    <div class="compliance">
-        Records maintained per Idaho Statutes Title 22, Ch. 34 &amp; IDAPA 02.03.03 | Retain for minimum 2 years
-    </div>
-    <table>
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Time</th>
-                <th>Product</th>
-                <th>EPA Reg #</th>
-                <th>Active Ingr.</th>
-                <th>Manufacturer</th>
-                <th>EPA Lot #</th>
-                <th>Rate</th>
-                <th>Total Used</th>
-                <th>Amt/Tank</th>
-                <th>Area</th>
-                <th>Size</th>
-                <th>Target</th>
-                <th>Method</th>
-                <th>Equipment</th>
-                <th>Applicator</th>
-                <th>License #</th>
-                <th>Rec. By</th>
-                <th>WPS</th>
-                <th>REI</th>
-                <th>Temp</th>
-                <th>Wind</th>
-                <th>Wind Dir</th>
-                <th>Conditions</th>
-            </tr>
-        </thead>
-        <tbody>${rows}</tbody>
-    </table>
-    <div class="sig">
-        <div>Superintendent Signature</div>
-        <div>Date</div>
-        <div>Reviewed By</div>
-        <div>Date</div>
-    </div>
-    <div class="footer">TurfSheet &mdash; Pesticide &amp; Fertilizer Application Record &mdash; Printed ${today}</div>
-    <script>window.onload = function() { window.print(); }</script>
-</body>
-</html>`);
-        printWindow.document.close();
-    };
-
     const filteredApplications = applications.filter(app => {
         const query = searchQuery.toLowerCase().trim();
         const product = (app.product_name ?? '').toLowerCase();
@@ -414,6 +279,64 @@ export default function PesticidePage() {
         const matchesDateTo = !dateTo || app.application_date <= dateTo;
         return matchesSearch && matchesDateFrom && matchesDateTo;
     });
+
+    const assertExportReady = (action: 'print' | 'download'): boolean => {
+        if (loading) {
+            setStatusMessage(
+                action === 'print'
+                    ? 'Still loading application records — try Print again in a moment.'
+                    : 'Still loading application records — try Download again in a moment.'
+            );
+            return false;
+        }
+        if (error) {
+            setStatusMessage(`Cannot ${action === 'print' ? 'print' : 'download'}: ${error}`);
+            return false;
+        }
+        if (filteredApplications.length === 0) {
+            setStatusMessage(
+                applications.length === 0
+                    ? 'No application records loaded from the database.'
+                    : 'No records match the current search/date filters.'
+            );
+            return false;
+        }
+        return true;
+    };
+
+    const handlePrint = () => {
+        if (!assertExportReady('print')) return;
+
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) {
+            setStatusMessage('Pop-up blocked — allow pop-ups for whitepine-tech.com to print the log.');
+            return;
+        }
+
+        printWindow.document.write(
+            buildPesticideLogPrintHtml(filteredApplications, staffMembers, {
+                dateFrom: dateFrom || undefined,
+                dateTo: dateTo || undefined,
+            })
+        );
+        printWindow.document.close();
+    };
+
+    const handleDownloadPdf = () => {
+        if (!assertExportReady('download')) return;
+        try {
+            downloadPesticideLogPdf(filteredApplications, staffMembers, {
+                dateFrom: dateFrom || undefined,
+                dateTo: dateTo || undefined,
+            });
+            setStatusMessage(
+                `Downloaded PDF (${filteredApplications.length} record${filteredApplications.length !== 1 ? 's' : ''}).`
+            );
+        } catch (e) {
+            const msg = e instanceof Error ? e.message : 'Unknown error';
+            setStatusMessage(`PDF download failed: ${msg}`);
+        }
+    };
 
     const inputClasses = "bg-panel-white border border-border-color px-4 py-2 text-sm focus:border-turf-green outline-none transition-colors font-sans";
     const detailLabelClasses = "text-xs font-heading font-black uppercase tracking-wider text-text-secondary block mb-2";
@@ -436,8 +359,9 @@ export default function PesticidePage() {
                     </p>
                 </div>
                 {activeTab === 'applications' && (
-                    <div className="flex gap-3">
+                    <div className="flex flex-wrap gap-3">
                         <button
+                            type="button"
                             onClick={handlePrint}
                             className="bg-panel-white border border-border-color text-text-primary px-6 py-3 shadow-sm flex items-center gap-2 font-heading font-black hover:bg-dashboard-bg transition-all text-[0.7rem] uppercase tracking-[0.15em]"
                         >
@@ -445,6 +369,15 @@ export default function PesticidePage() {
                             Print Log
                         </button>
                         <button
+                            type="button"
+                            onClick={handleDownloadPdf}
+                            className="bg-panel-white border border-border-color text-text-primary px-6 py-3 shadow-sm flex items-center gap-2 font-heading font-black hover:bg-dashboard-bg transition-all text-[0.7rem] uppercase tracking-[0.15em]"
+                        >
+                            <Download className="w-4 h-4" />
+                            Download PDF
+                        </button>
+                        <button
+                            type="button"
                             onClick={() => setIsAddModalOpen(true)}
                             className="bg-turf-green text-white px-6 py-3 shadow-sm flex items-center gap-2 font-heading font-black hover:bg-turf-green-dark hover:-translate-y-0.5 transition-all duration-300 text-[0.7rem] uppercase tracking-[0.15em]"
                         >
