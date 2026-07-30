@@ -4,7 +4,9 @@ import {
   svgForHole,
   todayISO,
 } from '@/lib/courseGeometry';
+import { openPinSheetPrintWindow } from '@/lib/pinSheetPrintHtml';
 import type { GreenIndex, PinSession } from '@/types/courseMap';
+import { useState } from 'react';
 import './printSheet.css';
 
 interface PrintSheetProps {
@@ -34,6 +36,32 @@ export default function PrintSheet({
   const playDate = session.playDate || todayISO();
   const setCount = Object.keys(session.pins).length;
   const avoidLines = collectAvoidLines(session.avoid);
+  const [printMsg, setPrintMsg] = useState<string | null>(null);
+
+  const handlePrint = () => {
+    const result = openPinSheetPrintWindow({
+      label,
+      playDate,
+      status: session.status || 'draft',
+      startHole: session.startHole || 1,
+      pins: session.pins,
+      avoid: session.avoid,
+      greenIndex,
+      tokenUrl: tokenUrl || '',
+      autoPrint: true,
+    });
+    if (!result.ok) {
+      setPrintMsg(result.reason);
+      // Fallback: still try in-page print if pop-up blocked
+      try {
+        window.print();
+      } catch {
+        /* ignore */
+      }
+    } else {
+      setPrintMsg(null);
+    }
+  };
 
   return (
     <div className="print-root">
@@ -45,6 +73,9 @@ export default function PrintSheet({
           <span className="text-xs font-sans text-text-secondary ml-2">
             · {setCount}/18 · {playDate} · {label}
           </span>
+          {printMsg && (
+            <div className="text-xs font-sans text-accent-orange mt-1 max-w-xl">{printMsg}</div>
+          )}
         </div>
         <div className="print-toolbar-actions">
           {!readOnly && (
@@ -59,7 +90,7 @@ export default function PrintSheet({
           )}
           <button
             type="button"
-            onClick={() => window.print()}
+            onClick={handlePrint}
             className="px-3 py-1.5 text-xs font-heading font-black uppercase tracking-wide border border-turf-green bg-turf-green text-white hover:bg-turf-green-dark transition-colors"
           >
             Print / PDF

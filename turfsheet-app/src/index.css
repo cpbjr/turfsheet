@@ -51,6 +51,15 @@
     height: 100vh;
   }
 
+  /* Pin / pesticide print: unlock viewport so pages are not clipped blank */
+  @media print {
+    html,
+    body {
+      overflow: visible !important;
+      height: auto !important;
+    }
+  }
+
   h1,
   h2,
   h3,
