@@ -145,7 +145,7 @@ export default function PrintSheet({
         </div>
 
         <div className="ps-table-wrap">
-          <h2>Summary (yards from front / side)</h2>
+          <h2>Summary (yards from front / nearest side edge)</h2>
           <table className="ps-table">
             <thead>
               <tr>
@@ -178,7 +178,8 @@ export default function PrintSheet({
 
         <p className="ps-foot">
           <strong>On</strong> = yards from front edge of green along approach.{' '}
-          <strong>L/R</strong> = yards left/right of centerline (C = center).{' '}
+          <strong>L/R</strong> = yards from pin to nearest left/right green edge at that depth
+          (true collar from map polygon; C = near centerline).{' '}
           <strong>Depth</strong> = front-to-back green depth from course map geometry.{' '}
           <strong>DO NOT CUT / AVOID</strong> = pin-cut guidance for crew. Front edge is derived
           from each hole's approach path. Ops estimate — not a survey stake sheet. Generated from
