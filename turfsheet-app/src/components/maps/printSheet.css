@@ -218,13 +218,40 @@
     margin: 0.4in;
   }
 
+  /* App shell uses h-screen + overflow:hidden — force full printable page */
+  html,
+  body {
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .print-root,
+  .print-root * {
+    visibility: visible !important;
+  }
+
   .no-print {
     display: none !important;
+    visibility: hidden !important;
   }
 
   .print-root {
-    position: static;
-    overflow: visible;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    right: auto !important;
+    bottom: auto !important;
+    inset: auto !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    z-index: 99999 !important;
+    background: #fff !important;
   }
 
   .print-sheet {
