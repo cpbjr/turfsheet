@@ -336,7 +336,73 @@ export function buildGreenIndex(fc: CourseGeoJson): GreenIndex {
   return index;
 }
 
-/** Measures a tapped point against its green: yards on from front, yards left/right of centre. */
+/**
+ * Distance (meters) from pin (pu,pv) to the green polygon's left and right
+ * edges along constant-u (true collar at this depth), not envelope width.
+ * Left = smaller v; right = larger v in the green-local frame.
+ */
+export function lateralEdgeDistancesM(
+  ringUV: { u: number; v: number }[],
+  pu: number,
+  pv: number
+): { leftM: number; rightM: number } {
+  const eps = 1e-9;
+  let bestLeft: number | null = null; // max v among intersections with v <= pv
+  let bestRight: number | null = null; // min v among intersections with v >= pv
+
+  const n = ringUV.length;
+  if (n < 2) {
+    return { leftM: 0, rightM: 0 };
+  }
+
+  for (let i = 0; i < n - 1; i++) {
+    const a = ringUV[i];
+    const b = ringUV[i + 1];
+    const du = b.u - a.u;
+    const dv = b.v - a.v;
+    // Intersect edge with horizontal line u = pu in UV plane.
+    if (Math.abs(du) < eps) {
+      // Vertical edge in UV: only if a.u ≈ pu, whole edge is a candidate span in v
+      if (Math.abs(a.u - pu) > eps) continue;
+      const vLo = Math.min(a.v, b.v);
+      const vHi = Math.max(a.v, b.v);
+      if (vLo <= pv + eps) {
+        const vHit = Math.min(vHi, pv);
+        if (bestLeft == null || vHit > bestLeft) bestLeft = vHit;
+      }
+      if (vHi >= pv - eps) {
+        const vHit = Math.max(vLo, pv);
+        if (bestRight == null || vHit < bestRight) bestRight = vHit;
+      }
+      continue;
+    }
+    const t = (pu - a.u) / du;
+    if (t < -eps || t > 1 + eps) continue;
+    const vHit = a.v + t * dv;
+    if (vHit <= pv + eps) {
+      if (bestLeft == null || vHit > bestLeft) bestLeft = vHit;
+    }
+    if (vHit >= pv - eps) {
+      if (bestRight == null || vHit < bestRight) bestRight = vHit;
+    }
+  }
+
+  // Fallback: if ray missed (pin outside / open ring), use nearest vertex on that side.
+  if (bestLeft == null || bestRight == null) {
+    for (const p of ringUV) {
+      if (bestLeft == null && p.v <= pv) bestLeft = p.v;
+      else if (p.v <= pv && p.v > (bestLeft as number)) bestLeft = p.v;
+      if (bestRight == null && p.v >= pv) bestRight = p.v;
+      else if (p.v >= pv && p.v < (bestRight as number)) bestRight = p.v;
+    }
+  }
+
+  const leftM = bestLeft == null ? 0 : Math.max(0, pv - bestLeft);
+  const rightM = bestRight == null ? 0 : Math.max(0, bestRight - pv);
+  return { leftM, rightM };
+}
+
+/** Measures a tapped point: yards on from front; L/R = yards to nearest side edge (C near center). */
 export function measurePin(
   greenIndex: GreenIndex,
   hole: number,
@@ -363,13 +429,32 @@ export function measurePin(
   const pu = pxy.x * g.u.x + pxy.y * g.u.y;
   const pv = pxy.x * g.v.x + pxy.y * g.v.y;
   const onM = pu - g.frontU;
-  const lrM = pv;
   const onYd = Math.round(onM * YARDS_PER_METER);
-  const lrYd = Math.round(Math.abs(lrM) * YARDS_PER_METER);
   const depthYd = Math.round(g.depthYd);
-  const lrSide: 'L' | 'R' | 'C' =
-    Math.abs(lrM) * YARDS_PER_METER < 0.75 ? 'C' : lrM >= 0 ? 'R' : 'L';
+
+  // C stays centerline-based (~0.75 yd of approach axis).
+  const centerlineAbsYd = Math.abs(pv) * YARDS_PER_METER;
+  const nearCenter = centerlineAbsYd < 0.75;
+
+  const ringUV = ringToLocalUV(g);
+  const { leftM, rightM } = lateralEdgeDistancesM(ringUV, pu, pv);
+  const leftYd = Math.round(leftM * YARDS_PER_METER);
+  const rightYd = Math.round(rightM * YARDS_PER_METER);
+
+  let lrSide: 'L' | 'R' | 'C';
+  let lrYd: number;
+  if (nearCenter) {
+    lrSide = 'C';
+    lrYd = 0;
+  } else if (leftM <= rightM) {
+    lrSide = 'L';
+    lrYd = leftYd;
+  } else {
+    lrSide = 'R';
+    lrYd = rightYd;
+  }
   const lrLabel = lrSide === 'C' ? 'C' : `${lrSide}${lrYd}`;
+
   return {
     hole,
     lat,
