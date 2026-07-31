@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import {
   House, Calendar, Users, Briefcase, FolderKanban, AlertTriangle,
-  MapPin, FlaskConical, Droplets, FileText,
+  MapPin, Flag, FlaskConical, Droplets, FileText,
   GraduationCap, Settings, LogOut, Tractor
 } from 'lucide-react';
 
@@ -27,6 +27,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   const bottomNav = [
     { id: 'maps', icon: MapPin, label: 'Maps', path: '/maps' },
+    { id: 'pins', icon: Flag, label: 'Pin Sheets', path: '/pins' },
     { id: 'docs', icon: FileText, label: 'Documents', path: '/docs' },
     { id: 'training', icon: GraduationCap, label: 'Learning', path: '/training' },
     { id: 'settings', icon: Settings, label: 'Settings', path: '/settings' },

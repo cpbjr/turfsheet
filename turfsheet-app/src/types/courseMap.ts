@@ -141,3 +141,16 @@ export interface PinSession {
   avoid: AvoidState;
   publicToken: string | null;
 }
+
+/** Paper yards entry (Darryl sheet style) for inverse pin placement. */
+export interface YardsInput {
+  /** Yards from front of green along approach (paper "Depth"). */
+  onYd: number;
+  side: 'L' | 'C' | 'R';
+  /** Yards to nearest side edge; required for L/R, ignored for C. */
+  lrYd?: number;
+}
+
+export type PlaceYardsResult =
+  | { ok: true; pin: Pin; approx?: boolean; warnings: string[] }
+  | { ok: false; reason: string };

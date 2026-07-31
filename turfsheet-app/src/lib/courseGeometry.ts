@@ -16,7 +16,9 @@ import type {
   LayerKey,
   Pin,
   PinMap,
+  PlaceYardsResult,
   UnitVec,
+  YardsInput,
 } from '@/types/courseMap';
 
 export const CENTER = { lat: 43.670886, lng: -116.361379 };
@@ -145,7 +147,7 @@ function ringCentroid(ring: [number, number][]): { lat: number; lng: number } {
   return { lng: sx / n, lat: sy / n };
 }
 
-function metersPerDegLng(lat: number): number {
+export function metersPerDegLng(lat: number): number {
   return M_PER_DEG_LAT * Math.cos((lat * Math.PI) / 180);
 }
 
@@ -554,9 +556,10 @@ export function pinsFromStorage(
   return out;
 }
 
-/* ---------- print-sheet green diagram ---------- */
+/* ---------- yards → pin (inverse placement) ---------- */
 
-function ringToLocalUV(g: GreenIndexEntry): { u: number; v: number }[] {
+/** Green ring in the local u/v frame (exported for inverse placement + tests). */
+export function ringToLocalUV(g: GreenIndexEntry): { u: number; v: number }[] {
   return g.ring.map(([lng, lat]) => {
     const pxy = toLocalXY(lng, lat, g.origin);
     return {
@@ -565,6 +568,203 @@ function ringToLocalUV(g: GreenIndexEntry): { u: number; v: number }[] {
     };
   });
 }
+
+/** Ray-cast point-in-polygon in UV space (even-odd). */
+export function pointInPolygonUV(
+  ringUV: { u: number; v: number }[],
+  pu: number,
+  pv: number
+): boolean {
+  let inside = false;
+  const n = ringUV.length;
+  if (n < 3) return false;
+  // Drop closing duplicate if present so we don't double-count the last edge.
+  const last = ringUV[n - 1];
+  const first = ringUV[0];
+  const count =
+    Math.abs(last.u - first.u) < 1e-12 && Math.abs(last.v - first.v) < 1e-12 ? n - 1 : n;
+  for (let i = 0, j = count - 1; i < count; j = i++) {
+    const ui = ringUV[i].u;
+    const vi = ringUV[i].v;
+    const uj = ringUV[j].u;
+    const vj = ringUV[j].v;
+    if (Math.abs(vj - vi) < 1e-15) continue; // horizontal edge
+    if (vi > pv !== vj > pv) {
+      const xIntersect = ((uj - ui) * (pv - vi)) / (vj - vi) + ui;
+      if (pu < xIntersect) inside = !inside;
+    }
+  }
+  return inside;
+}
+
+/**
+ * Left/right edge v at a constant u (depth). Uses the same edge walk as
+ * lateralEdgeDistancesM; falls back to nearest-u vertices when no crossing.
+ */
+export function edgeVAtU(
+  ringUV: { u: number; v: number }[],
+  pu: number
+): { vLeft: number; vRight: number; approx: boolean } {
+  const eps = 1e-9;
+  const hits: number[] = [];
+  const n = ringUV.length;
+  for (let i = 0; i < n - 1; i++) {
+    const a = ringUV[i];
+    const b = ringUV[i + 1];
+    const du = b.u - a.u;
+    const dv = b.v - a.v;
+    if (Math.abs(du) < eps) {
+      if (Math.abs(a.u - pu) > eps) continue;
+      hits.push(a.v, b.v);
+      continue;
+    }
+    const t = (pu - a.u) / du;
+    if (t < -eps || t > 1 + eps) continue;
+    hits.push(a.v + t * dv);
+  }
+  if (hits.length >= 2) {
+    return { vLeft: Math.min(...hits), vRight: Math.max(...hits), approx: false };
+  }
+  if (hits.length === 1) {
+    // Pinched tip: single crossing (or collinear) — zero width at this u.
+    return { vLeft: hits[0], vRight: hits[0], approx: true };
+  }
+
+  // Nearest-u vertex fallback (pinched front/back / no exact crossing).
+  let bestDist = Infinity;
+  const near: number[] = [];
+  for (const p of ringUV) {
+    const d = Math.abs(p.u - pu);
+    if (d < bestDist - 1e-6) {
+      bestDist = d;
+      near.length = 0;
+      near.push(p.v);
+    } else if (Math.abs(d - bestDist) <= 1e-6) {
+      near.push(p.v);
+    }
+  }
+  if (!near.length) {
+    return { vLeft: 0, vRight: 0, approx: true };
+  }
+  return { vLeft: Math.min(...near), vRight: Math.max(...near), approx: true };
+}
+
+/**
+ * Inverse of measurePin: place a pin from paper yards (Depth + L|C|R + lrYd).
+ * Truth gate = point-in-polygon + measurePin round-trip (never silent off-green).
+ */
+export function placePinFromYards(
+  greenIndex: GreenIndex,
+  hole: number,
+  input: YardsInput
+): PlaceYardsResult {
+  const g = greenIndex[hole];
+  if (!g) {
+    return { ok: false, reason: `No green geometry for hole ${hole}` };
+  }
+
+  const onYd = Number(input.onYd);
+  if (!Number.isFinite(onYd) || onYd < 0 || !Number.isInteger(onYd)) {
+    return { ok: false, reason: 'Depth (onYd) must be a whole number ≥ 0' };
+  }
+
+  const side = input.side;
+  if (side !== 'L' && side !== 'C' && side !== 'R') {
+    return { ok: false, reason: 'Side must be L, C, or R' };
+  }
+
+  let lrYd = 0;
+  if (side === 'L' || side === 'R') {
+    lrYd = Number(input.lrYd);
+    if (!Number.isFinite(lrYd) || lrYd < 0 || !Number.isInteger(lrYd)) {
+      return { ok: false, reason: 'Yards (lrYd) must be a whole number ≥ 0 for L/R' };
+    }
+  }
+
+  const warnings: string[] = [];
+  if (onYd === 0) {
+    warnings.push('Depth 0 — front edge of green');
+  }
+  const depthYdRound = Math.round(g.depthYd);
+  if (onYd > depthYdRound) {
+    warnings.push(
+      `Depth exceeds map green depth (${depthYdRound} yd) — placed from front edge, verify`
+    );
+  }
+
+  let pu = g.frontU + onYd / YARDS_PER_METER;
+  const ringUV = ringToLocalUV(g);
+  let edges = edgeVAtU(ringUV, pu);
+  let approx = edges.approx;
+
+  let pv: number;
+  if (side === 'C') {
+    // Prefer approach centerline; if that is outside (pinched/offset tip),
+    // sit at mid-width so onYd=0 / front-edge entry still places.
+    pv = 0;
+    if (!pointInPolygonUV(ringUV, pu, pv)) {
+      pv = (edges.vLeft + edges.vRight) / 2;
+      if (!pointInPolygonUV(ringUV, pu, pv)) {
+        // Nudge a few steps toward the back along the mid-width line.
+        let found = false;
+        for (let step = 1; step <= 8; step++) {
+          const pu2 = pu + (step * 0.25) / YARDS_PER_METER;
+          const e2 = edgeVAtU(ringUV, pu2);
+          const pv2 = (e2.vLeft + e2.vRight) / 2;
+          if (pointInPolygonUV(ringUV, pu2, pv2)) {
+            pu = pu2;
+            pv = pv2;
+            edges = e2;
+            approx = true;
+            found = true;
+            warnings.push('Front-edge centerline outside map outline — nudged onto green');
+            break;
+          }
+        }
+        if (!found) {
+          return { ok: false, reason: 'outside green' };
+        }
+      } else {
+        approx = true;
+        warnings.push('Centerline outside at this depth — placed mid-green');
+      }
+    }
+  } else if (side === 'L') {
+    pv = edges.vLeft + lrYd / YARDS_PER_METER;
+  } else {
+    pv = edges.vRight - lrYd / YARDS_PER_METER;
+  }
+
+  if (edges.approx && !warnings.some((w) => /pinched|nudged|mid-green/i.test(w))) {
+    warnings.push('Approximate placement (pinched green at this depth)');
+    approx = true;
+  }
+
+  // Invert local frame → lat/lng
+  const xy = {
+    x: pu * g.u.x + pv * g.v.x,
+    y: pu * g.u.y + pv * g.v.y,
+  };
+  const lat = g.origin.lat + xy.y / M_PER_DEG_LAT;
+  const lng = g.origin.lng + xy.x / metersPerDegLng(g.origin.lat);
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    return { ok: false, reason: 'Placement produced invalid coordinates' };
+  }
+
+  if (!pointInPolygonUV(ringUV, pu, pv)) {
+    return { ok: false, reason: 'outside green' };
+  }
+
+  const pin = measurePin(greenIndex, hole, lat, lng);
+  if (!pin.ok) {
+    return { ok: false, reason: 'measurePin failed for placed point' };
+  }
+
+  return { ok: true, pin, approx: approx || undefined, warnings };
+}
+
+/* ---------- print-sheet green diagram ---------- */
 
 /**
  * Builds the little top-down green diagram for one hole on the handout,

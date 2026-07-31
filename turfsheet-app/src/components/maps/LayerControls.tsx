@@ -1,6 +1,7 @@
 import { Crosshair, Flag } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import type { ShowState } from '@/lib/courseGeometry';
-import type { LayerKey } from '@/types/courseMap';
+import type { LayerKey, PinSetSummary } from '@/types/courseMap';
 
 const LAYERS: { key: LayerKey; label: string }[] = [
   { key: 'green', label: 'greens' },
@@ -28,8 +29,12 @@ interface LayerControlsProps {
   /** The hole filter is driven by the pin session while one is running. */
   holeFilterDisabled: boolean;
   onRecenter: () => void;
-  pinPanelOpen: boolean;
-  onTogglePinPanel: () => void;
+  /** Read-only pins overlay (default off). */
+  showPinsLayer?: boolean;
+  onTogglePinsLayer?: (value: boolean) => void;
+  pinSetOptions?: PinSetSummary[];
+  selectedPinSetId?: string;
+  onSelectPinSet?: (id: string) => void;
 }
 
 export default function LayerControls({
@@ -39,8 +44,11 @@ export default function LayerControls({
   onHoleFilterChange,
   holeFilterDisabled,
   onRecenter,
-  pinPanelOpen,
-  onTogglePinPanel,
+  showPinsLayer = false,
+  onTogglePinsLayer,
+  pinSetOptions = [],
+  selectedPinSetId = '',
+  onSelectPinSet,
 }: LayerControlsProps) {
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -58,6 +66,45 @@ export default function LayerControls({
           {label}
         </label>
       ))}
+
+      {onTogglePinsLayer && (
+        <label className="flex items-center gap-1.5 text-xs font-sans text-text-secondary cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={showPinsLayer}
+            onChange={(e) => onTogglePinsLayer(e.target.checked)}
+            className="accent-turf-green w-3.5 h-3.5"
+          />
+          pins
+        </label>
+      )}
+
+      {showPinsLayer && onSelectPinSet && (
+        <label className="flex items-center gap-1.5 text-xs font-sans text-text-secondary">
+          sheet
+          <select
+            value={selectedPinSetId}
+            onChange={(e) => onSelectPinSet(e.target.value)}
+            aria-label="Pin sheet to display"
+            className="border border-border-color bg-panel-white px-2 py-1 text-xs font-sans text-text-primary max-w-[12rem]"
+          >
+            <option value="">Select…</option>
+            {pinSetOptions.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.play_date} · {r.label || r.status}
+              </option>
+            ))}
+          </select>
+          {selectedPinSetId && (
+            <Link
+              to={`/pins?set=${encodeURIComponent(selectedPinSetId)}`}
+              className="text-turf-green hover:underline text-[11px] font-heading font-black uppercase"
+            >
+              Edit
+            </Link>
+          )}
+        </label>
+      )}
 
       <label className="flex items-center gap-1.5 text-xs font-sans text-text-secondary">
         holes
@@ -85,19 +132,13 @@ export default function LayerControls({
         Recenter
       </button>
 
-      <button
-        type="button"
-        onClick={onTogglePinPanel}
-        aria-pressed={pinPanelOpen}
-        className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-heading font-black uppercase tracking-wide border transition-colors ${
-          pinPanelOpen
-            ? 'bg-turf-green text-white border-turf-green'
-            : 'bg-panel-white text-turf-green border-turf-green hover:bg-turf-green/10'
-        }`}
+      <Link
+        to="/pins"
+        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-heading font-black uppercase tracking-wide border bg-panel-white text-turf-green border-turf-green hover:bg-turf-green/10 transition-colors"
       >
         <Flag className="w-3.5 h-3.5" />
-        Pin Sheet
-      </button>
+        Pin Sheets
+      </Link>
     </div>
   );
 }

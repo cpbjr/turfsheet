@@ -14,6 +14,7 @@ import PesticidePage from './pages/PesticidePage';
 import IrrigationPage from './pages/IrrigationPage';
 import MaintenancePage from './pages/MaintenancePage';
 import MapsPage from './pages/MapsPage';
+import PinsPage from './pages/PinsPage';
 import DocsPage from './pages/DocsPage';
 import LearningPage from './pages/LearningPage';
 import Modal from './components/ui/Modal';
@@ -70,6 +71,7 @@ function App() {
                 <Route path="/irrigation" element={<IrrigationPage />} />
                 <Route path="/maintenance" element={<MaintenancePage />} />
                 <Route path="/maps" element={<MapsPage />} />
+                <Route path="/pins" element={<PinsPage />} />
                 <Route path="/docs" element={<DocsPage />} />
                 <Route path="/training" element={<LearningPage />} />
                 <Route path="/settings" element={<Settings />} />
