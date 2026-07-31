@@ -88,10 +88,17 @@ export function randomToken(): string {
   return s;
 }
 
-/** Handout URL for a token — same-origin, on the Maps route. */
+/**
+ * Handout URL for a token — always on `/maps?pinToken=` so Phase 1 distributed
+ * links keep working even when the link is generated from `/pins`.
+ */
 export function handoutUrl(token: string): string {
-  const path = window.location.pathname.replace(/\/$/, '');
-  return `${window.location.origin}${path}?pinToken=${encodeURIComponent(token)}`;
+  const base =
+    (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL ??
+    `${window.location.pathname.replace(/\/(maps|pins).*$/, '')}/`;
+  const mapsPath = new URL('maps', window.location.origin + (base.endsWith('/') ? base : `${base}/`))
+    .pathname;
+  return `${window.location.origin}${mapsPath}?pinToken=${encodeURIComponent(token)}`;
 }
 
 /* ---------- localStorage draft ---------- */

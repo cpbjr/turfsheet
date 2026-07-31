@@ -3,10 +3,12 @@
 
 # Active Tasks
 
-Last Updated: 2026-07-29
+Last Updated: 2026-07-31
 
-**Next up:** Site authentication — see `planned.md` Task 0. `/maps` is now the sole system of
-record for tournament pin positions on a site with no auth gate.
+**Shipped 2026-07-31:** Pin Sheet UX redesign Phase 1 — see `completed/2026-07/3-pin-sheet-redesign.md`.
+Dedicated `/pins` (Library | Setup Table/Map | Delivery); Maps pins layer default off.
+
+**Next up:** Site authentication — see `planned.md` Task 0.
 
 ## Active Tasks
 

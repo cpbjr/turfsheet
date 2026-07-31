@@ -81,7 +81,7 @@ export default function PrintSheet({
           {!readOnly && (
             <>
               <button type="button" onClick={onBackToMap} className={toolbarBtn}>
-                Back to map
+                Back
               </button>
               <button type="button" onClick={onPublicLink} className={toolbarBtn}>
                 Public link / QR
@@ -103,22 +103,18 @@ export default function PrintSheet({
           <div>
             <h1>BanBury Golf Course</h1>
             <p className="ps-sub">
-              Hole location sheet · {label} · {session.status || 'draft'}
+              {label} · {formatPlayDate(playDate)} · start {session.startHole} · {setCount}/18
             </p>
           </div>
           <div className="ps-meta">
-            <strong>{formatPlayDate(playDate)}</strong>
-            <br />
-            play date · start hole {session.startHole}
-            <br />
-            {setCount} of 18 pins set
+            <strong>{session.status || 'draft'}</strong>
           </div>
           {tokenUrl && (
             <div className="ps-qr">
               <img
                 alt="Handout QR"
-                width={96}
-                height={96}
+                width={56}
+                height={56}
                 src={`https://api.qrserver.com/v1/create-qr-code/?size=96x96&data=${encodeURIComponent(
                   tokenUrl
                 )}`}
@@ -160,7 +156,6 @@ export default function PrintSheet({
                 </div>
                 <div
                   className="ps-svg-wrap"
-                  // Diagram is generated locally from course geometry, no external input.
                   dangerouslySetInnerHTML={{ __html: svgForHole(greenIndex, h, pin) }}
                 />
                 <div className="ps-nums">
@@ -174,48 +169,6 @@ export default function PrintSheet({
             );
           })}
         </div>
-
-        <div className="ps-table-wrap">
-          <h2>Summary (yards from front / nearest side edge)</h2>
-          <table className="ps-table">
-            <thead>
-              <tr>
-                <th>Hole</th>
-                <th>Depth</th>
-                <th>On</th>
-                <th>L/R</th>
-                <th>Avoid</th>
-              </tr>
-            </thead>
-            <tbody>
-              {HOLES.map((h) => {
-                const pin = session.pins[h];
-                const holeAvoid = (session.avoid.holes[String(h)] || [])
-                  .map((a) => a.kind)
-                  .join(', ');
-                return (
-                  <tr key={h}>
-                    <td className="hole">{h}</td>
-                    <td>{pin ? pin.depthLabel : '—'}</td>
-                    <td>{pin ? pin.onLabel : '—'}</td>
-                    <td>{pin ? pin.lrLabel : '—'}</td>
-                    <td className="avoid-col">{holeAvoid}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-
-        <p className="ps-foot">
-          <strong>On</strong> = yards from front edge of green along approach.{' '}
-          <strong>L/R</strong> = yards from pin to nearest left/right green edge at that depth
-          (true collar from map polygon; C = near centerline).{' '}
-          <strong>Depth</strong> = front-to-back green depth from course map geometry.{' '}
-          <strong>DO NOT CUT / AVOID</strong> = pin-cut guidance for crew. Front edge is derived
-          from each hole's approach path. Ops estimate — not a survey stake sheet. Generated from
-          BanBury course map (White Pine Agency).
-        </p>
       </div>
     </div>
   );
