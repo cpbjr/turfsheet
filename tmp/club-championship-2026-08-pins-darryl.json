@@ -1,0 +1,62 @@
+{
+  "event": "Club Championship",
+  "course": "Banbury Golf Course",
+  "source": "Darryl handwritten pin sheets photographed 2026-07-31",
+  "notes": {
+    "columns": "Hole, GD (green depth total yards from Darryl), Depth (pin from front), Left | Center | Right (one of), Difficulty (Darryl score 1-7, future feature)",
+    "geometry_convention": "On/Depth/L/R whole yards. On=front; Depth=green F-B; L/R=nearest polygon side edge at depth (not centerline); C≈0.75 yd centerline. GD column on paper = total green depth (may differ slightly from map geometry).",
+    "status": "FINAL placements for event — import to banbury_pin_sets when ready. Difficulty scoring NOT required for v1 import."
+  },
+  "days": [
+    {
+      "label": "Club Championship (Sat 08/1/26)",
+      "play_date": "2026-08-01",
+      "difficulty_average": 4.39,
+      "holes": [
+        {"hole": 1, "gd": 45, "depth": 9, "left": 6, "center": null, "right": null, "difficulty": 3},
+        {"hole": 2, "gd": 40, "depth": 25, "left": null, "center": null, "right": 6, "difficulty": 7},
+        {"hole": 3, "gd": 35, "depth": 7, "left": null, "center": null, "right": 6, "difficulty": 3},
+        {"hole": 4, "gd": 23, "depth": 11, "left": null, "center": null, "right": 4, "difficulty": 6},
+        {"hole": 5, "gd": 49, "depth": 24, "left": 8, "center": null, "right": null, "difficulty": 5},
+        {"hole": 6, "gd": 44, "depth": 31, "left": 5, "center": null, "right": null, "difficulty": 6},
+        {"hole": 7, "gd": 49, "depth": 5, "left": 6, "center": null, "right": null, "difficulty": 2},
+        {"hole": 8, "gd": 43, "depth": 35, "left": 7, "center": null, "right": null, "difficulty": 5},
+        {"hole": 9, "gd": 38, "depth": null, "left": null, "center": 9, "right": null, "difficulty": 4},
+        {"hole": 10, "gd": 43, "depth": 8, "left": 6, "center": null, "right": null, "difficulty": 6},
+        {"hole": 11, "gd": 37, "depth": 18, "left": null, "center": null, "right": 7, "difficulty": 4},
+        {"hole": 12, "gd": 42, "depth": 10, "left": null, "center": null, "right": 5, "difficulty": 2},
+        {"hole": 13, "gd": 42, "depth": 34, "left": null, "center": 34, "right": null, "difficulty": 6},
+        {"hole": 14, "gd": 39, "depth": 10, "left": 7, "center": null, "right": null, "difficulty": 4},
+        {"hole": 15, "gd": 45, "depth": 15, "left": 6, "center": null, "right": null, "difficulty": 4},
+        {"hole": 16, "gd": 42, "depth": 11, "left": null, "center": null, "right": 5, "difficulty": 5},
+        {"hole": 17, "gd": 36, "depth": 4, "left": null, "center": null, "right": 6, "difficulty": 4},
+        {"hole": 18, "gd": 24, "depth": 13, "left": null, "center": null, "right": 5, "difficulty": 3}
+      ]
+    },
+    {
+      "label": "Club Championship (Sun 08/2/26)",
+      "play_date": "2026-08-02",
+      "difficulty_average": 5.5,
+      "holes": [
+        {"hole": 1, "gd": 45, "depth": 17, "left": 5, "center": null, "right": null, "difficulty": 5},
+        {"hole": 2, "gd": 40, "depth": 35, "left": 5, "center": null, "right": null, "difficulty": 7},
+        {"hole": 3, "gd": 35, "depth": 23, "left": null, "center": 23, "right": null, "difficulty": 6},
+        {"hole": 4, "gd": 23, "depth": 11, "left": 13, "center": null, "right": null, "difficulty": 5},
+        {"hole": 5, "gd": 49, "depth": 6, "left": null, "center": null, "right": 4, "difficulty": 3},
+        {"hole": 6, "gd": 44, "depth": 9, "left": null, "center": null, "right": 5, "difficulty": 3},
+        {"hole": 7, "gd": 49, "depth": 33, "left": null, "center": null, "right": 7, "difficulty": 6},
+        {"hole": 8, "gd": 43, "depth": 18, "left": null, "center": null, "right": 4, "difficulty": 7},
+        {"hole": 9, "gd": 38, "depth": 24, "left": 5, "center": null, "right": null, "difficulty": 6},
+        {"hole": 10, "gd": 43, "depth": 26, "left": null, "center": null, "right": 8, "difficulty": 6},
+        {"hole": 11, "gd": 37, "depth": 14, "left": 4, "center": null, "right": null, "difficulty": 5},
+        {"hole": 12, "gd": 42, "depth": 17, "left": 4, "center": null, "right": null, "difficulty": 6},
+        {"hole": 13, "gd": 42, "depth": 8, "left": 5, "center": null, "right": null, "difficulty": 3},
+        {"hole": 14, "gd": 39, "depth": 29, "left": null, "center": null, "right": 5, "difficulty": 7},
+        {"hole": 15, "gd": 45, "depth": 28, "left": null, "center": null, "right": 4, "difficulty": 6},
+        {"hole": 16, "gd": 42, "depth": 34, "left": 7, "center": null, "right": null, "difficulty": 7},
+        {"hole": 17, "gd": 36, "depth": 20, "left": null, "center": null, "right": 4, "difficulty": 4},
+        {"hole": 18, "gd": 24, "depth": 23, "left": 7, "center": null, "right": null, "difficulty": 7}
+      ]
+    }
+  ]
+}
