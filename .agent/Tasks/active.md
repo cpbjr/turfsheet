@@ -41,6 +41,24 @@ signed-out.
 
 ## Active Tasks
 
+**What's open, at a glance** (nothing below is in progress — all are queued):
+
+| Item | Blocking? | Gist |
+|---|---|---|
+| Browser automation dead | **Yes — blocks UI work** | No `chrome:console`, no extension. Every UI fix must be hand-tested by Chris. Root cause of three failed maps fixes. |
+| Google Maps key / localhost | Blocks local `/maps` | `RefererNotAllowedMapError`; `.env.local` may hold a superseded key. |
+| MCP `supabase:sql` broken | Workaround exists | `Unknown project: turfsheet` + bad passwords. Use the Management API (details below). |
+| Credential scrub | **Security** | A Postgres connection string with password is committed in `completed/2026-02/*.md`. Rotate and scrub. |
+| Maps tap-cycle double-advance | No | **Re-scope before touching** — filed against `/maps`, which can't place pins at all. |
+| Pesticide snapshot cleanup | No | Drop the pre-split rollback table once the event model is settled. |
+| Pin handout token | No | No `public_token` published yet, so the anon path is untested with real data. |
+| Chemicals REI hours | No | Every product is `rei_hours = 0`; proposed values unverified against physical labels. |
+| OldTom anon-key diagnostic | No | Inverted silently since the auth lockdown — reports "no rows" instead of erroring. |
+| `applicator_license` blank | No | Real Idaho ISDA field; belongs on `staff`, autofilled from the operator. |
+| `StaffSchedule` type wrong | No | Declares nested `WeeklySchedule`; table is flat `<day>_on`. Two local `ScheduleRow` workarounds in place. |
+
+Plus one standing warning that is not a task: **`npx tsc --noEmit` is a no-op here** — use `tsc -b`.
+
 ### Pesticide event model — Task 9 snapshot cleanup
 Context: `completed/2026-08/2-pesticide-event-model.md`
 
@@ -186,7 +204,8 @@ that `tsc --noEmit` had just reported clean.
 
 **Use `npx tsc -b`, or `npm run build` (which runs `tsc -b && vite build`).**
 
-- [ ] Nothing to fix in code. Kept here so the next agent does not repeat the mistake.
+**Nothing to fix in code — this is a standing warning, not a task.** Kept here so the next
+agent does not repeat the mistake.
 
 ### `StaffSchedule` type does not match the database (2026-08-08)
 Context: `completed/2026-08/7-eslint-cleanup.md`
@@ -236,6 +255,18 @@ This is why `ManageScheduleModal` and `StaffWhiteboardView` were reading the tab
 
 ## Recently Completed ✅
 
+- ✅ eslint cleanup — all 45 errors in `turfsheet-app/src` fixed, 0 remaining; 5 pre-existing
+  warnings unchanged (verified by diffing the warning list against `main`, not just counts).
+  Six commits by fix class: `any` → real form-payload types, non-component exports split out of
+  component modules, effect/declaration ordering, edit buffers seeded at mount, awaited fetchers,
+  and one genuinely-dead overlay clear in `MapsPage`. PR #36. (2026-08-08)
+- ✅ Skip button removed from Pin Sheets Setup — it duplicated Next on any hole that already had a
+  pin, and no-opped on hole 18 where Next finishes to Delivery. The `skipped` flag it set was
+  never read anywhere; the field stays in `PinSession` for draft compatibility. PR #35.
+  (2026-08-08)
+- ✅ Nudge card `set-state-in-effect` — the last lint error in the pin components. Extracted
+  `NudgeByYards`, which seeds its own state on mount and is remounted via a key covering the hole
+  plus the pin's measured yards. PR #33. (2026-08-08)
 - ✅ Pin Map Mobile Usability — tap dead zones around the hole badge and current pin removed
   (`clickable: !pinModeRef.current` on both markers); map frame now fills the phone screen after
   removing a `min-h-[50vh]` flex floor that could never shrink. (2026-08-08)
