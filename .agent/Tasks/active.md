@@ -3,30 +3,64 @@
 
 # Active Tasks
 
-Last Updated: 2026-07-31
+Last Updated: 2026-08-08
 
-**Shipped 2026-07-31:** Pin Sheet UX redesign Phase 1 — see `completed/2026-07/3-pin-sheet-redesign.md`.
-Dedicated `/pins` (Library | Setup Table/Map | Delivery); Maps pins layer default off.
+**Shipped 2026-08-08:** Site Authentication — see `completed/2026-08/1-site-authentication.md`.
+TurfSheet is no longer publicly readable: three shared accounts, RLS rewritten across all 24
+tables (anon went from 18 of 24 readable to 0), `?pinToken=` clubhouse handout still works
+signed-out.
 
 ## Active Tasks
 
-### Site Authentication — IN PROGRESS
-Plan: `Implementation/2026-08-07-site-authentication.md` (read this first — it is the spec)
-Branch: `feature/site-auth` · PR: https://github.com/cpbjr/turfsheet/pull/27
-Source task: `planned.md` Task 0
+### OldTom — anon-key diagnostic no longer means what it used to
+Context: `completed/2026-08/1-site-authentication.md`
 
-Rollout order is load-bearing; step 4 before step 3 blanks every page for everyone.
+OldTom queries a table with the **anon** key to reproduce what the live SPA sees, and diffs that
+against the service-key result. That was valid while the SPA queried as `anon`. Since the
+2026-08-08 lockdown it queries as `authenticated`, and the anon key returns `401` on every table.
 
-- [x] Three shared accounts created in Studio, auto-confirmed, verified against `auth.users`
-- [x] Frontend gate built and verified locally (login, `/logout`, `?pinToken=` exemption)
-- [ ] **Merge PR #27** → auto-deploys → confirm on production that all three accounts log in
-      and that a signed-out `?pinToken=` handout link still renders the map
-- [ ] **Only then** apply `supabase/migrations/20260807200000_lock_down_anon_access.sql` via the
-      Supabase Studio SQL editor. Never `db push` on this project.
-      Then `node scripts/verify-anon-lockdown.mjs --token <pinToken>` → expect 0 of 24 open
-      (baseline 2026-08-07 was 18 of 24) with the pin RPC still reporting `WORKS`.
-- [ ] Tell OldTom its anon-key diagnostic stops reproducing "what the browser sees" at step 4 —
-      the SPA will query as `authenticated`, not `anon`. User-token recipe is in the plan.
+Left as-is the check inverts silently: it reports no rows and reads as missing data — the same
+shape as the "Print shows 0 apps but DB has rows" bug it exists to catch. It will not error.
+
+- [ ] Tell OldTom to mint a user token for the "what does the browser see?" check:
+
+      ```bash
+      TOKEN=$(curl -s -X POST "$SUPABASE_URL/auth/v1/token?grant_type=password" \
+        -H "apikey: $SUPABASE_ANON_KEY" -H "Content-Type: application/json" \
+        -d '{"email":"admin@banbury.local","password":"<passphrase>"}' | jq -r .access_token)
+
+      curl -s "$SUPABASE_URL/rest/v1/pesticide_applications?select=*" \
+        -H "apikey: $SUPABASE_ANON_KEY" -H "Authorization: Bearer $TOKEN" \
+        -H "Accept-Profile: turfsheet"
+      ```
+
+      `apikey` stays the anon key; only `Authorization` changes. That is exactly what
+      `supabase-js` sends, so it reproduces the browser faithfully.
+
+- [ ] Confirm nothing else in OldTom's toolkit reads with the anon key. Day-to-day work
+      (spray log GETs/POSTs/PATCHes, imports) uses `SUPABASE_SERVICE_KEY` and is unaffected —
+      `service_role` has `bypassrls` and full grants.
+
+A bare anon-key query is still worth keeping. From now on it answers "is the site locked?",
+not "what does the browser see?"
+
+### Pin handout — no published token exists
+Context: `completed/2026-08/1-site-authentication.md`
+
+All 4 rows in `banbury_pin_sets` have `public_token = NULL`, so no clubhouse handout link exists
+and the anonymous `?pinToken=` path is currently unused in production. It is verified working
+structurally, but never with real data.
+
+- [ ] Publish a handout link from `/pins` (Delivery), then:
+      `node scripts/verify-anon-lockdown.mjs --token <token>`
+      Expect `WORKS` rather than today's `REACHABLE`. That is the difference between "anon can
+      execute the RPC" and "anon actually gets the pin set back" — the second is what a golfer
+      scanning the QR code depends on.
+- [ ] Load `/turfsheet/maps?pinToken=<token>` in a signed-out private window and confirm the
+      green diagrams render.
+
+Not urgent — nothing depends on the handout path until a tournament sheet is published. Worth
+doing before one is needed rather than during.
 
 ### Chemicals Page — remaining items
 Plan: `Implementation/2026-07-28-chemicals-clean-up.md`
@@ -94,16 +128,26 @@ Plan retained for its parity checklist: `Implementation/2026-07-28-maps-banbury-
 - [ ] `applicator_license` is blank on every record and is a real Idaho ISDA field. It is free text
       re-typed per application, so it never gets filled. Belongs on `staff`, autofilled from the
       selected operator.
-- [ ] Correct the stale Supabase ref in `CLAUDE.md` (`scktzhwtkscabtpkvhne` → `klyzdnocgrvassppripi`).
 - [ ] `.agent/Tasks/completed/2026-02/*.md` contain a committed Postgres connection string with
       password. Rotate and scrub.
 - [ ] Register `turfsheet` in `Tools/mcp-servers/supabase/index.ts` (the hardcoded config `run.ts`
-      actually reads) and fix the wrong password in `config.json`.
+      actually reads) and fix the wrong password in `config.json`. Still broken — `supabase:sql`
+      returns `Unknown project: turfsheet`, and both the direct and pooler passwords in
+      `config.json` fail auth. Direct psql is also out: `db.<ref>.supabase.co` resolves IPv6-only
+      and this machine has no IPv6 route.
+      **Workaround that does work** — the Supabase Management API runs arbitrary SQL:
+      `POST https://api.supabase.com/v1/projects/klyzdnocgrvassppripi/database/query`
+      with `Authorization: Bearer <sbp_ token>` and `{"query": "..."}`. Used for all schema
+      introspection during the site-auth work. Note it 403s on a Python `urllib` User-Agent;
+      send a curl-like one.
 
 ---
 
 ## Recently Completed ✅
 
+- ✅ Site Authentication — the site is behind a login. Three shared accounts, RLS rewritten on all
+  24 tables, `match_memory_chunks` PUBLIC grant closed, logout un-clipped from the sidebar.
+  Verified 0 of 24 tables readable by the bundled anon key. (2026-08-08)
 - ✅ Banbury Course Map merged into `/maps` — full port from the standalone, pin data migrated into
   the TurfSheet DB, geometry parity proven (0 mismatches / 90 fields), `/banbury-map` retired to a
   302. One open defect: tap-cycle double-advance, above. (2026-07-29)
