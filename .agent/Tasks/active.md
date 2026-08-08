@@ -3,7 +3,11 @@
 
 # Active Tasks
 
-Last Updated: 2026-08-08
+Last Updated: 2026-08-07
+
+**Shipped 2026-08-07:** Pesticide Event Model — see `completed/2026-08/2-pesticide-event-model.md`.
+Spray events are first-class rows with product line items (32 products → 13 events). Migrations A+B
+applied; frontend cutover merged (PR #30); edit/save verified after dropping legacy product columns.
 
 **Shipped 2026-08-08:** Site Authentication — see `completed/2026-08/1-site-authentication.md`.
 TurfSheet is no longer publicly readable: three shared accounts, RLS rewritten across all 24
@@ -11,6 +15,28 @@ tables (anon went from 18 of 24 readable to 0), `?pinToken=` clubhouse handout s
 signed-out.
 
 ## Active Tasks
+
+### Pesticide event model — Task 9 snapshot cleanup
+Context: `completed/2026-08/2-pesticide-event-model.md`
+
+Migration A left a full pre-split copy for rollback:
+`turfsheet.pesticide_applications_pre_split_20260810` (service_role only; listed in
+`scripts/verify-anon-lockdown.mjs`). Product data now lives only on children after Migration B.
+The snapshot is optional baggage once you no longer need a full reverse of the split.
+
+- [ ] Confirm no need to roll back the A→B split (prod edit/save already OK after B).
+- [ ] Drop snapshot via Studio SQL:
+
+      ```sql
+      DROP TABLE IF EXISTS turfsheet.pesticide_applications_pre_split_20260810;
+      ```
+
+- [ ] Remove `'pesticide_applications_pre_split_20260810'` from `TABLES` in
+      `scripts/verify-anon-lockdown.mjs`.
+- [ ] `node scripts/verify-anon-lockdown.mjs` → exit 0; table no longer listed.
+
+Not urgent — keep the snapshot until you are sure the event model is permanent. Dropping it is
+irreversible for full pre-split restore (children remain source of truth either way).
 
 ### OldTom — anon-key diagnostic no longer means what it used to
 Context: `completed/2026-08/1-site-authentication.md`
@@ -145,6 +171,8 @@ Plan retained for its parity checklist: `Implementation/2026-07-28-maps-banbury-
 
 ## Recently Completed ✅
 
+- ✅ Pesticide Event Model — event + product-line schema (A+B), multi-product UI, export still one
+  regulator row per product; PR #30. Snapshot cleanup still open (above). (2026-08-07)
 - ✅ Site Authentication — the site is behind a login. Three shared accounts, RLS rewritten on all
   24 tables, `match_memory_chunks` PUBLIC grant closed, logout un-clipped from the sidebar.
   Verified 0 of 24 tables readable by the bundled anon key. (2026-08-08)
