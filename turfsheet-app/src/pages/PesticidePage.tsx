@@ -1,11 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Plus, Printer, Download, ClipboardList, Package, Calculator, Edit2, Trash2 } from 'lucide-react';
 import Modal from '../components/ui/Modal';
 import PesticideForm from '../components/pesticide/PesticideForm';
-import PesticideListItem from '../components/pesticide/PesticideListItem';
+import PesticideEventRow from '../components/pesticide/PesticideEventRow';
 import ProductLibrary from '../components/pesticide/ProductLibrary';
 import SprayCalculator from '../components/pesticide/SprayCalculator';
-import ApplicationPrintView from '../components/pesticide/ApplicationPrintView';
 import { supabase } from '../lib/supabase';
 import { sameId } from '../lib/utils';
 import { formatMethod } from '../lib/pesticideOptions';
@@ -14,12 +13,19 @@ import {
     downloadPesticideLogPdf,
 } from '../lib/pesticideLogExport';
 import {
-    findMixSiblingIds,
-    pickSharedMixFields,
-    type CalculatorRecordPayload,
-    type MixProductPrefill,
-} from '../lib/pesticideMix';
-import type { PesticideApplication, Staff, ChemicalProduct } from '../types';
+    deletePesticideApplication,
+    fetchPesticideApplications,
+    insertPesticideApplication,
+    updatePesticideApplication,
+} from '../lib/pesticideData';
+import { flattenEventsToLogLines, maxReiHours, resolveMethod } from '../lib/pesticideApplication';
+import type {
+    CalculatorRecordPayload,
+    ChemicalProduct,
+    PesticideApplicationDraft,
+    PesticideApplicationWithProducts,
+    Staff,
+} from '../types';
 
 type TabId = 'applications' | 'products' | 'calculator';
 
@@ -31,24 +37,25 @@ const TABS: { id: TabId; label: string; icon: typeof ClipboardList }[] = [
 
 export default function PesticidePage() {
     const [activeTab, setActiveTab] = useState<TabId>('applications');
-    const [applications, setApplications] = useState<PesticideApplication[]>([]);
+    const [applications, setApplications] = useState<PesticideApplicationWithProducts[]>([]);
     const [staffMembers, setStaffMembers] = useState<Staff[]>([]);
     const [products, setProducts] = useState<ChemicalProduct[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-    const [selectedApplication, setSelectedApplication] = useState<PesticideApplication | null>(null);
-    const [editingApplication, setEditingApplication] = useState<PesticideApplication | null>(null);
+    const [selectedApplication, setSelectedApplication] =
+        useState<PesticideApplicationWithProducts | null>(null);
+    const [editingApplication, setEditingApplication] =
+        useState<PesticideApplicationWithProducts | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
-    // Task 1: prefill data from calculator
-    const [prefillData, setPrefillData] = useState<Record<string, string> | null>(null);
-    /** Full tank mix lines when recording from Spray Calculator (multi-product insert). */
-    const [mixProducts, setMixProducts] = useState<MixProductPrefill[] | null>(null);
+    const [calculatorPrefill, setCalculatorPrefill] = useState<CalculatorRecordPayload | null>(
+        null
+    );
     const [statusMessage, setStatusMessage] = useState<string | null>(null);
-    const printRef = useRef<HTMLDivElement>(null);
+    const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
     useEffect(() => {
         fetchData();
@@ -59,15 +66,9 @@ export default function PesticidePage() {
             setLoading(true);
             setError(null);
 
-            const [appsResult, staffResult, productsResult] = await Promise.all([
-                supabase
-                    .from('pesticide_applications')
-                    .select('*')
-                    .order('application_date', { ascending: false }),
-                supabase
-                    .from('staff')
-                    .select('id, name, role')
-                    .order('name'),
+            const [apps, staffResult, productsResult] = await Promise.all([
+                fetchPesticideApplications(),
+                supabase.from('staff').select('id, name, role').order('name'),
                 supabase
                     .from('chemical_products')
                     .select('*')
@@ -75,14 +76,12 @@ export default function PesticidePage() {
                     .order('name'),
             ]);
 
-            if (appsResult.error) throw appsResult.error;
             if (staffResult.error) throw staffResult.error;
-            // Products table may not exist yet
             if (productsResult.error) {
                 console.warn('chemical_products not found:', productsResult.error.message);
             }
 
-            setApplications(appsResult.data || []);
+            setApplications(apps);
             setStaffMembers((staffResult.data as Staff[]) || []);
             setProducts((productsResult.data as ChemicalProduct[]) || []);
         } catch (err) {
@@ -95,154 +94,64 @@ export default function PesticidePage() {
     };
 
     const getOperatorName = (id?: string | number) =>
-        staffMembers.find(s => sameId(s.id, id))?.name || 'Unknown';
+        staffMembers.find((s) => sameId(s.id, id))?.name || 'Unknown';
 
-    const cascadeSharedToSiblings = async (
-        sourceRow: Pick<PesticideApplication, 'id' | 'application_date' | 'area_applied'>,
-        formData: Record<string, unknown>,
-        appsSnapshot: PesticideApplication[]
-    ) => {
-        const shared = pickSharedMixFields(formData);
-        // Match siblings using post-edit date/area so a corrected area still fans out.
-        const matchKey = {
-            id: sourceRow.id,
-            application_date: String(
-                (shared.application_date as string | undefined) ?? sourceRow.application_date ?? ''
-            ),
-            area_applied: String(
-                (shared.area_applied as string | undefined) ?? sourceRow.area_applied ?? ''
-            ),
-        };
-        const siblingIds = findMixSiblingIds(appsSnapshot, matchKey);
-        if (siblingIds.length === 0) return 0;
-
-        const { error: cascadeError } = await supabase
-            .from('pesticide_applications')
-            .update(shared)
-            .in('id', siblingIds);
-        if (cascadeError) throw cascadeError;
-        return siblingIds.length;
+    const refreshApplications = async () => {
+        const apps = await fetchPesticideApplications();
+        setApplications(apps);
+        return apps;
     };
 
-    const handleSave = async (formData: any) => {
+    const handleSave = async (draft: PesticideApplicationDraft) => {
         try {
             setError(null);
             setStatusMessage(null);
-
-            const rows: Record<string, unknown>[] =
-                mixProducts && mixProducts.length > 1
-                    ? mixProducts.map((product) => ({
-                          ...formData,
-                          product_name: product.product_name || formData.product_name,
-                          epa_registration_number:
-                              product.epa_registration_number || formData.epa_registration_number,
-                          active_ingredient: product.active_ingredient || formData.active_ingredient,
-                          application_rate: product.application_rate || formData.application_rate,
-                          rate_unit: product.rate_unit || formData.rate_unit,
-                          total_amount_used: product.total_amount_used || formData.total_amount_used,
-                          amount_per_tank: product.amount_per_tank || formData.amount_per_tank,
-                          manufacturer: product.manufacturer || formData.manufacturer,
-                          rei_hours:
-                              product.rei_hours != null && product.rei_hours !== ''
-                                  ? parseInt(product.rei_hours, 10)
-                                  : formData.rei_hours,
-                          method: product.method || formData.method,
-                      }))
-                    : [formData];
-
-            const { data, error: insertError } = await supabase
-                .from('pesticide_applications')
-                .insert(rows)
-                .select();
-
-            if (insertError) throw insertError;
-
-            const inserted = (data as PesticideApplication[]) || [];
-            let cascaded = 0;
-            // If only one row was inserted but siblings already exist (import + fill ops),
-            // fan shared fields out to matching date+area rows.
-            if (inserted.length === 1) {
-                cascaded = await cascadeSharedToSiblings(
-                    inserted[0],
-                    formData,
-                    [...inserted, ...applications]
-                );
-            }
-
-            const { data: refreshed } = await supabase
-                .from('pesticide_applications')
-                .select('*')
-                .order('application_date', { ascending: false });
-            if (refreshed) setApplications(refreshed);
-            else setApplications([...inserted, ...applications]);
-
+            await insertPesticideApplication(draft);
+            await refreshApplications();
             setIsAddModalOpen(false);
-            setPrefillData(null);
-            setMixProducts(null);
-            if (inserted.length > 1) {
-                setStatusMessage(
-                    `Recorded ${inserted.length} product rows for this tank mix (shared operator/weather/equipment).`
-                );
-            } else if (cascaded > 0) {
-                setStatusMessage(
-                    `Saved. Also updated ${cascaded} other product row${cascaded === 1 ? '' : 's'} in this tank mix.`
-                );
-            }
+            setCalculatorPrefill(null);
+            const n = draft.lines.length;
+            setStatusMessage(
+                n > 1
+                    ? `Recorded application with ${n} products.`
+                    : 'Recorded application.'
+            );
         } catch (err) {
             const message = err instanceof Error ? err.message : 'Failed to record application';
             setError(message);
         }
     };
 
-    // Task 7: Edit handler — cascade shared ops fields to tank-mix siblings
-    const handleEditApplication = async (formData: any) => {
+    const handleEditApplication = async (draft: PesticideApplicationDraft) => {
         if (!editingApplication) return;
         try {
             setError(null);
             setStatusMessage(null);
-            const { error: updateError } = await supabase
-                .from('pesticide_applications')
-                .update(formData)
-                .eq('id', editingApplication.id);
-
-            if (updateError) throw updateError;
-
-            const cascaded = await cascadeSharedToSiblings(
-                editingApplication,
-                formData,
-                applications
+            await updatePesticideApplication(
+                editingApplication.id,
+                draft,
+                editingApplication.products ?? []
             );
-
-            const { data: updated } = await supabase
-                .from('pesticide_applications')
-                .select('*')
-                .order('application_date', { ascending: false });
-            if (updated) setApplications(updated);
+            await refreshApplications();
             setEditingApplication(null);
-            if (cascaded > 0) {
-                setStatusMessage(
-                    `Updated. Also synced operator/weather/equipment to ${cascaded} other product row${cascaded === 1 ? '' : 's'} in this tank mix.`
-                );
-            }
+            setStatusMessage('Application updated.');
         } catch (err) {
             const message = err instanceof Error ? err.message : 'Failed to update application';
             setError(message);
         }
     };
 
-    // Task 7: Delete handler
-    const handleDeleteApplication = async (id: string) => {
-        if (!window.confirm('Delete this application record? This cannot be undone.')) return;
+    const handleDeleteApplication = async (event: PesticideApplicationWithProducts) => {
+        const n = event.products?.length ?? 0;
+        const msg =
+            n > 1
+                ? `Delete this application and its ${n} product lines? This cannot be undone.`
+                : 'Delete this application record? This cannot be undone.';
+        if (!window.confirm(msg)) return;
         try {
             setError(null);
-            const { error: deleteError } = await supabase
-                .from('pesticide_applications')
-                .delete()
-                .eq('id', id);
-
-            if (deleteError) throw deleteError;
-
-            setApplications(prev => prev.filter(app => app.id !== id));
+            await deletePesticideApplication(event.id);
+            setApplications((prev) => prev.filter((app) => app.id !== event.id));
             setIsDetailModalOpen(false);
             setSelectedApplication(null);
         } catch (err) {
@@ -251,33 +160,38 @@ export default function PesticidePage() {
         }
     };
 
-    const handleViewApplication = (app: PesticideApplication) => {
+    const handleViewApplication = (app: PesticideApplicationWithProducts) => {
         setSelectedApplication(app);
         setIsDetailModalOpen(true);
     };
 
-    // Task 1: Bridge from calculator (supports multi-product tank mix)
-    const handleRecordFromCalculator = (payload: CalculatorRecordPayload | Record<string, string>) => {
-        if (payload && typeof payload === 'object' && 'shared' in payload && 'mixProducts' in payload) {
-            const full = payload as CalculatorRecordPayload;
-            setPrefillData(full.shared);
-            setMixProducts(full.mixProducts.length > 0 ? full.mixProducts : null);
-        } else {
-            setPrefillData(payload as Record<string, string>);
-            setMixProducts(null);
-        }
+    const handleRecordFromCalculator = (payload: CalculatorRecordPayload) => {
+        setCalculatorPrefill(payload);
         setActiveTab('applications');
         setIsAddModalOpen(true);
     };
 
-    const filteredApplications = applications.filter(app => {
+    const toggleExpand = (id: string) => {
+        setExpandedIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
+
+    const filteredApplications = applications.filter((app) => {
         const query = searchQuery.toLowerCase().trim();
-        const product = (app.product_name ?? '').toLowerCase();
         const area = (app.area_applied ?? '').toLowerCase();
-        const matchesSearch = !query || product.includes(query) || area.includes(query);
+        const productMatch =
+            !query ||
+            (app.products ?? []).some((p) =>
+                (p.product_name ?? '').toLowerCase().includes(query)
+            ) ||
+            area.includes(query);
         const matchesDateFrom = !dateFrom || app.application_date >= dateFrom;
         const matchesDateTo = !dateTo || app.application_date <= dateTo;
-        return matchesSearch && matchesDateFrom && matchesDateTo;
+        return productMatch && matchesDateFrom && matchesDateTo;
     });
 
     const assertExportReady = (action: 'print' | 'download'): boolean => {
@@ -309,7 +223,9 @@ export default function PesticidePage() {
 
         const printWindow = window.open('', '_blank');
         if (!printWindow) {
-            setStatusMessage('Pop-up blocked — allow pop-ups for whitepine-tech.com to print the log.');
+            setStatusMessage(
+                'Pop-up blocked — allow pop-ups for whitepine-tech.com to print the log.'
+            );
             return;
         }
 
@@ -329,8 +245,9 @@ export default function PesticidePage() {
                 dateFrom: dateFrom || undefined,
                 dateTo: dateTo || undefined,
             });
+            const lines = flattenEventsToLogLines(filteredApplications).length;
             setStatusMessage(
-                `Downloaded PDF (${filteredApplications.length} record${filteredApplications.length !== 1 ? 's' : ''}).`
+                `Downloaded PDF (${filteredApplications.length} application${filteredApplications.length !== 1 ? 's' : ''}, ${lines} product line${lines !== 1 ? 's' : ''}).`
             );
         } catch (e) {
             const msg = e instanceof Error ? e.message : 'Unknown error';
@@ -338,24 +255,35 @@ export default function PesticidePage() {
         }
     };
 
-    const inputClasses = "bg-panel-white border border-border-color px-4 py-2 text-sm focus:border-turf-green outline-none transition-colors font-sans";
-    const detailLabelClasses = "text-xs font-heading font-black uppercase tracking-wider text-text-secondary block mb-2";
+    const inputClasses =
+        'bg-panel-white border border-border-color px-4 py-2 text-sm focus:border-turf-green outline-none transition-colors font-sans';
+    const detailLabelClasses =
+        'text-xs font-heading font-black uppercase tracking-wider text-text-secondary block mb-2';
 
     const formatDate = (dateStr: string) => {
         const date = new Date(dateStr + 'T00:00:00');
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        return date.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+        });
     };
+
+    const selectedProducts = selectedApplication?.products ?? [];
+    const longestRei = selectedApplication
+        ? maxReiHours(selectedProducts)
+        : undefined;
 
     return (
         <div className="space-y-8 pb-12">
-            {/* Page Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-border-color">
                 <div>
                     <h2 className="text-2xl font-heading font-black uppercase tracking-tight text-text-primary">
                         Chemical Management
                     </h2>
                     <p className="text-text-secondary text-sm font-sans">
-                        Product library, spray calculations, and application records for Idaho regulatory compliance.
+                        Product library, spray calculations, and application records for Idaho
+                        regulatory compliance.
                     </p>
                 </div>
                 {activeTab === 'applications' && (
@@ -388,7 +316,6 @@ export default function PesticidePage() {
                 )}
             </div>
 
-            {/* Tab Navigation */}
             <div className="flex overflow-x-auto custom-scrollbar border-b border-border-color">
                 {TABS.map((tab) => (
                     <button
@@ -406,10 +333,8 @@ export default function PesticidePage() {
                 ))}
             </div>
 
-            {/* Tab Content */}
             {activeTab === 'applications' && (
                 <div className="space-y-6">
-                    {/* Search Bar */}
                     <div className="flex flex-col lg:flex-row gap-4 justify-between items-center bg-panel-white p-4 border border-border-color shadow-sm">
                         <div className="relative flex-1 w-full max-w-2xl">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
@@ -423,7 +348,9 @@ export default function PesticidePage() {
                         </div>
                         <div className="flex items-center gap-4 flex-wrap">
                             <div className="flex items-center gap-2">
-                                <label className="text-[0.65rem] font-heading font-black text-text-secondary uppercase tracking-widest whitespace-nowrap">From</label>
+                                <label className="text-[0.65rem] font-heading font-black text-text-secondary uppercase tracking-widest whitespace-nowrap">
+                                    From
+                                </label>
                                 <input
                                     type="date"
                                     value={dateFrom}
@@ -432,7 +359,9 @@ export default function PesticidePage() {
                                 />
                             </div>
                             <div className="flex items-center gap-2">
-                                <label className="text-[0.65rem] font-heading font-black text-text-secondary uppercase tracking-widest whitespace-nowrap">To</label>
+                                <label className="text-[0.65rem] font-heading font-black text-text-secondary uppercase tracking-widest whitespace-nowrap">
+                                    To
+                                </label>
                                 <input
                                     type="date"
                                     value={dateTo}
@@ -441,22 +370,21 @@ export default function PesticidePage() {
                                 />
                             </div>
                             <span className="text-xs text-text-secondary font-sans">
-                                {filteredApplications.length} record{filteredApplications.length !== 1 ? 's' : ''}
+                                {filteredApplications.length} application
+                                {filteredApplications.length !== 1 ? 's' : ''}
                             </span>
                         </div>
                     </div>
 
-                    {/* List Header */}
-                    <div className="grid grid-cols-6 gap-4 px-6 py-3 bg-turf-green text-white text-[0.65rem] font-heading font-black uppercase tracking-widest">
+                    <div className="grid grid-cols-[28px_1.2fr_2fr_1.5fr_1fr_1fr] gap-4 px-6 py-3 bg-turf-green text-white text-[0.65rem] font-heading font-black uppercase tracking-widest">
+                        <span />
                         <span>Date</span>
-                        <span>Product</span>
-                        <span>Rate</span>
+                        <span>Products</span>
                         <span>Area</span>
                         <span>Operator</span>
                         <span>Method</span>
                     </div>
 
-                    {/* List Content */}
                     <div className="-mt-2">
                         {statusMessage && (
                             <div className="mx-0 mb-3 px-4 py-3 bg-green-50 border border-green-200 text-green-900 text-sm font-sans">
@@ -492,10 +420,12 @@ export default function PesticidePage() {
                         {!loading && !error && filteredApplications.length > 0 && (
                             <div className="bg-panel-white border border-border-color border-t-0">
                                 {filteredApplications.map((app) => (
-                                    <PesticideListItem
+                                    <PesticideEventRow
                                         key={app.id}
-                                        application={app}
+                                        event={app}
                                         operatorName={getOperatorName(app.operator_id)}
+                                        expanded={expandedIds.has(app.id)}
+                                        onToggleExpand={() => toggleExpand(app.id)}
                                         onClick={() => handleViewApplication(app)}
                                     />
                                 ))}
@@ -510,39 +440,42 @@ export default function PesticidePage() {
                     <ProductLibrary />
                 </div>
             )}
-            {/* Task 1: pass onRecordApplication handler */}
             {activeTab === 'calculator' && (
                 <div className="pb-8">
                     <SprayCalculator onRecordApplication={handleRecordFromCalculator} />
                 </div>
             )}
 
-            {/* Add Application Modal */}
             <Modal
                 isOpen={isAddModalOpen}
-                onClose={() => { setIsAddModalOpen(false); setPrefillData(null); setMixProducts(null); }}
+                onClose={() => {
+                    setIsAddModalOpen(false);
+                    setCalculatorPrefill(null);
+                }}
                 title={
-                    mixProducts && mixProducts.length > 1
-                        ? `Record Application (${mixProducts.length} products in mix)`
+                    calculatorPrefill && calculatorPrefill.lines.length > 1
+                        ? `Record Application (${calculatorPrefill.lines.length} products in mix)`
                         : 'Record Application'
                 }
-                size="lg"
+                size="xl"
             >
                 <PesticideForm
                     onSubmit={handleSave}
-                    onCancel={() => { setIsAddModalOpen(false); setPrefillData(null); setMixProducts(null); }}
+                    onCancel={() => {
+                        setIsAddModalOpen(false);
+                        setCalculatorPrefill(null);
+                    }}
                     staffMembers={staffMembers}
                     products={products}
-                    prefillData={prefillData}
+                    calculatorPrefill={calculatorPrefill}
                 />
             </Modal>
 
-            {/* Edit Application Modal (Task 7) */}
             <Modal
                 isOpen={!!editingApplication}
                 onClose={() => setEditingApplication(null)}
                 title="Edit Application"
-                size="lg"
+                size="xl"
             >
                 {editingApplication && (
                     <PesticideForm
@@ -555,7 +488,6 @@ export default function PesticidePage() {
                 )}
             </Modal>
 
-            {/* Detail Modal */}
             <Modal
                 isOpen={isDetailModalOpen}
                 onClose={() => setIsDetailModalOpen(false)}
@@ -566,88 +498,128 @@ export default function PesticidePage() {
                     <div className="space-y-6 font-sans">
                         <div className="pb-4 border-b border-border-color">
                             <h3 className="text-2xl font-heading font-black text-text-primary uppercase tracking-tight">
-                                {selectedApplication.product_name}
+                                {selectedApplication.area_applied}
                             </h3>
                             <p className="text-text-secondary text-sm mt-1">
                                 Applied on {formatDate(selectedApplication.application_date)}
-                                {selectedApplication.application_time && ` at ${selectedApplication.application_time}`}
+                                {selectedApplication.application_time &&
+                                    ` at ${selectedApplication.application_time}`}
                             </p>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                            {selectedApplication.epa_registration_number && (
-                                <div>
-                                    <label className={detailLabelClasses}>EPA Registration #</label>
-                                    <p className="text-sm text-text-primary">{selectedApplication.epa_registration_number}</p>
+                        {/* Products table */}
+                        <div>
+                            <h4 className="text-xs font-heading font-black uppercase tracking-wider text-text-secondary mb-3">
+                                Products ({selectedProducts.length})
+                            </h4>
+                            <div className="border border-border-color overflow-hidden">
+                                <div className="grid grid-cols-[1.5fr_1fr_1fr_0.8fr_1fr_0.8fr] gap-2 px-3 py-2 bg-dashboard-bg text-[0.6rem] font-heading font-black uppercase tracking-widest text-text-secondary">
+                                    <span>Product</span>
+                                    <span>Rate</span>
+                                    <span>Total / Tank</span>
+                                    <span>REI</span>
+                                    <span>Target</span>
+                                    <span>Method</span>
                                 </div>
-                            )}
-                            {selectedApplication.active_ingredient && (
-                                <div>
-                                    <label className={detailLabelClasses}>Active Ingredient</label>
-                                    <p className="text-sm text-text-primary">{selectedApplication.active_ingredient}</p>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className={detailLabelClasses}>Application Rate</label>
-                                <p className="text-sm text-text-primary">{selectedApplication.application_rate}</p>
+                                {[...selectedProducts]
+                                    .sort(
+                                        (a, b) => (a.line_number ?? 0) - (b.line_number ?? 0)
+                                    )
+                                    .map((p) => (
+                                        <div
+                                            key={p.id}
+                                            className="grid grid-cols-[1.5fr_1fr_1fr_0.8fr_1fr_0.8fr] gap-2 px-3 py-2 border-t border-border-color text-sm"
+                                        >
+                                            <div>
+                                                <p className="font-medium text-text-primary">
+                                                    {p.product_name}
+                                                </p>
+                                                {(p.manufacturer || p.epa_registration_number) && (
+                                                    <p className="text-xs text-text-secondary mt-0.5">
+                                                        {[p.manufacturer, p.epa_registration_number]
+                                                            .filter(Boolean)
+                                                            .join(' · ')}
+                                                    </p>
+                                                )}
+                                                {p.epa_lot_number && (
+                                                    <p className="text-xs text-text-secondary">
+                                                        Lot {p.epa_lot_number}
+                                                    </p>
+                                                )}
+                                                {p.active_ingredient && (
+                                                    <p className="text-xs text-text-secondary">
+                                                        {p.active_ingredient}
+                                                    </p>
+                                                )}
+                                            </div>
+                                            <span className="text-text-primary">
+                                                {p.application_rate}
+                                            </span>
+                                            <span className="text-text-secondary text-xs">
+                                                {[p.total_amount_used, p.amount_per_tank]
+                                                    .filter(Boolean)
+                                                    .join(' / ') || '—'}
+                                            </span>
+                                            <span className="text-text-secondary">
+                                                {p.rei_hours != null ? `${p.rei_hours}h` : '—'}
+                                            </span>
+                                            <span className="text-text-secondary">
+                                                {p.target_pest || '—'}
+                                            </span>
+                                            <span className="text-text-secondary">
+                                                {formatMethod(
+                                                    resolveMethod(selectedApplication, p)
+                                                )}
+                                            </span>
+                                        </div>
+                                    ))}
                             </div>
-                            {selectedApplication.total_amount_used && (
-                                <div>
-                                    <label className={detailLabelClasses}>Total Amount Used</label>
-                                    <p className="text-sm text-text-primary">{selectedApplication.total_amount_used}</p>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className={detailLabelClasses}>Area Applied</label>
-                                <p className="text-sm text-text-primary">{selectedApplication.area_applied}</p>
-                            </div>
-                            {selectedApplication.area_size && (
-                                <div>
-                                    <label className={detailLabelClasses}>Area Size</label>
-                                    <p className="text-sm text-text-primary">{selectedApplication.area_size}</p>
-                                </div>
-                            )}
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className={detailLabelClasses}>Operator</label>
-                                <p className="text-sm text-text-primary">{getOperatorName(selectedApplication.operator_id)}</p>
+                                <p className="text-sm text-text-primary">
+                                    {getOperatorName(selectedApplication.operator_id)}
+                                </p>
                             </div>
                             <div>
-                                <label className={detailLabelClasses}>Method</label>
-                                <p className="text-sm text-text-primary">{formatMethod(selectedApplication.method)}</p>
+                                <label className={detailLabelClasses}>Event method</label>
+                                <p className="text-sm text-text-primary">
+                                    {formatMethod(selectedApplication.method)}
+                                </p>
                             </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
+                            {selectedApplication.area_size && (
+                                <div>
+                                    <label className={detailLabelClasses}>Area Size</label>
+                                    <p className="text-sm text-text-primary">
+                                        {selectedApplication.area_size}
+                                    </p>
+                                </div>
+                            )}
                             {selectedApplication.applicator_license && (
                                 <div>
-                                    <label className={detailLabelClasses}>Applicator License #</label>
-                                    <p className="text-sm text-text-primary">{selectedApplication.applicator_license}</p>
+                                    <label className={detailLabelClasses}>
+                                        Applicator License #
+                                    </label>
+                                    <p className="text-sm text-text-primary">
+                                        {selectedApplication.applicator_license}
+                                    </p>
                                 </div>
                             )}
-                            {selectedApplication.target_pest && (
+                            {longestRei != null && (
                                 <div>
-                                    <label className={detailLabelClasses}>Target Pest</label>
-                                    <p className="text-sm text-text-primary">{selectedApplication.target_pest}</p>
-                                </div>
-                            )}
-                            {selectedApplication.rei_hours != null && (
-                                <div>
-                                    <label className={detailLabelClasses}>REI</label>
-                                    <p className="text-sm text-text-primary">{selectedApplication.rei_hours} hours</p>
+                                    <label className={detailLabelClasses}>
+                                        REI (longest in mix)
+                                    </label>
+                                    <p className="text-sm text-text-primary">{longestRei} hours</p>
                                 </div>
                             )}
                         </div>
 
-                        {(selectedApplication.weather_conditions || selectedApplication.temperature || selectedApplication.wind_speed) && (
+                        {(selectedApplication.weather_conditions ||
+                            selectedApplication.temperature ||
+                            selectedApplication.wind_speed) && (
                             <div className="border-t border-border-color pt-4">
                                 <h4 className="text-xs font-heading font-black uppercase tracking-wider text-text-secondary mb-3">
                                     Weather Conditions
@@ -656,38 +628,49 @@ export default function PesticidePage() {
                                     {selectedApplication.temperature && (
                                         <div>
                                             <label className={detailLabelClasses}>Temperature</label>
-                                            <p className="text-sm text-text-primary">{selectedApplication.temperature}°F</p>
+                                            <p className="text-sm text-text-primary">
+                                                {selectedApplication.temperature}°F
+                                            </p>
                                         </div>
                                     )}
                                     {selectedApplication.wind_speed && (
                                         <div>
                                             <label className={detailLabelClasses}>Wind Speed</label>
-                                            <p className="text-sm text-text-primary">{selectedApplication.wind_speed} mph</p>
+                                            <p className="text-sm text-text-primary">
+                                                {selectedApplication.wind_speed} mph
+                                            </p>
                                         </div>
                                     )}
                                     {selectedApplication.wind_direction && (
                                         <div>
-                                            <label className={detailLabelClasses}>Wind Direction</label>
-                                            <p className="text-sm text-text-primary">{selectedApplication.wind_direction}</p>
+                                            <label className={detailLabelClasses}>
+                                                Wind Direction
+                                            </label>
+                                            <p className="text-sm text-text-primary">
+                                                {selectedApplication.wind_direction}
+                                            </p>
                                         </div>
                                     )}
                                     {selectedApplication.humidity && (
                                         <div>
                                             <label className={detailLabelClasses}>Humidity</label>
-                                            <p className="text-sm text-text-primary">{selectedApplication.humidity}%</p>
+                                            <p className="text-sm text-text-primary">
+                                                {selectedApplication.humidity}%
+                                            </p>
                                         </div>
                                     )}
                                     {selectedApplication.weather_conditions && (
                                         <div>
                                             <label className={detailLabelClasses}>Conditions</label>
-                                            <p className="text-sm text-text-primary">{selectedApplication.weather_conditions}</p>
+                                            <p className="text-sm text-text-primary">
+                                                {selectedApplication.weather_conditions}
+                                            </p>
                                         </div>
                                     )}
                                 </div>
                             </div>
                         )}
 
-                        {/* Paper form fields */}
                         <div className="border-t border-border-color pt-4">
                             <h4 className="text-xs font-heading font-black uppercase tracking-wider text-text-secondary mb-3">
                                 Compliance Details
@@ -695,43 +678,39 @@ export default function PesticidePage() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className={detailLabelClasses}>WPS Briefing</label>
-                                    <p className="text-sm text-text-primary">{selectedApplication.worker_protection_exchange ? 'Completed' : 'Not completed'}</p>
+                                    <p className="text-sm text-text-primary">
+                                        {selectedApplication.worker_protection_exchange
+                                            ? 'Completed'
+                                            : 'Not completed'}
+                                    </p>
                                 </div>
                                 {selectedApplication.recommended_by && (
                                     <div>
                                         <label className={detailLabelClasses}>Recommended By</label>
-                                        <p className="text-sm text-text-primary">{staffMembers.find(s => sameId(s.id, selectedApplication.recommended_by))?.name || '--'}</p>
-                                    </div>
-                                )}
-                                {selectedApplication.manufacturer && (
-                                    <div>
-                                        <label className={detailLabelClasses}>Manufacturer</label>
-                                        <p className="text-sm text-text-primary">{selectedApplication.manufacturer}</p>
-                                    </div>
-                                )}
-                                {selectedApplication.epa_lot_number && (
-                                    <div>
-                                        <label className={detailLabelClasses}>EPA Lot Number</label>
-                                        <p className="text-sm text-text-primary">{selectedApplication.epa_lot_number}</p>
-                                    </div>
-                                )}
-                                {selectedApplication.amount_per_tank && (
-                                    <div>
-                                        <label className={detailLabelClasses}>Amount per Tank</label>
-                                        <p className="text-sm text-text-primary">{selectedApplication.amount_per_tank}</p>
+                                        <p className="text-sm text-text-primary">
+                                            {staffMembers.find((s) =>
+                                                sameId(s.id, selectedApplication.recommended_by)
+                                            )?.name || '--'}
+                                        </p>
                                     </div>
                                 )}
                                 {selectedApplication.equipment_used && (
                                     <div>
                                         <label className={detailLabelClasses}>Equipment Used</label>
-                                        <p className="text-sm text-text-primary">{selectedApplication.equipment_used}</p>
+                                        <p className="text-sm text-text-primary">
+                                            {selectedApplication.equipment_used}
+                                        </p>
                                     </div>
                                 )}
                             </div>
                             {selectedApplication.worker_protection_requirements && (
                                 <div className="mt-3">
-                                    <label className={detailLabelClasses}>Worker Protection Requirements</label>
-                                    <p className="text-xs text-text-secondary leading-relaxed">{selectedApplication.worker_protection_requirements}</p>
+                                    <label className={detailLabelClasses}>
+                                        Worker Protection Requirements
+                                    </label>
+                                    <p className="text-xs text-text-secondary leading-relaxed whitespace-pre-wrap">
+                                        {selectedApplication.worker_protection_requirements}
+                                    </p>
                                 </div>
                             )}
                         </div>
@@ -739,11 +718,12 @@ export default function PesticidePage() {
                         {selectedApplication.notes && (
                             <div className="border-t border-border-color pt-4">
                                 <label className={detailLabelClasses}>Notes</label>
-                                <p className="text-sm text-text-primary whitespace-pre-wrap">{selectedApplication.notes}</p>
+                                <p className="text-sm text-text-primary whitespace-pre-wrap">
+                                    {selectedApplication.notes}
+                                </p>
                             </div>
                         )}
 
-                        {/* Task 7: Edit/Delete footer */}
                         <div className="flex gap-3 pt-4 border-t border-border-color">
                             <button
                                 onClick={() => setIsDetailModalOpen(false)}
@@ -762,7 +742,7 @@ export default function PesticidePage() {
                                 Edit
                             </button>
                             <button
-                                onClick={() => handleDeleteApplication(selectedApplication.id)}
+                                onClick={() => handleDeleteApplication(selectedApplication)}
                                 className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 shadow-sm flex items-center gap-2 font-heading font-black hover:bg-red-100 transition-all text-[0.65rem] uppercase tracking-[0.15em]"
                             >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -772,12 +752,6 @@ export default function PesticidePage() {
                     </div>
                 )}
             </Modal>
-
-            <ApplicationPrintView
-                ref={printRef}
-                applications={filteredApplications}
-                staffMembers={staffMembers}
-            />
         </div>
     );
 }

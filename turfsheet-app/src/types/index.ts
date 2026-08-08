@@ -287,41 +287,120 @@ export type KnownApplicationMethod =
 /** Free text is permitted via the form's "Other" escape hatch; known slugs still autocomplete. */
 export type ApplicationMethod = KnownApplicationMethod | (string & {});
 
-export interface PesticideApplication {
+/**
+ * One spray event. Shared ops/context fields live here exactly once — there is
+ * no cascade to keep in sync, because there are no sibling rows to sync with.
+ */
+export interface PesticideApplicationEvent {
   id: string;
   application_date: string;
+  application_time?: string;
+  area_applied: string;
+  area_size?: string;
+  /** Event-level method; a product line may override it. */
+  method?: ApplicationMethod;
+  operator_id?: number;
+  applicator_license?: string;
+  recommended_by?: number;
+  equipment_used?: string;
+  temperature?: string;
+  wind_speed?: string;
+  wind_direction?: string;
+  humidity?: string;
+  weather_conditions?: string;
+  worker_protection_exchange: boolean;
+  worker_protection_requirements?: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/** One product line within a spray event. */
+export interface PesticideApplicationProduct {
+  id: string;
+  application_id: string;
+  line_number: number;
   product_name: string;
   epa_registration_number?: string;
   active_ingredient?: string;
+  manufacturer?: string;
+  epa_lot_number?: string;
   application_rate: string;
   rate_unit?: string;
   total_amount_used?: string;
-  area_applied: string;
-  area_size?: string;
-  target_pest?: string;
-  method?: ApplicationMethod;
-  operator_id?: number;
-  wind_speed?: string;
-  temperature?: string;
-  weather_conditions?: string;
-  rei_hours?: number;
-  notes?: string;
-  // Compliance fields
-  application_time?: string;
-  applicator_license?: string;
-  wind_direction?: string;
-  humidity?: string;
-  // Paper form fields
-  worker_protection_exchange: boolean;
-  worker_protection_requirements?: string;
-  recommended_by?: number;
-  epa_lot_number?: string;
-  manufacturer?: string;
   amount_per_tank?: string;
-  equipment_used?: string;
-  // Timestamps
+  rei_hours?: number;
+  /** Per-product: one tank mix can legitimately target several pests. */
+  target_pest?: string;
+  /** NULL inherits the event's method. */
+  method?: ApplicationMethod;
+  legacy_source_id?: string;
   created_at: string;
   updated_at: string;
+}
+
+/** An event with its product lines embedded — the shape every read returns. */
+export interface PesticideApplicationWithProducts extends PesticideApplicationEvent {
+  products: PesticideApplicationProduct[];
+}
+
+/** Write-side draft for the event half of the form (all inputs are strings). */
+export interface EventDraft {
+  application_date: string;
+  application_time: string;
+  area_applied: string;
+  area_size: string;
+  method: string;
+  operator_id: string;
+  applicator_license: string;
+  recommended_by: string;
+  equipment_used: string;
+  temperature: string;
+  wind_speed: string;
+  wind_direction: string;
+  humidity: string;
+  weather_conditions: string;
+  worker_protection_exchange: boolean;
+  worker_protection_requirements: string;
+  notes: string;
+}
+
+/** Write-side draft for one product line. */
+export interface ProductLineDraft {
+  /** Client-only React key, minted with crypto.randomUUID(). Never the array index. */
+  key: string;
+  /** Present only when editing a line that already exists in the database. */
+  id?: string;
+  product_name: string;
+  epa_registration_number: string;
+  active_ingredient: string;
+  manufacturer: string;
+  epa_lot_number: string;
+  application_rate: string;
+  rate_unit: string;
+  total_amount_used: string;
+  amount_per_tank: string;
+  rei_hours: string;
+  target_pest: string;
+  /** Blank inherits the event's method. */
+  method: string;
+}
+
+export interface PesticideApplicationDraft {
+  event: EventDraft;
+  lines: ProductLineDraft[];
+}
+
+/** Spray calculator hand-off into the application form. */
+export interface CalculatorRecordPayload {
+  event: Partial<EventDraft>;
+  lines: Omit<ProductLineDraft, 'key'>[];
+}
+
+/** One flattened row of the regulator log: event context + a single product line. */
+export interface PesticideLogLine {
+  event: PesticideApplicationWithProducts;
+  product?: PesticideApplicationProduct;
 }
 
 // ============================================================

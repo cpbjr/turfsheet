@@ -1,8 +1,9 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { formatMethod } from './pesticideOptions';
+import { flattenEventsToLogLines, resolveMethod } from './pesticideApplication';
 import { sameId } from './utils';
-import type { PesticideApplication, Staff } from '../types';
+import type { PesticideApplicationWithProducts, PesticideLogLine, Staff } from '../types';
 
 export const PESTICIDE_LOG_COLUMNS = [
     'Date',
@@ -44,36 +45,37 @@ function staffName(staffMembers: Staff[], id?: string | number): string {
     return staffMembers.find((s) => sameId(s.id, id))?.name || '--';
 }
 
-/** One row of cell values aligned with PESTICIDE_LOG_COLUMNS. */
-export function applicationToLogRow(
-    app: PesticideApplication,
-    staffMembers: Staff[]
-): string[] {
+/**
+ * One regulator-log row: event context + a single product line.
+ * Column order is byte-identical to the pre-event-model export.
+ */
+export function logLineToRow(line: PesticideLogLine, staffMembers: Staff[]): string[] {
+    const { event, product } = line;
     return [
-        formatExportDate(app.application_date),
-        app.application_time || '--',
-        app.product_name || '--',
-        app.epa_registration_number || '--',
-        app.active_ingredient || '--',
-        app.manufacturer || '--',
-        app.epa_lot_number || '--',
-        app.application_rate ?? '--',
-        app.total_amount_used || '--',
-        app.amount_per_tank || '--',
-        app.area_applied || '--',
-        app.area_size || '--',
-        app.target_pest || '--',
-        formatMethod(app.method),
-        app.equipment_used || '--',
-        staffName(staffMembers, app.operator_id),
-        app.applicator_license || '--',
-        staffName(staffMembers, app.recommended_by),
-        app.worker_protection_exchange ? '✓' : '✗',
-        app.rei_hours != null ? `${app.rei_hours}h` : '--',
-        app.temperature != null ? String(app.temperature) : '--',
-        app.wind_speed != null ? String(app.wind_speed) : '--',
-        app.wind_direction || '--',
-        app.weather_conditions || '--',
+        formatExportDate(event.application_date),
+        event.application_time || '--',
+        product?.product_name || '--',
+        product?.epa_registration_number || '--',
+        product?.active_ingredient || '--',
+        product?.manufacturer || '--',
+        product?.epa_lot_number || '--',
+        product?.application_rate ?? '--',
+        product?.total_amount_used || '--',
+        product?.amount_per_tank || '--',
+        event.area_applied || '--',
+        event.area_size || '--',
+        product?.target_pest || '--',
+        formatMethod(resolveMethod(event, product)),
+        event.equipment_used || '--',
+        staffName(staffMembers, event.operator_id),
+        event.applicator_license || '--',
+        staffName(staffMembers, event.recommended_by),
+        event.worker_protection_exchange ? '✓' : '✗',
+        product?.rei_hours != null ? `${product.rei_hours}h` : '--',
+        event.temperature != null ? String(event.temperature) : '--',
+        event.wind_speed != null ? String(event.wind_speed) : '--',
+        event.wind_direction || '--',
+        event.weather_conditions || '--',
     ];
 }
 
@@ -104,7 +106,8 @@ export function buildPesticideLogFilename(dateFrom?: string, dateTo?: string): s
 }
 
 export function subtitleForLog(
-    count: number,
+    applicationCount: number,
+    lineCount: number,
     dateFrom?: string,
     dateTo?: string,
     generatedLabel?: string
@@ -114,19 +117,29 @@ export function subtitleForLog(
         dateFrom || dateTo
             ? ` | Showing: ${dateFrom || 'All'} to ${dateTo || 'Present'}`
             : '';
-    return `Generated ${today} | ${count} Application${count !== 1 ? 's' : ''}${range}`;
+    const apps = `${applicationCount} Application${applicationCount !== 1 ? 's' : ''}`;
+    const lines =
+        lineCount !== applicationCount
+            ? ` (${lineCount} product line${lineCount !== 1 ? 's' : ''})`
+            : '';
+    return `Generated ${today} | ${apps}${lines}${range}`;
+}
+
+function flattenForExport(events: PesticideApplicationWithProducts[]): PesticideLogLine[] {
+    return flattenEventsToLogLines(events);
 }
 
 /** Full HTML document for print window (landscape letter). */
 export function buildPesticideLogPrintHtml(
-    applications: PesticideApplication[],
+    events: PesticideApplicationWithProducts[],
     staffMembers: Staff[],
     opts?: { dateFrom?: string; dateTo?: string }
 ): string {
     const today = formatLongDate();
-    const rows = applications
-        .map((app) => {
-            const cells = applicationToLogRow(app, staffMembers)
+    const logLines = flattenForExport(events);
+    const rows = logLines
+        .map((line) => {
+            const cells = logLineToRow(line, staffMembers)
                 .map((c, i) =>
                     i === 2
                         ? `<td style="font-weight:bold">${escapeHtml(c)}</td>`
@@ -160,7 +173,7 @@ export function buildPesticideLogPrintHtml(
 </head>
 <body>
     <h1>PESTICIDE &amp; FERTILIZER APPLICATION LOG</h1>
-    <div class="subtitle">${escapeHtml(subtitleForLog(applications.length, opts?.dateFrom, opts?.dateTo, today))}</div>
+    <div class="subtitle">${escapeHtml(subtitleForLog(events.length, logLines.length, opts?.dateFrom, opts?.dateTo, today))}</div>
     <div class="compliance">
         Records maintained per Idaho Statutes Title 22, Ch. 34 &amp; IDAPA 02.03.03 | Retain for minimum 2 years
     </div>
@@ -182,11 +195,12 @@ export function buildPesticideLogPrintHtml(
 
 /** Build and trigger browser download of landscape PDF. */
 export function downloadPesticideLogPdf(
-    applications: PesticideApplication[],
+    events: PesticideApplicationWithProducts[],
     staffMembers: Staff[],
     opts?: { dateFrom?: string; dateTo?: string }
 ): void {
     const today = formatLongDate();
+    const logLines = flattenForExport(events);
     const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'letter' });
     const pageWidth = doc.internal.pageSize.getWidth();
     const margin = 28;
@@ -198,9 +212,12 @@ export function downloadPesticideLogPdf(
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     doc.setTextColor(85);
-    doc.text(subtitleForLog(applications.length, opts?.dateFrom, opts?.dateTo, today), pageWidth / 2, 52, {
-        align: 'center',
-    });
+    doc.text(
+        subtitleForLog(events.length, logLines.length, opts?.dateFrom, opts?.dateTo, today),
+        pageWidth / 2,
+        52,
+        { align: 'center' }
+    );
 
     doc.setFontSize(7);
     doc.setTextColor(102);
@@ -214,7 +231,7 @@ export function downloadPesticideLogPdf(
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(0);
 
-    const body = applications.map((app) => applicationToLogRow(app, staffMembers));
+    const body = logLines.map((line) => logLineToRow(line, staffMembers));
 
     autoTable(doc, {
         startY: 76,
@@ -238,7 +255,7 @@ export function downloadPesticideLogPdf(
         },
         alternateRowStyles: { fillColor: [250, 250, 250] },
         margin: { left: margin, right: margin, bottom: 48 },
-        didDrawPage: (data) => {
+        didDrawPage: () => {
             const pageH = doc.internal.pageSize.getHeight();
             const y = pageH - 36;
             doc.setDrawColor(51);
@@ -260,8 +277,6 @@ export function downloadPesticideLogPdf(
                 pageH - 12,
                 { align: 'center' }
             );
-            // silence unused
-            void data;
         },
     });
 

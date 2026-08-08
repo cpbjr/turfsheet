@@ -1,18 +1,30 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Cloud, AlertTriangle, RefreshCw } from 'lucide-react';
-import type { Staff, ChemicalProduct, PesticideApplication } from '../../types';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Cloud, Plus, RefreshCw } from 'lucide-react';
+import type {
+    CalculatorRecordPayload,
+    ChemicalProduct,
+    EventDraft,
+    PesticideApplicationDraft,
+    PesticideApplicationWithProducts,
+    ProductLineDraft,
+    Staff,
+} from '../../types';
 import { getCurrentWeather } from '../../services/weather';
 import type { WeatherData } from '../../types/weather';
 import SelectWithOther from '../ui/SelectWithOther';
 import { METHOD_OPTIONS, EQUIPMENT_OPTIONS } from '../../lib/pesticideOptions';
+import { blankProductLine, reconcileMethods } from '../../lib/pesticideApplication';
+import { eventToDraft } from '../../lib/pesticideData';
+import ProductLineFields from './ProductLineFields';
 
 interface PesticideFormProps {
-    onSubmit: (data: any) => void;
+    onSubmit: (draft: PesticideApplicationDraft) => void;
     onCancel: () => void;
     staffMembers: Staff[];
     products?: ChemicalProduct[];
-    prefillData?: Record<string, string> | null;
-    initialData?: PesticideApplication;
+    /** Prefill from Spray Calculator (event + lines). */
+    calculatorPrefill?: CalculatorRecordPayload | null;
+    initialData?: PesticideApplicationWithProducts;
 }
 
 function degreesToCardinal(deg: number): string {
@@ -29,90 +41,107 @@ function weatherCodeToDescription(code: number): string {
     return 'Other';
 }
 
-export default function PesticideForm({ onSubmit, onCancel, staffMembers, products = [], prefillData, initialData }: PesticideFormProps) {
+function blankEvent(darrylId: string): EventDraft {
     const today = new Date().toISOString().split('T')[0];
     const now = new Date().toTimeString().slice(0, 5);
+    return {
+        application_date: today,
+        application_time: now,
+        area_applied: '',
+        area_size: '',
+        method: '',
+        operator_id: '',
+        applicator_license: '',
+        recommended_by: darrylId,
+        equipment_used: '',
+        temperature: '',
+        wind_speed: '',
+        wind_direction: '',
+        humidity: '',
+        weather_conditions: '',
+        worker_protection_exchange: false,
+        worker_protection_requirements: '',
+        notes: '',
+    };
+}
 
-    const darrylId = staffMembers.find(s => s.name === 'Darryl')?.id?.toString() || '';
+export default function PesticideForm({
+    onSubmit,
+    onCancel,
+    staffMembers,
+    products = [],
+    calculatorPrefill,
+    initialData,
+}: PesticideFormProps) {
+    const darrylId = staffMembers.find((s) => s.name === 'Darryl')?.id?.toString() || '';
 
-    const [formData, setFormData] = useState(() => {
+    const [event, setEvent] = useState<EventDraft>(() => {
+        if (initialData) return eventToDraft(initialData).event;
+        return blankEvent(darrylId);
+    });
+
+    const [lines, setLines] = useState<ProductLineDraft[]>(() => {
         if (initialData) {
-            return {
-                application_date: initialData.application_date || today,
-                application_time: initialData.application_time || '',
-                operator_id: initialData.operator_id?.toString() ?? '',
-                applicator_license: initialData.applicator_license || '',
-                product_name: initialData.product_name || '',
-                epa_registration_number: initialData.epa_registration_number || '',
-                active_ingredient: initialData.active_ingredient || '',
-                target_pest: initialData.target_pest || '',
-                application_rate: initialData.application_rate || '',
-                total_amount_used: initialData.total_amount_used || '',
-                area_applied: initialData.area_applied || '',
-                area_size: initialData.area_size || '',
-                method: initialData.method || '',
-                rei_hours: initialData.rei_hours?.toString() || '',
-                weather_conditions: initialData.weather_conditions || '',
-                temperature: initialData.temperature || '',
-                wind_speed: initialData.wind_speed || '',
-                wind_direction: initialData.wind_direction || '',
-                humidity: initialData.humidity || '',
-                notes: initialData.notes || '',
-                worker_protection_exchange: initialData.worker_protection_exchange || false,
-                worker_protection_requirements: initialData.worker_protection_requirements || '',
-                recommended_by: initialData.recommended_by?.toString() || darrylId,
-                epa_lot_number: initialData.epa_lot_number || '',
-                manufacturer: initialData.manufacturer || '',
-                amount_per_tank: initialData.amount_per_tank || '',
-                equipment_used: initialData.equipment_used || '',
-            };
+            const d = eventToDraft(initialData);
+            return d.lines.length > 0 ? d.lines : [blankProductLine()];
         }
-        return {
-            application_date: today,
-            application_time: now,
-            operator_id: '',
-            applicator_license: '',
-            product_name: '',
-            epa_registration_number: '',
-            active_ingredient: '',
-            target_pest: '',
-            application_rate: '',
-            total_amount_used: '',
-            area_applied: '',
-            area_size: '',
-            method: '',
-            rei_hours: '',
-            weather_conditions: '',
-            temperature: '',
-            wind_speed: '',
-            wind_direction: '',
-            humidity: '',
-            notes: '',
-            worker_protection_exchange: false,
-            worker_protection_requirements: '',
-            recommended_by: darrylId,
-            epa_lot_number: '',
-            manufacturer: '',
-            amount_per_tank: '',
-            equipment_used: '',
-        };
+        return [blankProductLine()];
+    });
+
+    /** Library selection id per line key */
+    const [selectedProductIds, setSelectedProductIds] = useState<Record<string, string>>(() => {
+        const map: Record<string, string> = {};
+        if (initialData) {
+            for (const p of initialData.products ?? []) {
+                const match = products.find((lib) => lib.name === p.product_name);
+                // keys assigned in eventToDraft; rematch by name after first render via effect
+                if (match) {
+                    // filled after lines mount — see effect below
+                }
+            }
+        }
+        return map;
     });
 
     const [weatherLoaded, setWeatherLoaded] = useState(false);
-    const [weatherData, setWeatherData] = useState<{ temp_f: number; wind_mph: number; precip_chance: number } | null>(null);
+    const [weatherData, setWeatherData] = useState<{
+        temp_f: number;
+        wind_mph: number;
+        precip_chance: number;
+    } | null>(null);
+
+    // Match library products when editing
+    useEffect(() => {
+        if (!initialData) return;
+        const map: Record<string, string> = {};
+        const draft = eventToDraft(initialData);
+        draft.lines.forEach((line, i) => {
+            const src = initialData.products?.[i];
+            const match = products.find((p) => p.name === (src?.product_name || line.product_name));
+            if (match) map[line.key] = String(match.id);
+        });
+        // Re-seed lines so keys match the map
+        setLines(draft.lines.length > 0 ? draft.lines : [blankProductLine()]);
+        setSelectedProductIds(map);
+    }, [initialData, products]);
 
     const fetchWeather = async () => {
         try {
             const data: WeatherData = await getCurrentWeather();
-            const tempF = Math.round(data.current.temperature_2m * 9 / 5 + 32);
+            const tempF = Math.round((data.current.temperature_2m * 9) / 5 + 32);
             const windMph = Math.round(data.current.wind_speed_10m);
             const windDir = degreesToCardinal(data.current.wind_direction_10m);
             const humidity = data.current.relative_humidity_2m;
             const desc = weatherCodeToDescription(data.current.weather_code);
-            const precipChance = data.current.precipitation_probability ??
-                (data as any).daily?.precipitation_probability_max?.[0] ?? 0;
+            const daily = data as WeatherData & {
+                daily?: { precipitation_probability_max?: number[] };
+            };
+            const precipChance =
+                data.current.precipitation_probability ??
+                daily.daily?.precipitation_probability_max?.[0] ??
+                0;
 
-            setFormData(prev => ({
+            setEvent((prev) => ({
                 ...prev,
                 temperature: String(tempF),
                 wind_speed: String(windMph),
@@ -127,46 +156,54 @@ export default function PesticideForm({ onSubmit, onCancel, staffMembers, produc
         }
     };
 
-    // Auto-fill weather from live API on mount (skip if editing existing record)
     useEffect(() => {
         if (!initialData) {
             fetchWeather();
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // Match the saved product on edit so REI and label warnings show up again.
-    const [selectedProductId, setSelectedProductId] = useState<string>(() => {
-        const match = initialData?.product_name
-            ? products.find(p => p.name === initialData.product_name)
-            : undefined;
-        return match ? String(match.id) : '';
-    });
-
-    // Apply prefill data from calculator
+    // Calculator prefill
     useEffect(() => {
-        if (prefillData) {
-            setFormData(prev => ({
-                ...prev,
-                ...Object.fromEntries(
-                    Object.entries(prefillData).filter(([_, v]) => v !== '' && v !== undefined)
-                ),
-            }));
-            const matchingProduct = products.find(p => p.name === prefillData.product_name);
-            if (matchingProduct) {
-                setSelectedProductId(String(matchingProduct.id));
+        if (!calculatorPrefill) return;
+        const { event: eventPartial, lines: linePartials } = calculatorPrefill;
+        setEvent((prev) => {
+            const next = { ...prev };
+            for (const [k, v] of Object.entries(eventPartial ?? {})) {
+                if (v !== '' && v !== undefined) {
+                    (next as Record<string, unknown>)[k] = v;
+                }
             }
+            return next;
+        });
+        if (linePartials && linePartials.length > 0) {
+            const nextLines = linePartials.map((partial) => ({
+                ...blankProductLine(),
+                ...partial,
+                key: crypto.randomUUID(),
+            }));
+            setLines(nextLines);
+            const map: Record<string, string> = {};
+            for (const line of nextLines) {
+                const match = products.find((p) => p.name === line.product_name);
+                if (match) map[line.key] = String(match.id);
+            }
+            setSelectedProductIds(map);
         }
-    }, [prefillData]);
+    }, [calculatorPrefill, products]);
 
-    const handleProductSelect = (productId: string) => {
-        setSelectedProductId(productId);
+    const updateLine = (key: string, patch: Partial<ProductLineDraft>) => {
+        setLines((prev) => prev.map((l) => (l.key === key ? { ...l, ...patch } : l)));
+    };
+
+    const handleProductSelect = (key: string, productId: string) => {
+        setSelectedProductIds((prev) => ({ ...prev, [key]: productId }));
         if (!productId) return;
-
-        const product = products.find(p => p.id === parseInt(productId));
+        const product = products.find((p) => String(p.id) === productId);
         if (!product) return;
 
-        setFormData(prev => ({
-            ...prev,
+        const method = product.carrier_volume_gal === 0 ? 'granular' : 'spray';
+        updateLine(key, {
             product_name: product.name,
             epa_registration_number: product.epa_registration || '',
             active_ingredient: product.active_ingredient || '',
@@ -174,126 +211,126 @@ export default function PesticideForm({ onSubmit, onCancel, staffMembers, produc
                 ? `${product.default_rate} ${product.rate_unit.replace('sqft', ' sq ft')}`
                 : '',
             rei_hours: product.rei_hours != null ? product.rei_hours.toString() : '',
-            method: prev.method || (product.carrier_volume_gal === 0 ? 'granular' : 'spray'),
+            method,
             manufacturer: product.manufacturer || '',
-            worker_protection_requirements: product.warnings || '',
-        }));
+        });
+
+        // Aggregate WPS warnings across lines (deduped); only set when changed
+        const warning = (product.warnings || '').trim();
+        if (warning) {
+            setEvent((prev) => {
+                const existing = (prev.worker_protection_requirements || '')
+                    .split(/\n---\n/)
+                    .map((s) => s.trim())
+                    .filter(Boolean);
+                if (existing.includes(warning)) return prev;
+                const next = [...existing, warning].join('\n---\n');
+                if (next === prev.worker_protection_requirements) return prev;
+                return { ...prev, worker_protection_requirements: next };
+            });
+        }
     };
 
-    const selectedProduct = selectedProductId
-        ? products.find(p => p.id === parseInt(selectedProductId))
-        : null;
-
-    const weatherAlerts = useMemo(() => {
-        if (!weatherData || !selectedProductId) return [];
-        const product = products.find(p => p.id === parseInt(selectedProductId));
-        if (!product) return [];
-        const alerts: { severity: 'danger' | 'warning'; message: string }[] = [];
-        if (product.max_wind_mph && weatherData.wind_mph > product.max_wind_mph) {
-            alerts.push({ severity: 'danger', message: `Wind ${weatherData.wind_mph} mph exceeds label max ${product.max_wind_mph} mph` });
+    const alertsByLineKey = useMemo(() => {
+        const map: Record<string, { severity: 'danger' | 'warning'; message: string }[]> = {};
+        if (!weatherData) return map;
+        for (const line of lines) {
+            const productId = selectedProductIds[line.key];
+            if (!productId) continue;
+            const product = products.find((p) => String(p.id) === productId);
+            if (!product) continue;
+            const prefix = (line.product_name || product.name || 'Product').trim();
+            const alerts: { severity: 'danger' | 'warning'; message: string }[] = [];
+            if (product.max_wind_mph && weatherData.wind_mph > product.max_wind_mph) {
+                alerts.push({
+                    severity: 'danger',
+                    message: `${prefix}: Wind ${weatherData.wind_mph} mph exceeds label max ${product.max_wind_mph} mph`,
+                });
+            }
+            if (product.max_temp_f && weatherData.temp_f > product.max_temp_f) {
+                alerts.push({
+                    severity: 'danger',
+                    message: `${prefix}: Temperature ${weatherData.temp_f}°F exceeds label max ${product.max_temp_f}°F`,
+                });
+            }
+            if (product.min_temp_f && weatherData.temp_f < product.min_temp_f) {
+                alerts.push({
+                    severity: 'danger',
+                    message: `${prefix}: Temperature ${weatherData.temp_f}°F below label min ${product.min_temp_f}°F`,
+                });
+            }
+            if (product.rain_delay_hours && weatherData.precip_chance >= 50) {
+                alerts.push({
+                    severity: 'warning',
+                    message: `${prefix}: ${weatherData.precip_chance}% rain chance — label requires ${product.rain_delay_hours}h rain-free`,
+                });
+            }
+            if (alerts.length) map[line.key] = alerts;
         }
-        if (product.max_temp_f && weatherData.temp_f > product.max_temp_f) {
-            alerts.push({ severity: 'danger', message: `Temperature ${weatherData.temp_f}°F exceeds label max ${product.max_temp_f}°F` });
-        }
-        if (product.min_temp_f && weatherData.temp_f < product.min_temp_f) {
-            alerts.push({ severity: 'danger', message: `Temperature ${weatherData.temp_f}°F below label min ${product.min_temp_f}°F` });
-        }
-        if (product.rain_delay_hours && weatherData.precip_chance >= 50) {
-            alerts.push({ severity: 'warning', message: `${weatherData.precip_chance}% rain chance — label requires ${product.rain_delay_hours}h rain-free` });
-        }
-        return alerts;
-    }, [weatherData, selectedProductId, products]);
+        return map;
+    }, [weatherData, lines, selectedProductIds, products]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formData.worker_protection_exchange) {
-            alert('Worker Protection Safety briefing must be completed before recording an application.');
+        if (!event.worker_protection_exchange) {
+            alert(
+                'Worker Protection Safety briefing must be completed before recording an application.'
+            );
             return;
         }
-        const cleanedData = {
-            ...formData,
-            operator_id: formData.operator_id ? parseInt(formData.operator_id, 10) : undefined,
-            applicator_license: formData.applicator_license || undefined,
-            application_time: formData.application_time || undefined,
-            epa_registration_number: formData.epa_registration_number || undefined,
-            active_ingredient: formData.active_ingredient || undefined,
-            target_pest: formData.target_pest || undefined,
-            total_amount_used: formData.total_amount_used || undefined,
-            area_size: formData.area_size || undefined,
-            method: formData.method || undefined,
-            rei_hours: formData.rei_hours ? parseInt(formData.rei_hours) : undefined,
-            weather_conditions: formData.weather_conditions || undefined,
-            temperature: formData.temperature || undefined,
-            wind_speed: formData.wind_speed || undefined,
-            wind_direction: formData.wind_direction || undefined,
-            humidity: formData.humidity || undefined,
-            notes: formData.notes || undefined,
-            recommended_by: formData.recommended_by ? parseInt(formData.recommended_by) : undefined,
-            epa_lot_number: formData.epa_lot_number || undefined,
-            manufacturer: formData.manufacturer || undefined,
-            amount_per_tank: formData.amount_per_tank || undefined,
-            equipment_used: formData.equipment_used || undefined,
-            worker_protection_requirements: formData.worker_protection_requirements || undefined,
-        };
-        onSubmit(cleanedData);
+
+        // Drop lines blank in both name and rate
+        const surviving = lines.filter(
+            (l) => l.product_name.trim() !== '' || l.application_rate.trim() !== ''
+        );
+        if (surviving.length === 0) {
+            alert('Add at least one product with a name and application rate.');
+            return;
+        }
+
+        for (let i = 0; i < surviving.length; i++) {
+            const l = surviving[i];
+            if (!l.product_name.trim() || !l.application_rate.trim()) {
+                alert(
+                    `Product line ${i + 1} is incomplete — both product name and application rate are required.`
+                );
+                return;
+            }
+        }
+
+        const names = surviving.map((l) => l.product_name.trim().toLowerCase());
+        const dupes = names.filter((n, i) => names.indexOf(n) !== i);
+        if (dupes.length > 0) {
+            const ok = window.confirm(
+                `Duplicate product name(s): ${[...new Set(dupes)].join(', ')}. Double-dosing in one visit is unusual but allowed. Continue?`
+            );
+            if (!ok) return;
+        }
+
+        const reconciled = reconcileMethods(surviving, event.method);
+        onSubmit({
+            event: { ...event, method: reconciled.eventMethod },
+            lines: reconciled.lines,
+        });
     };
 
-    const inputClasses = "w-full bg-dashboard-bg border border-border-color px-4 py-3 text-sm focus:border-turf-green outline-none transition-colors font-sans";
-    const labelClasses = "block text-[0.65rem] font-heading font-black text-text-secondary uppercase tracking-widest mb-2";
-
-    const SIGNAL_COLORS: Record<string, string> = {
-        CAUTION: 'bg-yellow-50 border-yellow-400 text-yellow-800',
-        WARNING: 'bg-orange-50 border-orange-400 text-orange-800',
-        DANGER: 'bg-red-50 border-red-400 text-red-800',
+    const addLine = () => setLines((prev) => [...prev, blankProductLine()]);
+    const removeLine = (key: string) => {
+        setLines((prev) => (prev.length <= 1 ? prev : prev.filter((l) => l.key !== key)));
+        setSelectedProductIds((prev) => {
+            const next = { ...prev };
+            delete next[key];
+            return next;
+        });
     };
+
+    const inputClasses =
+        'w-full bg-dashboard-bg border border-border-color px-4 py-3 text-sm focus:border-turf-green outline-none transition-colors font-sans';
+    const labelClasses =
+        'block text-[0.65rem] font-heading font-black text-text-secondary uppercase tracking-widest mb-2';
 
     return (
         <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Product Library Selection */}
-            {products.length > 0 && (
-                <div className="bg-turf-green-light border border-turf-green/30 p-4">
-                    <label className={labelClasses}>Select from Product Library</label>
-                    <select
-                        className={inputClasses}
-                        value={selectedProductId}
-                        onChange={(e) => handleProductSelect(e.target.value)}
-                    >
-                        <option value="">-- Type manually or select a product --</option>
-                        {products.map((p) => (
-                            <option key={p.id} value={p.id}>
-                                {p.name} {p.signal_word ? `[${p.signal_word}]` : ''}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-            )}
-
-            {/* Warnings for selected product */}
-            {selectedProduct && (selectedProduct.warnings || selectedProduct.signal_word) && (
-                <div className={`border-l-4 p-3 text-xs ${SIGNAL_COLORS[selectedProduct.signal_word || 'CAUTION']}`}>
-                    <p className="font-heading font-black uppercase tracking-wider text-[0.6rem] mb-1">
-                        {selectedProduct.signal_word || 'CAUTION'} — {selectedProduct.name}
-                    </p>
-                    {selectedProduct.warnings && (
-                        <p className="font-sans leading-relaxed">{selectedProduct.warnings}</p>
-                    )}
-                </div>
-            )}
-
-            {/* Weather safety warnings */}
-            {weatherAlerts.length > 0 && (
-                <div className="space-y-2">
-                    {weatherAlerts.map((alert, i) => (
-                        <div key={i} className={`flex items-center gap-3 px-4 py-3 text-sm ${
-                            alert.severity === 'danger' ? 'bg-red-50 border border-red-200 text-red-700' : 'bg-amber-50 border border-amber-200 text-amber-700'
-                        }`}>
-                            <AlertTriangle size={16} className="flex-shrink-0" />
-                            <span>{alert.message}</span>
-                        </div>
-                    ))}
-                </div>
-            )}
-
             {/* Row 1: Date | Time | Operator */}
             <div className="grid grid-cols-3 gap-4">
                 <div>
@@ -302,8 +339,8 @@ export default function PesticideForm({ onSubmit, onCancel, staffMembers, produc
                         required
                         type="date"
                         className={inputClasses}
-                        value={formData.application_date}
-                        onChange={(e) => setFormData({ ...formData, application_date: e.target.value })}
+                        value={event.application_date}
+                        onChange={(e) => setEvent({ ...event, application_date: e.target.value })}
                     />
                 </div>
                 <div>
@@ -311,8 +348,8 @@ export default function PesticideForm({ onSubmit, onCancel, staffMembers, produc
                     <input
                         type="time"
                         className={inputClasses}
-                        value={formData.application_time}
-                        onChange={(e) => setFormData({ ...formData, application_time: e.target.value })}
+                        value={event.application_time}
+                        onChange={(e) => setEvent({ ...event, application_time: e.target.value })}
                     />
                 </div>
                 <div>
@@ -320,12 +357,14 @@ export default function PesticideForm({ onSubmit, onCancel, staffMembers, produc
                     <select
                         required
                         className={inputClasses}
-                        value={formData.operator_id}
-                        onChange={(e) => setFormData({ ...formData, operator_id: e.target.value })}
+                        value={event.operator_id}
+                        onChange={(e) => setEvent({ ...event, operator_id: e.target.value })}
                     >
                         <option value="">Select operator...</option>
                         {staffMembers.map((s) => (
-                            <option key={s.id} value={s.id}>{s.name}</option>
+                            <option key={s.id} value={s.id}>
+                                {s.name}
+                            </option>
                         ))}
                     </select>
                 </div>
@@ -337,21 +376,22 @@ export default function PesticideForm({ onSubmit, onCancel, staffMembers, produc
                     <input
                         type="checkbox"
                         className="w-5 h-5 accent-turf-green"
-                        checked={formData.worker_protection_exchange}
-                        onChange={(e) => setFormData({ ...formData, worker_protection_exchange: e.target.checked })}
+                        checked={event.worker_protection_exchange}
+                        onChange={(e) =>
+                            setEvent({ ...event, worker_protection_exchange: e.target.checked })
+                        }
                     />
                     <span className="text-sm font-heading font-black uppercase tracking-wider text-amber-800">
                         Worker Protection Safety briefing completed *
                     </span>
                 </label>
-                {formData.worker_protection_requirements && (
+                {event.worker_protection_requirements && (
                     <p className="mt-2 text-xs text-amber-700 font-sans leading-relaxed pl-8">
-                        <strong>Label Requirements:</strong> {formData.worker_protection_requirements}
+                        <strong>Label Requirements:</strong> {event.worker_protection_requirements}
                     </p>
                 )}
             </div>
 
-            {/* Applicator License (Idaho requirement) */}
             <div className="grid grid-cols-2 gap-4">
                 <div>
                     <label className={labelClasses}>Applicator License # (Idaho)</label>
@@ -359,136 +399,30 @@ export default function PesticideForm({ onSubmit, onCancel, staffMembers, produc
                         type="text"
                         className={inputClasses}
                         placeholder="e.g. ID-12345"
-                        value={formData.applicator_license}
-                        onChange={(e) => setFormData({ ...formData, applicator_license: e.target.value })}
+                        value={event.applicator_license}
+                        onChange={(e) =>
+                            setEvent({ ...event, applicator_license: e.target.value })
+                        }
                     />
                 </div>
                 <div>
-                    <label className={labelClasses}>Target Pest / Purpose</label>
-                    <input
-                        type="text"
+                    <label className={labelClasses}>Pesticide Recommendation By</label>
+                    <select
                         className={inputClasses}
-                        placeholder="e.g. Dollar spot, broadleaf weeds"
-                        value={formData.target_pest}
-                        onChange={(e) => setFormData({ ...formData, target_pest: e.target.value })}
-                    />
+                        value={event.recommended_by}
+                        onChange={(e) => setEvent({ ...event, recommended_by: e.target.value })}
+                    >
+                        <option value="">Select staff...</option>
+                        {staffMembers.map((s) => (
+                            <option key={s.id} value={s.id}>
+                                {s.name}
+                            </option>
+                        ))}
+                    </select>
                 </div>
             </div>
 
-            {/* Recommended By (Pesticide Recommendation) */}
-            <div>
-                <label className={labelClasses}>Pesticide Recommendation By</label>
-                <select
-                    className={inputClasses}
-                    value={formData.recommended_by}
-                    onChange={(e) => setFormData({ ...formData, recommended_by: e.target.value })}
-                >
-                    <option value="">Select staff...</option>
-                    {staffMembers.map((s) => (
-                        <option key={s.id} value={s.id}>{s.name}</option>
-                    ))}
-                </select>
-            </div>
-
-            {/* Product | EPA # */}
-            <div className="grid grid-cols-2 gap-4">
-                <div>
-                    <label className={labelClasses}>Product Name *</label>
-                    <input
-                        required
-                        type="text"
-                        className={inputClasses}
-                        placeholder="e.g. Primo Maxx"
-                        value={formData.product_name}
-                        onChange={(e) => setFormData({ ...formData, product_name: e.target.value })}
-                    />
-                </div>
-                <div>
-                    <label className={labelClasses}>EPA Registration #</label>
-                    <input
-                        type="text"
-                        className={inputClasses}
-                        placeholder="e.g. 100-1164"
-                        value={formData.epa_registration_number}
-                        onChange={(e) => setFormData({ ...formData, epa_registration_number: e.target.value })}
-                    />
-                </div>
-            </div>
-
-            {/* EPA Lot Number | Manufacturer */}
-            <div className="grid grid-cols-2 gap-4">
-                <div>
-                    <label className={labelClasses}>EPA Lot Number</label>
-                    <input
-                        type="text"
-                        className={inputClasses}
-                        placeholder="From product container"
-                        value={formData.epa_lot_number}
-                        onChange={(e) => setFormData({ ...formData, epa_lot_number: e.target.value })}
-                    />
-                </div>
-                <div>
-                    <label className={labelClasses}>Manufacturer</label>
-                    <input
-                        type="text"
-                        className={inputClasses}
-                        placeholder="e.g. Syngenta"
-                        value={formData.manufacturer}
-                        onChange={(e) => setFormData({ ...formData, manufacturer: e.target.value })}
-                    />
-                </div>
-            </div>
-
-            {/* Active Ingredient */}
-            <div>
-                <label className={labelClasses}>Active Ingredient</label>
-                <input
-                    type="text"
-                    className={inputClasses}
-                    placeholder="e.g. Trinexapac-ethyl"
-                    value={formData.active_ingredient}
-                    onChange={(e) => setFormData({ ...formData, active_ingredient: e.target.value })}
-                />
-            </div>
-
-            {/* Application Rate | Total Amount */}
-            <div className="grid grid-cols-2 gap-4">
-                <div>
-                    <label className={labelClasses}>Application Rate *</label>
-                    <input
-                        required
-                        type="text"
-                        className={inputClasses}
-                        placeholder="e.g. 2 oz/1000 sq ft"
-                        value={formData.application_rate}
-                        onChange={(e) => setFormData({ ...formData, application_rate: e.target.value })}
-                    />
-                </div>
-                <div>
-                    <label className={labelClasses}>Total Amount Used</label>
-                    <input
-                        type="text"
-                        className={inputClasses}
-                        placeholder="e.g. 32 oz"
-                        value={formData.total_amount_used}
-                        onChange={(e) => setFormData({ ...formData, total_amount_used: e.target.value })}
-                    />
-                </div>
-            </div>
-
-            {/* Amount per Tank */}
-            <div>
-                <label className={labelClasses}>Amount per Tank</label>
-                <input
-                    type="text"
-                    className={inputClasses}
-                    placeholder="e.g., 32 oz"
-                    value={formData.amount_per_tank}
-                    onChange={(e) => setFormData({ ...formData, amount_per_tank: e.target.value })}
-                />
-            </div>
-
-            {/* Area Applied | Area Size */}
+            {/* Area + event method */}
             <div className="grid grid-cols-2 gap-4">
                 <div>
                     <label className={labelClasses}>Area / Location Applied *</label>
@@ -497,8 +431,8 @@ export default function PesticideForm({ onSubmit, onCancel, staffMembers, produc
                         type="text"
                         className={inputClasses}
                         placeholder="e.g. Greens 1-9, Fairway 5"
-                        value={formData.area_applied}
-                        onChange={(e) => setFormData({ ...formData, area_applied: e.target.value })}
+                        value={event.area_applied}
+                        onChange={(e) => setEvent({ ...event, area_applied: e.target.value })}
                     />
                 </div>
                 <div>
@@ -507,50 +441,69 @@ export default function PesticideForm({ onSubmit, onCancel, staffMembers, produc
                         type="text"
                         className={inputClasses}
                         placeholder="e.g. 45,000 sq ft"
-                        value={formData.area_size}
-                        onChange={(e) => setFormData({ ...formData, area_size: e.target.value })}
+                        value={event.area_size}
+                        onChange={(e) => setEvent({ ...event, area_size: e.target.value })}
                     />
                 </div>
             </div>
 
-            {/* Method | REI Hours */}
             <div className="grid grid-cols-2 gap-4">
                 <SelectWithOther
                     label="Application Method"
                     options={METHOD_OPTIONS}
-                    value={formData.method}
-                    onChange={(v) => setFormData({ ...formData, method: v })}
+                    value={event.method}
+                    onChange={(v) => setEvent({ ...event, method: v })}
                     placeholder="Select method..."
                     otherPlaceholder="Describe the method..."
                     inputClasses={inputClasses}
                     labelClasses={labelClasses}
                 />
-                <div>
-                    <label className={labelClasses}>REI (Hours)</label>
-                    <input
-                        type="number"
-                        min="0"
-                        className={inputClasses}
-                        placeholder="Hours"
-                        value={formData.rei_hours}
-                        onChange={(e) => setFormData({ ...formData, rei_hours: e.target.value })}
-                    />
-                </div>
+                <SelectWithOther
+                    label="Equipment Used"
+                    options={EQUIPMENT_OPTIONS}
+                    value={event.equipment_used}
+                    onChange={(v) => setEvent({ ...event, equipment_used: v })}
+                    placeholder="Select equipment..."
+                    otherPlaceholder="Describe the equipment..."
+                    inputClasses={inputClasses}
+                    labelClasses={labelClasses}
+                />
             </div>
 
-            {/* Equipment Used */}
-            <SelectWithOther
-                label="Equipment Used"
-                options={EQUIPMENT_OPTIONS}
-                value={formData.equipment_used}
-                onChange={(v) => setFormData({ ...formData, equipment_used: v })}
-                placeholder="Select equipment..."
-                otherPlaceholder="Describe the equipment..."
-                inputClasses={inputClasses}
-                labelClasses={labelClasses}
-            />
+            {/* Product lines */}
+            <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                    <p className="text-[0.65rem] font-heading font-black text-text-secondary uppercase tracking-widest">
+                        Products in this application
+                    </p>
+                    <button
+                        type="button"
+                        onClick={addLine}
+                        className="flex items-center gap-1.5 text-xs font-heading font-black uppercase tracking-wider text-turf-green hover:text-turf-green-dark"
+                    >
+                        <Plus size={14} />
+                        Add product
+                    </button>
+                </div>
+                {lines.map((line, index) => (
+                    <ProductLineFields
+                        key={line.key}
+                        line={line}
+                        index={index}
+                        products={products}
+                        canRemove={lines.length > 1}
+                        weatherAlerts={alertsByLineKey[line.key] || []}
+                        selectedProductId={selectedProductIds[line.key] || ''}
+                        onChange={(patch) => updateLine(line.key, patch)}
+                        onProductSelect={(id) => handleProductSelect(line.key, id)}
+                        onRemove={() => removeLine(line.key)}
+                        inputClasses={inputClasses}
+                        labelClasses={labelClasses}
+                    />
+                ))}
+            </div>
 
-            {/* Weather Conditions - Idaho compliance */}
+            {/* Weather Conditions */}
             <div className="border-t border-border-color pt-4">
                 <div className="flex items-center gap-2 mb-3">
                     <p className="text-[0.6rem] font-heading font-black text-text-secondary uppercase tracking-widest">
@@ -577,8 +530,8 @@ export default function PesticideForm({ onSubmit, onCancel, staffMembers, produc
                             type="text"
                             className={inputClasses}
                             placeholder="e.g. 72"
-                            value={formData.temperature}
-                            onChange={(e) => setFormData({ ...formData, temperature: e.target.value })}
+                            value={event.temperature}
+                            onChange={(e) => setEvent({ ...event, temperature: e.target.value })}
                         />
                     </div>
                     <div>
@@ -587,8 +540,8 @@ export default function PesticideForm({ onSubmit, onCancel, staffMembers, produc
                             type="text"
                             className={inputClasses}
                             placeholder="e.g. 5"
-                            value={formData.wind_speed}
-                            onChange={(e) => setFormData({ ...formData, wind_speed: e.target.value })}
+                            value={event.wind_speed}
+                            onChange={(e) => setEvent({ ...event, wind_speed: e.target.value })}
                         />
                     </div>
                 </div>
@@ -597,8 +550,10 @@ export default function PesticideForm({ onSubmit, onCancel, staffMembers, produc
                         <label className={labelClasses}>Wind Direction</label>
                         <select
                             className={inputClasses}
-                            value={formData.wind_direction}
-                            onChange={(e) => setFormData({ ...formData, wind_direction: e.target.value })}
+                            value={event.wind_direction}
+                            onChange={(e) =>
+                                setEvent({ ...event, wind_direction: e.target.value })
+                            }
                         >
                             <option value="">Select...</option>
                             <option value="N">North</option>
@@ -618,16 +573,18 @@ export default function PesticideForm({ onSubmit, onCancel, staffMembers, produc
                             type="text"
                             className={inputClasses}
                             placeholder="e.g. 45"
-                            value={formData.humidity}
-                            onChange={(e) => setFormData({ ...formData, humidity: e.target.value })}
+                            value={event.humidity}
+                            onChange={(e) => setEvent({ ...event, humidity: e.target.value })}
                         />
                     </div>
                     <div>
                         <label className={labelClasses}>Sky Conditions</label>
                         <select
                             className={inputClasses}
-                            value={formData.weather_conditions}
-                            onChange={(e) => setFormData({ ...formData, weather_conditions: e.target.value })}
+                            value={event.weather_conditions}
+                            onChange={(e) =>
+                                setEvent({ ...event, weather_conditions: e.target.value })
+                            }
                         >
                             <option value="">Select...</option>
                             <option value="Clear">Clear</option>
@@ -640,18 +597,16 @@ export default function PesticideForm({ onSubmit, onCancel, staffMembers, produc
                 </div>
             </div>
 
-            {/* Notes */}
             <div>
                 <label className={labelClasses}>Notes</label>
                 <textarea
                     className={`${inputClasses} min-h-[100px] resize-none`}
                     placeholder="Additional notes about this application..."
-                    value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    value={event.notes}
+                    onChange={(e) => setEvent({ ...event, notes: e.target.value })}
                 />
             </div>
 
-            {/* Buttons */}
             <div className="pt-4 flex gap-4">
                 <button
                     type="button"
