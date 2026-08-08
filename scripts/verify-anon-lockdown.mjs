@@ -77,19 +77,46 @@ for (const table of TABLES) {
 
 console.log(`\n${open} of ${TABLES.length} tables returned data to anon.`);
 
+/**
+ * The pin handout RPC is the one privilege anon deliberately keeps. What matters is whether
+ * anon can still EXECUTE it -- that is what survives the lockdown. Whether a given token
+ * resolves to a row is a separate question, and conflating the two is how a working RPC gets
+ * misread as broken. So: distinguish a permission failure (the thing that would break the
+ * clubhouse handout) from a token that simply does not exist.
+ *
+ * As of 2026-08-08 no pin set has a public_token, so the reachable-but-unknown-token case is
+ * the expected result until a handout is published from /pins.
+ */
 const tokenArg = process.argv.indexOf('--token');
-if (tokenArg !== -1 && process.argv[tokenArg + 1]) {
-  const res = await fetch(`${url}/rest/v1/rpc/banbury_pin_set_by_token`, {
-    method: 'POST',
-    headers: { ...headers, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ p_token: process.argv[tokenArg + 1] }),
-  });
-  const body = await res.text();
-  const ok = res.ok && body !== 'null' && body !== '[]';
-  console.log(`\npin handout RPC: ${ok ? 'WORKS' : 'BROKEN'} (${res.status}) ${ok ? '' : body.slice(0, 200)}`);
-  if (!ok) process.exitCode = 1;
+const token = tokenArg !== -1 ? process.argv[tokenArg + 1] : null;
+
+const res = await fetch(`${url}/rest/v1/rpc/banbury_pin_set_by_token`, {
+  method: 'POST',
+  headers: { ...headers, 'Content-Type': 'application/json' },
+  body: JSON.stringify({ p_token: token || 'probe-token-that-should-not-exist' }),
+});
+const body = await res.text();
+let payload = null;
+try { payload = JSON.parse(body); } catch { /* not JSON */ }
+
+const empty = payload === null || (Array.isArray(payload) && payload.length === 0);
+const pgCode = payload && !Array.isArray(payload) ? payload.code : undefined;
+
+console.log();
+if (res.ok && !empty) {
+  console.log(`pin handout RPC: WORKS (${res.status}) - anon can execute it and the token resolved`);
+} else if (res.ok && empty) {
+  console.log(`pin handout RPC: REACHABLE (${res.status}) - anon can execute it; this token matched no pin set`);
+  if (!token) console.log('                 (no --token given, so a probe value was used)');
+} else if (res.status === 401 || res.status === 403 || pgCode === '42501') {
+  console.log(`pin handout RPC: DENIED (${res.status}) - anon lost EXECUTE. The clubhouse handout is broken.`);
+  process.exitCode = 1;
+} else if (res.status === 404 || pgCode === 'PGRST202') {
+  console.log(`pin handout RPC: MISSING (${res.status}) - function not found or not exposed.`);
+  process.exitCode = 1;
 } else {
-  console.log('\npin handout RPC: not checked (pass --token <pinToken> to exercise it)');
+  console.log(`pin handout RPC: UNEXPECTED (${res.status}) ${body.slice(0, 200)}`);
+  process.exitCode = 1;
 }
 
 if (open > 0) process.exitCode = 1;
