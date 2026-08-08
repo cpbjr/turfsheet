@@ -229,15 +229,6 @@ export function usePinSession({ greenIndex, focusHole, flash }: UsePinSessionOpt
     });
   }, []);
 
-  const skipCurrent = useCallback(() => {
-    setSession((s) => {
-      const hole = s.order[s.index];
-      if (hole == null || s.pins[hole]) return s;
-      return { ...s, skipped: { ...s.skipped, [hole]: true } };
-    });
-    goRelative(1);
-  }, [goRelative]);
-
   const clearCurrentPin = useCallback(() => {
     setSession((s) => {
       const hole = s.order[s.index];
@@ -491,7 +482,6 @@ export function usePinSession({ greenIndex, focusHole, flash }: UsePinSessionOpt
     jumpToHole,
     handleMapClick,
     setPinForHole,
-    skipCurrent,
     clearCurrentPin,
     startSession,
     startNewSession,

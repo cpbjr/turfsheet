@@ -222,7 +222,6 @@ export default function PinsPage() {
             onNext={() =>
               pin.session.index >= 17 ? goDelivery() : pin.goRelative(1)
             }
-            onSkip={pin.skipCurrent}
             onClearPin={pin.clearCurrentPin}
             onHoleNoteChange={pin.setHoleNote}
             onCourseNoteChange={pin.setCourseNote}

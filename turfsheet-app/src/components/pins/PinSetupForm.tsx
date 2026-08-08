@@ -26,7 +26,6 @@ interface PinSetupFormProps {
   onGeoLoaded?: (index: GreenIndex, version: string) => void;
   onBack: () => void;
   onNext: () => void;
-  onSkip: () => void;
   onClearPin: () => void;
   onHoleNoteChange: (n: string) => void;
   onCourseNoteChange: (n: string) => void;
@@ -64,7 +63,6 @@ export default function PinSetupForm(props: PinSetupFormProps) {
     onGeoLoaded,
     onBack,
     onNext,
-    onSkip,
     onClearPin,
     onHoleNoteChange,
     onCourseNoteChange,
@@ -257,7 +255,6 @@ export default function PinSetupForm(props: PinSetupFormProps) {
             onJumpToHole={onJumpToHole}
             onBack={onBack}
             onNext={onNext}
-            onSkip={onSkip}
             onClearPin={onClearPin}
             onSetPin={onSetPin}
             onError={onError}
