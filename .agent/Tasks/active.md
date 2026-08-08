@@ -8,9 +8,25 @@ Last Updated: 2026-07-31
 **Shipped 2026-07-31:** Pin Sheet UX redesign Phase 1 — see `completed/2026-07/3-pin-sheet-redesign.md`.
 Dedicated `/pins` (Library | Setup Table/Map | Delivery); Maps pins layer default off.
 
-**Next up:** Site authentication — see `planned.md` Task 0.
-
 ## Active Tasks
+
+### Site Authentication — IN PROGRESS
+Plan: `Implementation/2026-08-07-site-authentication.md` (read this first — it is the spec)
+Branch: `feature/site-auth` · PR: https://github.com/cpbjr/turfsheet/pull/27
+Source task: `planned.md` Task 0
+
+Rollout order is load-bearing; step 4 before step 3 blanks every page for everyone.
+
+- [x] Three shared accounts created in Studio, auto-confirmed, verified against `auth.users`
+- [x] Frontend gate built and verified locally (login, `/logout`, `?pinToken=` exemption)
+- [ ] **Merge PR #27** → auto-deploys → confirm on production that all three accounts log in
+      and that a signed-out `?pinToken=` handout link still renders the map
+- [ ] **Only then** apply `supabase/migrations/20260807200000_lock_down_anon_access.sql` via the
+      Supabase Studio SQL editor. Never `db push` on this project.
+      Then `node scripts/verify-anon-lockdown.mjs --token <pinToken>` → expect 0 of 24 open
+      (baseline 2026-08-07 was 18 of 24) with the pin RPC still reporting `WORKS`.
+- [ ] Tell OldTom its anon-key diagnostic stops reproducing "what the browser sees" at step 4 —
+      the SPA will query as `authenticated`, not `anon`. User-token recipe is in the plan.
 
 ### Chemicals Page — remaining items
 Plan: `Implementation/2026-07-28-chemicals-clean-up.md`
@@ -25,10 +41,10 @@ Shipped portion recorded in `completed/2026-07/1-chemicals-page-clean-up.md`
 - [ ] **Browser verification** of this session's changes (Recommended By in both the detail modal
       and the Print Log — separate code paths; the Other free-text round-trip on edit; wider modal).
       The `chrome:console` MCP tool times out in this environment, so none of it was clicked.
-- [ ] **Check production for untracked code.** The 2026-07-28 external audit says a Recommended By
-      fix was deployed from `/home/wpauser/src/turfsheet`, a clone not on this machine and not on
-      `origin/main`. If that deploy happened, production is serving code with no commit behind it.
-      Verify before merging this branch or it may be silently overwritten.
+- [x] **Check production for untracked code.** ✅ Resolved 2026-08-08 — production deploys from
+      this repo via GitHub Actions. No `/home/*/src/turfsheet` clone exists on the server; the
+      live bundle `index-Gsin37ex.js` is dated Jul 31 23:54 and contains the `Pin Sheets` strings
+      from `a39ab0e` (2026-07-31), the last `main` commit touching `turfsheet-app/`.
 - [ ] Optionally update the 2026-07-28 Cutrine record (currently `granular` / blank equipment) to
       *Broadcast (By Hand)* / *By Hand* now that those options exist.
 
