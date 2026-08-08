@@ -128,6 +128,10 @@ const CourseMap = forwardRef<CourseMapHandle, CourseMapProps>(function CourseMap
       },
       title: `Hole ${holeNumber}${par ? ` · par ${par}` : ''}`,
       zIndex: 1000 + Number(holeNumber),
+      // A clickable marker swallows the click, so in pin mode this ~20px disc sitting on
+      // the green becomes a dead zone where a pin cannot be dropped. Same rule as the
+      // Data layer in applyStyle.
+      clickable: !pinModeRef.current,
     });
     holeLabelsRef.current.push(marker);
   }, []);
@@ -193,6 +197,8 @@ const CourseMap = forwardRef<CourseMapHandle, CourseMapProps>(function CourseMap
         },
         title: `Hole ${hole} pin · ${formatPinStats(pin)}`,
         zIndex: 2000 + hole,
+        // Otherwise the current pin blocks clicks on itself and nudging it is impossible.
+        clickable: !pinModeRef.current,
       });
     });
   }, [pins]);

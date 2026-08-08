@@ -49,7 +49,7 @@ export default function PinMapMode({
 }: PinMapModeProps) {
   const localMapRef = useRef<CourseMapHandle | null>(null);
   const mapRef = externalMapRef ?? localMapRef;
-  const [sheetOpen, setSheetOpen] = useState(true);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [editOn, setEditOn] = useState('');
   const [editSide, setEditSide] = useState<'L' | 'C' | 'R'>('C');
   const [editLr, setEditLr] = useState('');
@@ -101,7 +101,7 @@ export default function PinMapMode({
 
   return (
     <div className="relative flex-1 min-h-0 flex flex-col">
-      <div className="relative flex-1 min-h-[240px] md:min-h-0">
+      <div className="relative flex-1 min-h-0">
         <CourseMap
           ref={mapRef}
           show={{ ...DEFAULT_SHOW, irrigation: false }}
@@ -155,11 +155,7 @@ export default function PinMapMode({
           </button>
         </div>
 
-        <div
-          className={`p-3 space-y-3 overflow-y-auto min-h-0 ${
-            sheetOpen ? '' : 'hidden md:block'
-          }`}
-        >
+        <div className="p-3 space-y-3 overflow-y-auto min-h-0">
           <div className="grid grid-cols-4 gap-1">
             <button type="button" onClick={onBack} className={btnClass}>
               Back
@@ -198,7 +194,13 @@ export default function PinMapMode({
             })}
           </div>
 
-          <div className="border border-border-color bg-panel-white p-2 space-y-2">
+          {/* Occasional-use fine-tuning. Hidden by default on phones so the sheet stays short
+              and the map keeps the height; the Details toggle above reveals it. */}
+          <div
+            className={`border border-border-color bg-panel-white p-2 space-y-2 ${
+              sheetOpen ? '' : 'hidden md:block'
+            }`}
+          >
             <div className="text-[10px] font-heading font-black uppercase tracking-wide text-text-muted">
               Nudge by yards
             </div>

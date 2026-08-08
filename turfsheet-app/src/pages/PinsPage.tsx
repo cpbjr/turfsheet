@@ -114,12 +114,16 @@ export default function PinsPage() {
   return (
     <div className="flex flex-col h-full max-h-full min-h-0 gap-4 overflow-hidden">
       <div className="shrink-0">
-        <h2 className="text-2xl font-heading font-black uppercase tracking-tight text-text-primary">
-          Pin Sheets
-        </h2>
-        <p className="text-text-secondary text-sm font-sans mt-0.5">
-          Plan, set, and deliver Banbury pin sheets · yards table or map
-        </p>
+        {/* Setup is the map-heavy view; on phones the title block is ~60px of height the
+            green needs more than the label does. Tabs stay for navigation. */}
+        <div className={view === 'setup' ? 'hidden md:block' : ''}>
+          <h2 className="text-2xl font-heading font-black uppercase tracking-tight text-text-primary">
+            Pin Sheets
+          </h2>
+          <p className="text-text-secondary text-sm font-sans mt-0.5">
+            Plan, set, and deliver Banbury pin sheets · yards table or map
+          </p>
+        </div>
 
         <div className="flex flex-wrap gap-1 mt-3 border-b border-border-color">
           {(

@@ -5,6 +5,12 @@
 
 Last Updated: 2026-08-08
 
+**Shipped 2026-08-08:** Pin Map Mobile Usability — see `completed/2026-08/4-pin-map-mobile-usability.md`.
+Tapping near the hole-number badge or the current pin no longer does nothing (clickable markers were
+swallowing the click), and the map frame fills the phone screen instead of sitting at 240px (a
+`min-h-[50vh]` with no `min-h-0` was overflowing the column and getting clipped). Confirmed in the
+browser by Chris.
+
 **Shipped 2026-08-08:** Pin map-click listener — see `completed/2026-08/3-pin-map-click-listener.md`.
 Placing pins on `/pins` → Setup → Map mode works again. The listener was never attached (the
 `[pinMode]` effect always read a null `mapRef` on mount and never re-ran); it is now attached once
@@ -191,6 +197,9 @@ Plan retained for its parity checklist: `Implementation/2026-07-28-maps-banbury-
 
 ## Recently Completed ✅
 
+- ✅ Pin Map Mobile Usability — tap dead zones around the hole badge and current pin removed
+  (`clickable: !pinModeRef.current` on both markers); map frame now fills the phone screen after
+  removing a `min-h-[50vh]` flex floor that could never shrink. (2026-08-08)
 - ✅ Pin map-click listener — pin placement by map works again; listener attached at boot instead of
   in a `[pinMode]` effect that could never see a live map. Root cause was `a39ab0e`, not auth.
   (2026-08-08)
