@@ -12,15 +12,15 @@ interface StaffListItemProps {
 
 export default function StaffListItem({ role, name, telephone, telegramId, onManageSchedule, onEdit, notes }: StaffListItemProps) {
     return (
-        <div className="grid grid-cols-[1fr_2fr_1.5fr_1.5fr_1fr_2fr_auto] items-center gap-4 px-6 py-4 bg-panel-white border border-border-color hover:border-turf-green transition-all duration-200 group">
-            {/* Role */}
-            <div className="text-[0.65rem] font-heading font-black text-text-primary uppercase tracking-widest">
-                {role}
-            </div>
-
+        <div className="grid grid-cols-[2fr_1fr_1.5fr_1.5fr_1fr_2fr_auto] items-center gap-4 px-6 py-4 bg-panel-white border border-border-color hover:border-turf-green transition-all duration-200 group">
             {/* Name */}
             <div className="text-sm font-sans font-bold text-text-primary">
                 {name}
+            </div>
+
+            {/* Role */}
+            <div className="text-[0.65rem] font-heading font-black text-text-primary uppercase tracking-widest">
+                {role}
             </div>
 
             {/* Telephone */}

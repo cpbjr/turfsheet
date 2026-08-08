@@ -17,7 +17,7 @@ export default function MaintenancePage() {
     const [selectedIssue, setSelectedIssue] = useState<MaintenanceIssue | null>(null);
     const [fullScreenPhoto, setFullScreenPhoto] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
-    const [statusFilter, setStatusFilter] = useState<string | null>(null);
+    const [statusFilter, setStatusFilter] = useState<string | null>('Open');
     const [priorityFilter, setPriorityFilter] = useState<string | null>(null);
 
     useEffect(() => {

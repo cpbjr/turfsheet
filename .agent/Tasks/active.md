@@ -5,6 +5,9 @@
 
 Last Updated: 2026-08-07
 
+**Session polish (2026-08-07):** Staff list — Name column first, sort by role ladder then name;
+Maintenance defaults to Open issues.
+
 **Shipped 2026-08-07:** Pesticide Event Model — see `completed/2026-08/2-pesticide-event-model.md`.
 Spray events are first-class rows with product line items (32 products → 13 events). Migrations A+B
 applied; frontend cutover merged (PR #30); edit/save verified after dropping legacy product columns.

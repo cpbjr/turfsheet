@@ -7,6 +7,41 @@ import StaffForm from '../components/staff/StaffForm';
 import { supabase } from '../lib/supabase';
 import type { Staff } from '../types';
 
+/** Lower = higher on the list. Matches golf-course hierarchy. */
+function roleSortRank(role: string | undefined | null): number {
+    const r = String(role ?? '')
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, ' ');
+
+    if (r === 'superintendent') return 0;
+    // "Assistant Superintendent" and the existing typo "Assistant Superintendant"
+    if (r.startsWith('assistant')) return 1;
+    if (r === 'mechanic') return 2;
+    if (r === 'senior staff' || r.startsWith('senior')) return 3;
+    if (r === 'staff') return 4;
+    if (r.includes('part-time') || r.includes('part time')) return 5;
+    if (r.includes('temporary') || r === 'temp' || r.startsWith('temp ')) return 6;
+    return 50; // unknown roles after known ladder, before empty
+}
+
+function compareStaff(a: Staff, b: Staff): number {
+    const byRole = roleSortRank(a.role) - roleSortRank(b.role);
+    if (byRole !== 0) return byRole;
+    // Same rank (e.g. two assistants): alphabetical role, then name
+    const roleCmp = String(a.role ?? '').localeCompare(String(b.role ?? ''), undefined, {
+        sensitivity: 'base',
+    });
+    if (roleCmp !== 0) return roleCmp;
+    return String(a.name ?? '').localeCompare(String(b.name ?? ''), undefined, {
+        sensitivity: 'base',
+    });
+}
+
+function sortStaffList(list: Staff[]): Staff[] {
+    return [...list].sort(compareStaff);
+}
+
 export default function StaffPage() {
     const [selectedStaff, setSelectedStaff] = useState<any>(null);
     const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
@@ -24,12 +59,10 @@ export default function StaffPage() {
                 setError(null);
                 const { data, error: fetchError } = await supabase
                     .from('staff')
-                    .select('*')
-                    .order('sort_order', { ascending: true })
-                    .order('name', { ascending: true });
+                    .select('*');
 
                 if (fetchError) throw fetchError;
-                setStaffMembers(data || []);
+                setStaffMembers(sortStaffList(data || []));
             } catch (err) {
                 const message = err instanceof Error ? err.message : 'Failed to fetch staff';
                 setError(message);
@@ -63,7 +96,9 @@ export default function StaffPage() {
 
             if (updateError) throw updateError;
 
-            setStaffMembers(staffMembers.map((s) => (s.id === staffToEdit.id ? data![0] : s)));
+            setStaffMembers(
+                sortStaffList(staffMembers.map((s) => (s.id === staffToEdit.id ? data![0] : s)))
+            );
             setIsEditStaffModalOpen(false);
             setStaffToEdit(null);
         } catch (err) {
@@ -145,7 +180,7 @@ export default function StaffPage() {
             if (insertError) throw insertError;
 
             console.log('Staff member created successfully:', data);
-            setStaffMembers([...staffMembers, ...(data || [])]);
+            setStaffMembers(sortStaffList([...staffMembers, ...(data || [])]));
             setIsAddStaffModalOpen(false);
         } catch (err) {
             const message = err instanceof Error ? err.message : 'Failed to create staff member';
@@ -202,9 +237,9 @@ export default function StaffPage() {
             </div>
 
             {/* List Header */}
-            <div className="grid grid-cols-[1fr_2fr_1.5fr_1.5fr_1fr_2fr_auto] items-center gap-4 px-6 py-3 bg-turf-green border-x border-t border-turf-green/20 shadow-sm">
-                <span className="text-[0.6rem] font-heading font-black text-white uppercase tracking-[0.2em]">Role</span>
+            <div className="grid grid-cols-[2fr_1fr_1.5fr_1.5fr_1fr_2fr_auto] items-center gap-4 px-6 py-3 bg-turf-green border-x border-t border-turf-green/20 shadow-sm">
                 <span className="text-[0.6rem] font-heading font-black text-white uppercase tracking-[0.2em]">Name</span>
+                <span className="text-[0.6rem] font-heading font-black text-white uppercase tracking-[0.2em]">Role</span>
                 <span className="text-[0.6rem] font-heading font-black text-white uppercase tracking-[0.2em]">Telephone</span>
                 <span className="text-[0.6rem] font-heading font-black text-white uppercase tracking-[0.2em]">Telegram ID</span>
                 <span className="text-[0.6rem] font-heading font-black text-white uppercase tracking-[0.2em]">Schedule</span>
