@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { SettingsProvider } from './contexts/SettingsContext';
+import { AuthProvider } from './contexts/AuthContext';
+import AuthGate from './components/AuthGate';
 import { Sidebar, Header, RightPanel } from './components/layout';
 import DashboardPage from './pages/DashboardPage';
 import ClassicDashboard from './pages/ClassicDashboard';
@@ -17,6 +19,7 @@ import MapsPage from './pages/MapsPage';
 import PinsPage from './pages/PinsPage';
 import DocsPage from './pages/DocsPage';
 import LearningPage from './pages/LearningPage';
+import LogoutPage from './pages/LogoutPage';
 import Modal from './components/ui/Modal';
 import JobForm from './components/jobs/JobForm';
 
@@ -32,74 +35,79 @@ function App() {
   };
 
   return (
-    <SettingsProvider>
-      <div className="flex h-screen w-screen overflow-hidden bg-dashboard-bg text-text-primary">
-        {/* Sidebar Navigation */}
-        <Sidebar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
+    <AuthProvider>
+      <SettingsProvider>
+        <AuthGate>
+          <div className="flex h-screen w-screen overflow-hidden bg-dashboard-bg text-text-primary">
+            {/* Sidebar Navigation */}
+            <Sidebar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
 
-        {/* Main Content Area */}
-        <main className="flex-1 flex flex-col overflow-hidden w-full relative">
-          {/* Header */}
-          <Header 
-            onMenuClick={() => setIsMobileMenuOpen(true)} 
-            onDailyBoardClick={() => setIsDailyBoardOpen(true)} 
-          />
+            {/* Main Content Area */}
+            <main className="flex-1 flex flex-col overflow-hidden w-full relative">
+              {/* Header */}
+              <Header 
+                onMenuClick={() => setIsMobileMenuOpen(true)} 
+                onDailyBoardClick={() => setIsDailyBoardOpen(true)} 
+              />
 
-          {/* Dashboard Grid */}
-          <div className="flex flex-1 overflow-hidden relative">
-            {/* Task Board - Center */}
-            <section className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto min-w-0">
-              <Routes>
-                <Route
-                  path="/"
-                  element={<DashboardPage />}
-                />
-                <Route
-                  path="/whiteboard"
-                  element={<DashboardPage />}
-                />
-                <Route
-                  path="/classic"
-                  element={<ClassicDashboard onCreateJob={() => setIsAddJobModalOpen(true)} />}
-                />
-                <Route path="/jobs" element={<JobsPage />} />
-                <Route path="/staff" element={<StaffPage />} />
-                <Route path="/projects" element={<ProjectsPage />} />
-                <Route path="/equipment" element={<EquipmentPage />} />
-                <Route path="/calendar" element={<CalendarPage />} />
-                <Route path="/pesticide" element={<PesticidePage />} />
-                <Route path="/irrigation" element={<IrrigationPage />} />
-                <Route path="/maintenance" element={<MaintenancePage />} />
-                <Route path="/maps" element={<MapsPage />} />
-                <Route path="/pins" element={<PinsPage />} />
-                <Route path="/docs" element={<DocsPage />} />
-                <Route path="/training" element={<LearningPage />} />
-                <Route path="/settings" element={<Settings />} />
-                {/* Fallback to Dashboard */}
-                <Route
-                  path="*"
-                  element={<DashboardPage />}
-                />
-              </Routes>
-            </section>
+              {/* Dashboard Grid */}
+              <div className="flex flex-1 overflow-hidden relative">
+                {/* Task Board - Center */}
+                <section className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto min-w-0">
+                  <Routes>
+                    <Route
+                      path="/"
+                      element={<DashboardPage />}
+                    />
+                    <Route
+                      path="/whiteboard"
+                      element={<DashboardPage />}
+                    />
+                    <Route
+                      path="/classic"
+                      element={<ClassicDashboard onCreateJob={() => setIsAddJobModalOpen(true)} />}
+                    />
+                    <Route path="/jobs" element={<JobsPage />} />
+                    <Route path="/staff" element={<StaffPage />} />
+                    <Route path="/projects" element={<ProjectsPage />} />
+                    <Route path="/equipment" element={<EquipmentPage />} />
+                    <Route path="/calendar" element={<CalendarPage />} />
+                    <Route path="/pesticide" element={<PesticidePage />} />
+                    <Route path="/irrigation" element={<IrrigationPage />} />
+                    <Route path="/maintenance" element={<MaintenancePage />} />
+                    <Route path="/maps" element={<MapsPage />} />
+                    <Route path="/pins" element={<PinsPage />} />
+                    <Route path="/docs" element={<DocsPage />} />
+                    <Route path="/training" element={<LearningPage />} />
+                    <Route path="/settings" element={<Settings />} />
+                    <Route path="/logout" element={<LogoutPage />} />
+                    {/* Fallback to Dashboard */}
+                    <Route
+                      path="*"
+                      element={<DashboardPage />}
+                    />
+                  </Routes>
+                </section>
 
-            {/* Right Panel */}
-            <RightPanel isOpen={isDailyBoardOpen} onClose={() => setIsDailyBoardOpen(false)} />
+                {/* Right Panel */}
+                <RightPanel isOpen={isDailyBoardOpen} onClose={() => setIsDailyBoardOpen(false)} />
+              </div>
+            </main>
+
+            <Modal
+              isOpen={isAddJobModalOpen}
+              onClose={() => setIsAddJobModalOpen(false)}
+              title="Create New Job"
+            >
+              <JobForm
+                onSubmit={handleCreateJob}
+                onCancel={() => setIsAddJobModalOpen(false)}
+              />
+            </Modal>
           </div>
-        </main>
-
-        <Modal
-          isOpen={isAddJobModalOpen}
-          onClose={() => setIsAddJobModalOpen(false)}
-          title="Create New Job"
-        >
-          <JobForm
-            onSubmit={handleCreateJob}
-            onCancel={() => setIsAddJobModalOpen(false)}
-          />
-        </Modal>
-      </div>
-    </SettingsProvider>
+        </AuthGate>
+      </SettingsProvider>
+    </AuthProvider>
   );
 }
 
