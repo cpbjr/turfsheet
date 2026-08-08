@@ -3,10 +3,12 @@
 
 # Active Tasks
 
-Last Updated: 2026-07-31
+Last Updated: 2026-08-08
 
-**Shipped 2026-07-31:** Pin Sheet UX redesign Phase 1 — see `completed/2026-07/3-pin-sheet-redesign.md`.
-Dedicated `/pins` (Library | Setup Table/Map | Delivery); Maps pins layer default off.
+**Shipped 2026-08-08:** Site Authentication — see `completed/2026-08/1-site-authentication.md`.
+TurfSheet is no longer publicly readable: three shared accounts, RLS rewritten across all 24
+tables (anon went from 18 of 24 readable to 0), `?pinToken=` clubhouse handout still works
+signed-out.
 
 ## Active Tasks
 
@@ -126,16 +128,26 @@ Plan retained for its parity checklist: `Implementation/2026-07-28-maps-banbury-
 - [ ] `applicator_license` is blank on every record and is a real Idaho ISDA field. It is free text
       re-typed per application, so it never gets filled. Belongs on `staff`, autofilled from the
       selected operator.
-- [ ] Correct the stale Supabase ref in `CLAUDE.md` (`scktzhwtkscabtpkvhne` → `klyzdnocgrvassppripi`).
 - [ ] `.agent/Tasks/completed/2026-02/*.md` contain a committed Postgres connection string with
       password. Rotate and scrub.
 - [ ] Register `turfsheet` in `Tools/mcp-servers/supabase/index.ts` (the hardcoded config `run.ts`
-      actually reads) and fix the wrong password in `config.json`.
+      actually reads) and fix the wrong password in `config.json`. Still broken — `supabase:sql`
+      returns `Unknown project: turfsheet`, and both the direct and pooler passwords in
+      `config.json` fail auth. Direct psql is also out: `db.<ref>.supabase.co` resolves IPv6-only
+      and this machine has no IPv6 route.
+      **Workaround that does work** — the Supabase Management API runs arbitrary SQL:
+      `POST https://api.supabase.com/v1/projects/klyzdnocgrvassppripi/database/query`
+      with `Authorization: Bearer <sbp_ token>` and `{"query": "..."}`. Used for all schema
+      introspection during the site-auth work. Note it 403s on a Python `urllib` User-Agent;
+      send a curl-like one.
 
 ---
 
 ## Recently Completed ✅
 
+- ✅ Site Authentication — the site is behind a login. Three shared accounts, RLS rewritten on all
+  24 tables, `match_memory_chunks` PUBLIC grant closed, logout un-clipped from the sidebar.
+  Verified 0 of 24 tables readable by the bundled anon key. (2026-08-08)
 - ✅ Banbury Course Map merged into `/maps` — full port from the standalone, pin data migrated into
   the TurfSheet DB, geometry parity proven (0 mismatches / 90 fields), `/banbury-map` retired to a
   302. One open defect: tap-cycle double-advance, above. (2026-07-29)
