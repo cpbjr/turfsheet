@@ -18,7 +18,6 @@ interface PinMapModeProps {
   onJumpToHole: (hole: number) => void;
   onBack: () => void;
   onNext: () => void;
-  onSkip: () => void;
   onClearPin: () => void;
   onSetPin: (hole: number, pin: import('@/types/courseMap').Pin | null) => void;
   onError?: (msg: string) => void;
@@ -146,7 +145,6 @@ export default function PinMapMode({
   onJumpToHole,
   onBack,
   onNext,
-  onSkip,
   onClearPin,
   onSetPin,
   onError,
@@ -215,12 +213,9 @@ export default function PinMapMode({
         </div>
 
         <div className="p-3 space-y-3 overflow-y-auto min-h-0">
-          <div className="grid grid-cols-4 gap-1">
+          <div className="grid grid-cols-3 gap-1">
             <button type="button" onClick={onBack} className={btnClass}>
               Back
-            </button>
-            <button type="button" onClick={onSkip} className={btnClass}>
-              Skip
             </button>
             <button type="button" onClick={onClearPin} className={btnClass}>
               Clear
