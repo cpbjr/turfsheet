@@ -159,7 +159,7 @@ Date: YYYY-MM-DD
 
 ## Supabase Configuration
 
-**Project Ref:** `scktzhwtkscabtpkvhne`
+**Project Ref:** `klyzdnocgrvassppripi`
 **MCP Project Name:** `turfsheet`
 
 ### Database Operations
@@ -168,7 +168,7 @@ Date: YYYY-MM-DD
 ```bash
 # Link project (one-time setup)
 export SUPABASE_ACCESS_TOKEN="<token-in-secure-location>"
-npx supabase@latest link --project-ref scktzhwtkscabtpkvhne
+npx supabase@latest link --project-ref klyzdnocgrvassppripi
 
 # Create migration
 npx supabase@latest migration new <description>
