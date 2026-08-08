@@ -36,11 +36,6 @@ export default function RightPanel({ isOpen, onClose }: RightPanelProps) {
   const [dailyBoardId, setDailyBoardId] = useState<string | null>(null);
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
 
-  useEffect(() => {
-    fetchWorkingStaff();
-    fetchAnnouncement();
-  }, []);
-
   const fetchAnnouncement = async () => {
     const today = getTodayISO();
     const { data, error } = await supabase
@@ -110,6 +105,12 @@ export default function RightPanel({ isOpen, onClose }: RightPanelProps) {
     }
     setLoading(false);
   };
+
+  // Declared after the fetchers so neither is referenced before initialization.
+  useEffect(() => {
+    fetchWorkingStaff();
+    fetchAnnouncement();
+  }, []);
 
   return (
     <>

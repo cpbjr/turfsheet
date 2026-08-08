@@ -36,12 +36,6 @@ export default function ManageScheduleModal({ isOpen, onClose, onUpdate }: Manag
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (isOpen) {
-      fetchAvailability();
-    }
-  }, [isOpen]);
-
   const fetchAvailability = async () => {
     setLoading(true);
     const today = getTodayISO();
@@ -89,6 +83,13 @@ export default function ManageScheduleModal({ isOpen, onClose, onUpdate }: Manag
     setStaffAvailability(availability);
     setLoading(false);
   };
+
+  // Declared after fetchAvailability so it is not referenced before initialization.
+  useEffect(() => {
+    if (isOpen) {
+      fetchAvailability();
+    }
+  }, [isOpen]);
 
   const toggleAvailability = async (staffId: string, currentlyOff: boolean, timeOffId?: string) => {
     setSaving(staffId);
