@@ -255,6 +255,7 @@ export default function ProductLibrary() {
             >
                 {editingProduct && (
                     <ProductForm
+                        key={editingProduct.id}
                         onSubmit={handleUpdate}
                         onCancel={() => setEditingProduct(null)}
                         initialData={editingProduct}

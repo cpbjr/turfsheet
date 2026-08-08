@@ -29,11 +29,6 @@ export default function ProjectListItem({ project, onUpdate, onClick }: ProjectL
   const priorityRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setTitleValue(project.title);
-    setPriorityValue(project.priority || '');
-  }, [project.title, project.priority]);
-
-  useEffect(() => {
     if (isEditingTitle && titleRef.current) titleRef.current.focus();
   }, [isEditingTitle]);
 
@@ -93,7 +88,12 @@ export default function ProjectListItem({ project, onUpdate, onClick }: ProjectL
         />
       ) : (
         <button
-          onClick={() => setIsEditingPriority(true)}
+          onClick={() => {
+            // Seed the edit buffer here rather than syncing it from props in an effect;
+            // when not editing the badge below renders project.priority directly.
+            setPriorityValue(project.priority || '');
+            setIsEditingPriority(true);
+          }}
           className="w-7 h-7 flex items-center justify-center text-xs font-heading font-black text-white shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
           style={{ backgroundColor: getPriorityColor(project.priority) }}
           title={project.priority ? `Priority ${project.priority} — click to edit` : 'Click to set priority'}
@@ -115,7 +115,10 @@ export default function ProjectListItem({ project, onUpdate, onClick }: ProjectL
         />
       ) : (
         <span
-          onClick={() => setIsEditingTitle(true)}
+          onClick={() => {
+            setTitleValue(project.title);
+            setIsEditingTitle(true);
+          }}
           className="flex-1 text-sm font-sans text-text-primary cursor-text truncate hover:text-turf-green-dark transition-colors"
           title="Click to edit title"
         >

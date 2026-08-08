@@ -2,7 +2,7 @@
  * Darryl-style 18-row yards table: Hole | GD | Depth | L/C/R | Yards | readout.
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import GreenPreview from '@/components/pins/GreenPreview';
 import { formatPinStats, placePinFromYards } from '@/lib/courseGeometry';
 import type { GreenIndex, Pin, PinMap, PinSession } from '@/types/courseMap';
@@ -48,13 +48,12 @@ export default function PinEntryTable({
   onJumpToHole,
   onSetPin,
 }: PinEntryTableProps) {
-  /** Local edit buffers keyed by hole so partial typing doesn't thrash geometry. */
+  /**
+   * Local edit buffers keyed by hole so partial typing doesn't thrash geometry.
+   * The parent keys this component on the session identity, so opening a different saved set
+   * or starting a new sheet remounts it and clears these — no reset effect needed.
+   */
   const [drafts, setDrafts] = useState<Record<number, RowDraft>>({});
-
-  // Reset local drafts when opening a different saved set / new sheet
-  useEffect(() => {
-    setDrafts({});
-  }, [session.id, session.playDate, session.label]);
 
   const order = session.order.length === 18 ? session.order : Array.from({ length: 18 }, (_, i) => i + 1);
 

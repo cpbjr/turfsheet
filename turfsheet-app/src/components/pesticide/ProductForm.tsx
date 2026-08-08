@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import type { ChemicalProduct, ChemicalProductType, RateUnit, SignalWord } from '../../types';
 
 interface ProductFormProps {
@@ -27,28 +27,82 @@ const RATE_UNITS: { value: RateUnit; label: string }[] = [
     { value: 'lbs/acre', label: 'lbs / acre' },
 ];
 
+interface ProductFormState {
+    name: string;
+    type: ChemicalProductType;
+    manufacturer: string;
+    epa_registration: string;
+    active_ingredient: string;
+    concentration_pct: string;
+    analysis: string;
+    rei_hours: string;
+    default_rate: string;
+    rate_unit: RateUnit;
+    carrier_volume_gal: string;
+    signal_word: string;
+    warnings: string;
+    max_wind_mph: string;
+    min_temp_f: string;
+    max_temp_f: string;
+    rain_delay_hours: string;
+    notes: string;
+    is_active: boolean;
+}
+
+/**
+ * Seeds the form from the product being edited, or blank for a new one. Used as a lazy
+ * useState initializer rather than a syncing effect — the parent mounts this component
+ * fresh per product (and keys it), so props never change under a live form.
+ */
+function initialFormState(initialData?: ChemicalProduct): ProductFormState {
+    if (!initialData) {
+        return {
+            name: '',
+            type: 'HERBICIDE',
+            manufacturer: '',
+            epa_registration: '',
+            active_ingredient: '',
+            concentration_pct: '',
+            analysis: '',
+            rei_hours: '0',
+            default_rate: '',
+            rate_unit: 'oz/1000sqft',
+            carrier_volume_gal: '2',
+            signal_word: '',
+            warnings: '',
+            max_wind_mph: '',
+            min_temp_f: '',
+            max_temp_f: '',
+            rain_delay_hours: '',
+            notes: '',
+            is_active: true,
+        };
+    }
+    return {
+        name: initialData.name,
+        type: initialData.type,
+        manufacturer: initialData.manufacturer || '',
+        epa_registration: initialData.epa_registration || '',
+        active_ingredient: initialData.active_ingredient || '',
+        concentration_pct: initialData.concentration_pct?.toString() || '',
+        analysis: initialData.analysis || '',
+        rei_hours: initialData.rei_hours.toString(),
+        default_rate: initialData.default_rate?.toString() || '',
+        rate_unit: initialData.rate_unit,
+        carrier_volume_gal: initialData.carrier_volume_gal.toString(),
+        signal_word: initialData.signal_word || '',
+        warnings: initialData.warnings || '',
+        max_wind_mph: initialData.max_wind_mph?.toString() || '',
+        min_temp_f: initialData.min_temp_f?.toString() || '',
+        max_temp_f: initialData.max_temp_f?.toString() || '',
+        rain_delay_hours: initialData.rain_delay_hours?.toString() || '',
+        notes: initialData.notes || '',
+        is_active: initialData.is_active,
+    };
+}
+
 export default function ProductForm({ onSubmit, onCancel, initialData, existingNames }: ProductFormProps) {
-    const [formData, setFormData] = useState({
-        name: '',
-        type: 'HERBICIDE' as ChemicalProductType,
-        manufacturer: '',
-        epa_registration: '',
-        active_ingredient: '',
-        concentration_pct: '',
-        analysis: '',
-        rei_hours: '0',
-        default_rate: '',
-        rate_unit: 'oz/1000sqft' as RateUnit,
-        carrier_volume_gal: '2',
-        signal_word: '' as string,
-        warnings: '',
-        max_wind_mph: '',
-        min_temp_f: '',
-        max_temp_f: '',
-        rain_delay_hours: '',
-        notes: '',
-        is_active: true,
-    });
+    const [formData, setFormData] = useState<ProductFormState>(() => initialFormState(initialData));
 
     const [nameError, setNameError] = useState('');
 
@@ -65,32 +119,6 @@ export default function ProductForm({ onSubmit, onCancel, initialData, existingN
         setNameError('');
         return false;
     };
-
-    useEffect(() => {
-        if (initialData) {
-            setFormData({
-                name: initialData.name,
-                type: initialData.type,
-                manufacturer: initialData.manufacturer || '',
-                epa_registration: initialData.epa_registration || '',
-                active_ingredient: initialData.active_ingredient || '',
-                concentration_pct: initialData.concentration_pct?.toString() || '',
-                analysis: initialData.analysis || '',
-                rei_hours: initialData.rei_hours.toString(),
-                default_rate: initialData.default_rate?.toString() || '',
-                rate_unit: initialData.rate_unit,
-                carrier_volume_gal: initialData.carrier_volume_gal.toString(),
-                signal_word: initialData.signal_word || '',
-                warnings: initialData.warnings || '',
-                max_wind_mph: initialData.max_wind_mph?.toString() || '',
-                min_temp_f: initialData.min_temp_f?.toString() || '',
-                max_temp_f: initialData.max_temp_f?.toString() || '',
-                rain_delay_hours: initialData.rain_delay_hours?.toString() || '',
-                notes: initialData.notes || '',
-                is_active: initialData.is_active,
-            });
-        }
-    }, [initialData]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
