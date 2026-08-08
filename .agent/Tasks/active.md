@@ -165,6 +165,35 @@ Plan retained for its parity checklist: `Implementation/2026-07-28-maps-banbury-
       against the now-working listener before spending more time here** — the bug may be gone, or it
       may finally be observable.
 
+### Pin Sheets — "Skip" button is effectively a duplicate of "Next" (2026-08-08)
+Raised by Chris after verifying `completed/2026-08/5-pin-nudge-set-state-in-effect.md`.
+
+- [ ] **Decide whether to remove the Skip button** from Setup Map mode
+      (`PinMapMode.tsx:163`, wired to `pin.skipCurrent` at `PinsPage.tsx:225`).
+
+      Chris is essentially right. `skipCurrent` (`usePinSession.ts:232-239`) sets
+      `session.skipped[hole] = true` and then calls `goRelative(1)` — but **`skipped` is never
+      read anywhere in the app.** The only references are `types/courseMap.ts:140` (declaration),
+      `MapsPage.tsx:129` and `usePinSession.ts:45/61/389` (empty initializers), and
+      `usePinSession.ts:266` (draft restore). It is not rendered in any view, not in
+      `pinSheetPrintHtml.ts`, and not used in the delivery sheet.
+
+      Net behaviour today:
+      - Hole **with** a pin — `skipCurrent`'s guard (`if (hole == null || s.pins[hole]) return s`)
+        returns state unchanged, so Skip is *exactly* Next. This is the case Chris hit.
+      - Hole **without** a pin — Skip = Next plus an inert flag.
+      - **Hole 18** — Next calls `goDelivery()`, Skip calls `goRelative(1)` which no-ops at
+        index 17. Skip is strictly worse here: it appears to do nothing.
+
+      Two ways forward:
+      1. **Remove Skip** (4 buttons → 3, grid becomes `grid-cols-3`). Drop `skipCurrent` and the
+         `skipped` field, or leave `skipped` in the type for draft compatibility.
+      2. **Make Skip mean something** — render skipped holes distinctly in the hole grid and on
+         the printed sheet ("no pin set" vs "not yet visited"). Only worth it if that distinction
+         matters operationally.
+
+      Not actioned under the surgical-changes rule — needs Chris's call on which.
+
 ### Follow-ups surfaced this session (not started)
 - [ ] **Browser automation is non-functional — fix before further UI debugging.** Both paths are
       dead: `npx tsx run.ts chrome:console|errors` hangs indefinitely and is killed by timeout, and
