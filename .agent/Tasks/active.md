@@ -10,30 +10,55 @@ Dedicated `/pins` (Library | Setup Table/Map | Delivery); Maps pins layer defaul
 
 ## Active Tasks
 
-### Site Authentication — SHIPPED 2026-08-08 (one check outstanding)
-Plan: `Implementation/2026-08-07-site-authentication.md`
-PRs: #27 (auth gate), #28 (logout clipping + verify script), #29 (PUBLIC execute revoke)
+### OldTom — anon-key diagnostic no longer means what it used to
+Context: `completed/2026-08/1-site-authentication.md`
 
-TurfSheet is no longer publicly readable. Three shared accounts; RLS rewritten across all 24
-tables; the `?pinToken=` clubhouse handout still works signed-out.
+OldTom queries a table with the **anon** key to reproduce what the live SPA sees, and diffs that
+against the service-key result. That was valid while the SPA queried as `anon`. Since the
+2026-08-08 lockdown it queries as `authenticated`, and the anon key returns `401` on every table.
 
-- [x] Three shared accounts created, auto-confirmed, verified against `auth.users`
-- [x] Frontend gate merged and deployed (login, `/logout`, pinToken exemption)
-- [x] Logout pinned in the sidebar - it was rendering but clipped below ~880px viewports
-- [x] RLS lockdown applied. Verified: 0 of 24 tables readable by anon (all hard 401,
-      baseline was 18 of 24), every table has an authenticated ALL policy and full grants,
-      0 residual anon/public policies or grants
-- [x] `match_memory_chunks` closed. The first migration revoked from `anon` but Supabase
-      grants function EXECUTE to PUBLIC by default and anon inherits it, so the SECURITY
-      DEFINER RPC stayed open at HTTP 200. Now 42501 permission denied.
-- [ ] **Sign in on production with each of the three accounts and load a page.** Structural
-      checks all pass, but no one has actually held a session since the lockdown. This is the
-      failure mode that would take the site down for staff.
-- [ ] Tell OldTom its anon-key diagnostic no longer reproduces "what the browser sees" - the
-      SPA queries as `authenticated` now. User-token recipe is in the plan doc.
-- [ ] Publish a real handout link from `/pins`, then re-run
-      `node scripts/verify-anon-lockdown.mjs --token <token>` for a `WORKS` rather than
-      `REACHABLE`. No pin set currently has a `public_token`.
+Left as-is the check inverts silently: it reports no rows and reads as missing data — the same
+shape as the "Print shows 0 apps but DB has rows" bug it exists to catch. It will not error.
+
+- [ ] Tell OldTom to mint a user token for the "what does the browser see?" check:
+
+      ```bash
+      TOKEN=$(curl -s -X POST "$SUPABASE_URL/auth/v1/token?grant_type=password" \
+        -H "apikey: $SUPABASE_ANON_KEY" -H "Content-Type: application/json" \
+        -d '{"email":"admin@banbury.local","password":"<passphrase>"}' | jq -r .access_token)
+
+      curl -s "$SUPABASE_URL/rest/v1/pesticide_applications?select=*" \
+        -H "apikey: $SUPABASE_ANON_KEY" -H "Authorization: Bearer $TOKEN" \
+        -H "Accept-Profile: turfsheet"
+      ```
+
+      `apikey` stays the anon key; only `Authorization` changes. That is exactly what
+      `supabase-js` sends, so it reproduces the browser faithfully.
+
+- [ ] Confirm nothing else in OldTom's toolkit reads with the anon key. Day-to-day work
+      (spray log GETs/POSTs/PATCHes, imports) uses `SUPABASE_SERVICE_KEY` and is unaffected —
+      `service_role` has `bypassrls` and full grants.
+
+A bare anon-key query is still worth keeping. From now on it answers "is the site locked?",
+not "what does the browser see?"
+
+### Pin handout — no published token exists
+Context: `completed/2026-08/1-site-authentication.md`
+
+All 4 rows in `banbury_pin_sets` have `public_token = NULL`, so no clubhouse handout link exists
+and the anonymous `?pinToken=` path is currently unused in production. It is verified working
+structurally, but never with real data.
+
+- [ ] Publish a handout link from `/pins` (Delivery), then:
+      `node scripts/verify-anon-lockdown.mjs --token <token>`
+      Expect `WORKS` rather than today's `REACHABLE`. That is the difference between "anon can
+      execute the RPC" and "anon actually gets the pin set back" — the second is what a golfer
+      scanning the QR code depends on.
+- [ ] Load `/turfsheet/maps?pinToken=<token>` in a signed-out private window and confirm the
+      green diagrams render.
+
+Not urgent — nothing depends on the handout path until a tournament sheet is published. Worth
+doing before one is needed rather than during.
 
 ### Chemicals Page — remaining items
 Plan: `Implementation/2026-07-28-chemicals-clean-up.md`
