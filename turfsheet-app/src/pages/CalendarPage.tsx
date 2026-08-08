@@ -52,8 +52,12 @@ export default function CalendarPage() {
     setDbEvents(data || []);
   }, []);
 
+  // The awaited wrapper keeps fetchEvents' setState off the effect's synchronous path.
   useEffect(() => {
-    fetchEvents(currentDate);
+    const load = async () => {
+      await fetchEvents(currentDate);
+    };
+    void load();
   }, [currentDate, fetchEvents]);
 
   // Merge DB events with US holidays
