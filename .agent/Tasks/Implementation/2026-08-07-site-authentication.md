@@ -81,8 +81,35 @@ vector search over `memory_chunks` with the owner's rights, so revoking table gr
 close it. Nothing in `turfsheet-app` calls it; `service_role` keeps `EXECUTE`. The migration
 revokes `anon`'s.
 
-If any external consumer (OldTom) calls this RPC with the anon key rather than the service key,
-that integration breaks when the migration is applied. Confirm before step 4.
+Confirmed with OldTom 2026-08-08: day-to-day work (spray log GETs/POSTs/PATCHes, imports,
+patches) uses `SUPABASE_SERVICE_KEY`. `service_role` has `bypassrls = true` and grants on all 24
+tables, and the migration never revokes from it, so none of that is affected.
+
+### After lockdown, an anon-key query no longer shows "what the browser sees"
+
+OldTom uses the anon key for one diagnostic: hitting a table with the anon JWT to reproduce what
+the live SPA sees, and comparing that against the service-key result. **That equivalence dies at
+step 4.** Today the SPA queries as `anon`; afterwards a signed-in browser sends a user JWT and
+queries as `authenticated`. The anon key will return empty for every table by design.
+
+Left unchanged, the check inverts silently — it reports 0 rows and reads as missing data, which
+is the same shape as the "Print shows 0 apps but DB has rows" bug it exists to catch.
+
+To reproduce the browser's view after step 4, mint a user token; `apikey` stays the anon key and
+only `Authorization` changes, which is exactly what `supabase-js` sends:
+
+```bash
+TOKEN=$(curl -s -X POST "$SUPABASE_URL/auth/v1/token?grant_type=password" \
+  -H "apikey: $SUPABASE_ANON_KEY" -H "Content-Type: application/json" \
+  -d '{"email":"admin@banbury.local","password":"<passphrase>"}' | jq -r .access_token)
+
+curl -s "$SUPABASE_URL/rest/v1/pesticide_applications?select=*" \
+  -H "apikey: $SUPABASE_ANON_KEY" -H "Authorization: Bearer $TOKEN" \
+  -H "Accept-Profile: turfsheet"
+```
+
+A bare anon-key query is still worth running — but from step 4 on it answers "is the site
+locked?", not "what does the browser see?"
 
 ### Per-table pattern
 
