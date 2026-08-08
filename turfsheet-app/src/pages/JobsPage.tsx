@@ -3,6 +3,7 @@ import { Search, Plus, Filter, LayoutGrid, List } from 'lucide-react';
 import JobCard from '../components/jobs/JobCard';
 import Modal from '../components/ui/Modal';
 import JobForm from '../components/jobs/JobForm';
+import type { JobFormData } from '../components/jobs/JobForm';
 import { supabase } from '../lib/supabase';
 import type { Job, JobType } from '../types';
 
@@ -42,7 +43,7 @@ export default function JobsPage() {
 
     const inputClasses = "bg-panel-white border border-border-color px-4 py-2 text-sm focus:border-turf-green outline-none transition-colors font-sans";
 
-    const handleSaveJob = async (formData: any) => {
+    const handleSaveJob = async (formData: JobFormData) => {
         try {
             setError(null);
             const { data, error: insertError } = await supabase
@@ -67,7 +68,7 @@ export default function JobsPage() {
         setIsEditJobModalOpen(true);
     };
 
-    const handleUpdateJob = async (formData: any) => {
+    const handleUpdateJob = async (formData: JobFormData) => {
         if (!jobToEdit) return;
         try {
             setError(null);

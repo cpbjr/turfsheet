@@ -3,6 +3,7 @@ import { Search, Plus, LayoutGrid, List, Upload } from 'lucide-react';
 import EquipmentCard from '../components/equipment/EquipmentCard';
 import Modal from '../components/ui/Modal';
 import EquipmentForm from '../components/equipment/EquipmentForm';
+import type { EquipmentFormData } from '../components/equipment/EquipmentForm';
 import EquipmentBatchUpload from '../components/equipment/EquipmentBatchUpload';
 import { supabase } from '../lib/supabase';
 import type { Equipment } from '../types';
@@ -43,7 +44,7 @@ export default function EquipmentPage() {
         }
     };
 
-    const handleSaveEquipment = async (formData: any) => {
+    const handleSaveEquipment = async (formData: EquipmentFormData) => {
         try {
             setError(null);
             console.log('Inserting equipment:', formData);

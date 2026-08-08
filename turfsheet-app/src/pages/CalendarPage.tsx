@@ -6,6 +6,7 @@ import 'react-big-calendar/lib/css/react-big-calendar.css';
 import '../styles/calendar-overrides.css';
 import Modal from '../components/ui/Modal';
 import EventForm from '../components/calendar/EventForm';
+import type { EventFormData } from '../components/calendar/EventForm';
 import { createCalendarToolbar } from '../components/calendar/CalendarToolbar';
 import { getUSHolidays } from '../data/us-holidays';
 import { supabase } from '../lib/supabase';
@@ -126,7 +127,7 @@ export default function CalendarPage() {
   }, []);
 
   // Add event to Supabase
-  const handleAddEvent = useCallback(async (formData: any) => {
+  const handleAddEvent = useCallback(async (formData: EventFormData) => {
     const { error } = await supabase
       .from('calendar_events')
       .insert([formData]);

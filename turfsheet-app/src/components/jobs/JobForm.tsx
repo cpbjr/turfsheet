@@ -11,8 +11,22 @@ const DAYS_OF_WEEK: { key: DayOfWeek; label: string }[] = [
     { key: 'sunday',    label: 'Sun' },
 ];
 
+export interface JobFormData {
+    title: string;
+    description: string;
+    crew_needed: number;
+    priority: string;
+    section: 'First Jobs' | 'Second Jobs';
+    is_scheduled: boolean;
+    scheduled_days: DayOfWeek[];
+    job_type: JobType;
+    mow_direction: MowDirection | null;
+    hoc: number | null;
+    mow_pattern: MowPattern | null;
+}
+
 interface JobFormProps {
-    onSubmit: (data: any) => void;
+    onSubmit: (data: JobFormData) => void;
     onCancel: () => void;
     initialData?: Job;
 }

@@ -7,7 +7,7 @@ import type { CalendarEvent } from '../types';
 function nthWeekday(year: number, month: number, weekday: number, n: number): Date {
   const first = new Date(year, month, 1);
   const firstDay = first.getDay();
-  let day = 1 + ((weekday - firstDay + 7) % 7) + (n - 1) * 7;
+  const day = 1 + ((weekday - firstDay + 7) % 7) + (n - 1) * 7;
   return new Date(year, month, day);
 }
 

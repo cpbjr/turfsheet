@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
+import type { Staff } from '../../types';
 
-interface DaySchedule {
+export interface DaySchedule {
     day: string;
     date: string;
     isOn: boolean;
@@ -19,7 +20,7 @@ const DAYS = [
     { day: 'Sun', date: 'Feb 9, 2026' },
 ];
 
-export default function ScheduleForm({ staff, onSave }: { staff: any, onSave: (data: any) => void }) {
+export default function ScheduleForm({ staff, onSave }: { staff: Staff, onSave: (data: DaySchedule[]) => void }) {
     const [schedule, setSchedule] = useState<DaySchedule[]>(
         DAYS.map(d => ({
             ...d,
