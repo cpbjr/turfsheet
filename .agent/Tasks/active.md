@@ -5,6 +5,17 @@
 
 Last Updated: 2026-08-08
 
+**Shipped 2026-08-08:** eslint cleanup — see `completed/2026-08/7-eslint-cleanup.md`.
+All 45 errors in `turfsheet-app/src` fixed, 0 remaining (5 pre-existing warnings unchanged).
+Also surfaced that **`npx tsc --noEmit` compiles nothing in this repo** — see the section below.
+
+**Shipped 2026-08-08:** Skip button removed from Pin Sheets Setup — see
+`completed/2026-08/6-remove-pin-skip-button.md`. It duplicated Next on any hole with a pin, and
+no-opped on hole 18 where Next finishes to Delivery; the `skipped` flag it set was never read.
+
+**Shipped 2026-08-08:** Nudge card set-state-in-effect — see
+`completed/2026-08/5-pin-nudge-set-state-in-effect.md`.
+
 **Shipped 2026-08-08:** Pin Map Mobile Usability — see `completed/2026-08/4-pin-map-mobile-usability.md`.
 Tapping near the hole-number badge or the current pin no longer does nothing (clickable markers were
 swallowing the click), and the map frame fills the phone screen instead of sitting at 240px (a
@@ -165,34 +176,33 @@ Plan retained for its parity checklist: `Implementation/2026-07-28-maps-banbury-
       against the now-working listener before spending more time here** — the bug may be gone, or it
       may finally be observable.
 
-### Pin Sheets — "Skip" button is effectively a duplicate of "Next" (2026-08-08)
-Raised by Chris after verifying `completed/2026-08/5-pin-nudge-set-state-in-effect.md`.
+### ⚠️ `npx tsc --noEmit` is a no-op in this repo — use `tsc -b` (2026-08-08)
+Context: `completed/2026-08/7-eslint-cleanup.md`
 
-- [ ] **Decide whether to remove the Skip button** from Setup Map mode
-      (`PinMapMode.tsx:163`, wired to `pin.skipCurrent` at `PinsPage.tsx:225`).
+The root `tsconfig.json` is `"files": []` plus project references, so **`npx tsc --noEmit`
+compiles nothing and always exits 0.** It has been cited as verification in past handoffs and
+completion records; those claims were vacuous. Found when `npm run build` caught a `TS2322`
+that `tsc --noEmit` had just reported clean.
 
-      Chris is essentially right. `skipCurrent` (`usePinSession.ts:232-239`) sets
-      `session.skipped[hole] = true` and then calls `goRelative(1)` — but **`skipped` is never
-      read anywhere in the app.** The only references are `types/courseMap.ts:140` (declaration),
-      `MapsPage.tsx:129` and `usePinSession.ts:45/61/389` (empty initializers), and
-      `usePinSession.ts:266` (draft restore). It is not rendered in any view, not in
-      `pinSheetPrintHtml.ts`, and not used in the delivery sheet.
+**Use `npx tsc -b`, or `npm run build` (which runs `tsc -b && vite build`).**
 
-      Net behaviour today:
-      - Hole **with** a pin — `skipCurrent`'s guard (`if (hole == null || s.pins[hole]) return s`)
-        returns state unchanged, so Skip is *exactly* Next. This is the case Chris hit.
-      - Hole **without** a pin — Skip = Next plus an inert flag.
-      - **Hole 18** — Next calls `goDelivery()`, Skip calls `goRelative(1)` which no-ops at
-        index 17. Skip is strictly worse here: it appears to do nothing.
+- [ ] Nothing to fix in code. Kept here so the next agent does not repeat the mistake.
 
-      Two ways forward:
-      1. **Remove Skip** (4 buttons → 3, grid becomes `grid-cols-3`). Drop `skipCurrent` and the
-         `skipped` field, or leave `skipped` in the type for draft compatibility.
-      2. **Make Skip mean something** — render skipped holes distinctly in the hole grid and on
-         the printed sheet ("no pin set" vs "not yet visited"). Only worth it if that distinction
-         matters operationally.
+### `StaffSchedule` type does not match the database (2026-08-08)
+Context: `completed/2026-08/7-eslint-cleanup.md`
 
-      Not actioned under the surgical-changes rule — needs Chris's call on which.
+`types/index.ts:169` declares `StaffSchedule extends WeeklySchedule` — nested `monday:
+DaySchedule` objects. The actual `staff_schedules` table has **flat** `monday_on` /
+`monday_start` / `monday_end` columns, as `StaffPage.handleSaveSchedule` shows when it builds
+its upsert.
+
+This is why `ManageScheduleModal` and `StaffWhiteboardView` were reading the table through
+`any`. Both now use a local `ScheduleRow` with a comment, rather than reuse a wrong type.
+
+- [ ] Decide whether to correct `StaffSchedule` to the real column shape (and drop the two
+      local `ScheduleRow` declarations), or keep `WeeklySchedule` for some other purpose and
+      add a separate `StaffScheduleRow` to `types/index.ts`. Check for other consumers first —
+      `RightPanel.tsx` also casts a `dayColumn` through `keyof StaffSchedule`.
 
 ### Follow-ups surfaced this session (not started)
 - [ ] **Browser automation is non-functional — fix before further UI debugging.** Both paths are
