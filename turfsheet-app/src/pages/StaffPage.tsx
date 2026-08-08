@@ -3,7 +3,9 @@ import { Search, Plus, Filter, List as ListIcon, LayoutGrid } from 'lucide-react
 import StaffListItem from '../components/staff/StaffListItem';
 import Modal from '../components/ui/Modal';
 import ScheduleForm from '../components/staff/ScheduleForm';
+import type { DaySchedule } from '../components/staff/ScheduleForm';
 import StaffForm from '../components/staff/StaffForm';
+import type { StaffFormData } from '../components/staff/StaffForm';
 import { supabase } from '../lib/supabase';
 import type { Staff } from '../types';
 
@@ -43,11 +45,11 @@ function sortStaffList(list: Staff[]): Staff[] {
 }
 
 export default function StaffPage() {
-    const [selectedStaff, setSelectedStaff] = useState<any>(null);
+    const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
     const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
     const [isAddStaffModalOpen, setIsAddStaffModalOpen] = useState(false);
     const [isEditStaffModalOpen, setIsEditStaffModalOpen] = useState(false);
-    const [staffToEdit, setStaffToEdit] = useState<any>(null);
+    const [staffToEdit, setStaffToEdit] = useState<Staff | null>(null);
     const [staffMembers, setStaffMembers] = useState<Staff[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -75,17 +77,18 @@ export default function StaffPage() {
         fetchStaff();
     }, []);
 
-    const handleManageSchedule = (staff: any) => {
+    const handleManageSchedule = (staff: Staff) => {
         setSelectedStaff(staff);
         setIsScheduleModalOpen(true);
     };
 
-    const handleEditStaff = (staff: any) => {
+    const handleEditStaff = (staff: Staff) => {
         setStaffToEdit(staff);
         setIsEditStaffModalOpen(true);
     };
 
-    const handleUpdateStaff = async (formData: any) => {
+    const handleUpdateStaff = async (formData: StaffFormData) => {
+        if (!staffToEdit) return;
         try {
             setError(null);
             const { data, error: updateError } = await supabase
@@ -108,7 +111,8 @@ export default function StaffPage() {
         }
     };
 
-    const handleSaveSchedule = async (scheduleData: any) => {
+    const handleSaveSchedule = async (scheduleData: DaySchedule[]) => {
+        if (!selectedStaff) return;
         try {
             setError(null);
 
@@ -168,7 +172,7 @@ export default function StaffPage() {
         return `${String(hours).padStart(2, '0')}:${minutes}:00`;
     };
 
-    const handleSaveStaff = async (formData: any) => {
+    const handleSaveStaff = async (formData: StaffFormData) => {
         try {
             setError(null);
             console.log('Inserting staff member:', formData);

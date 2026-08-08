@@ -3,9 +3,19 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import Modal from '../ui/Modal';
 import JobForm from '../jobs/JobForm';
+import type { JobFormData } from '../jobs/JobForm';
 import StaffRow from './StaffRow';
 import SecondJobsBoardPanel from './SecondJobsBoardPanel';
 import type { Job, Staff, WhiteboardRow, DailyAssignmentWithDetails, SecondJobBoardItemWithStaff } from '../../types';
+
+/**
+ * A `staff_schedules` row as it actually comes back: flat `<day>_on` columns looked up by a
+ * name built at runtime. Not the nested `StaffSchedule` shape declared in types/index.ts.
+ */
+interface ScheduleRow {
+  staff_id: string | number;
+  [column: string]: unknown;
+}
 
 interface StaffWhiteboardViewProps {
   selectedDate: Date;
@@ -97,9 +107,9 @@ export default function StaffWhiteboardView({
       console.warn('Staff schedules table not available:', error.message);
       setWorkingStaffIds(new Set(staffList.map(s => String(s.id))));
     } else if (data) {
-      const workingIds = data
-        .filter((schedule: any) => schedule[dayColumn])
-        .map((schedule: any) => String(schedule.staff_id));
+      const workingIds = (data as ScheduleRow[])
+        .filter((schedule) => schedule[dayColumn])
+        .map((schedule) => String(schedule.staff_id));
       setWorkingStaffIds(new Set(workingIds));
     }
 
@@ -115,7 +125,9 @@ export default function StaffWhiteboardView({
       console.warn('staff_time_off not available:', timeOffError.message);
       setOffStaffIds(new Set());
     } else {
-      const offIds = (timeOffData || []).map((row: any) => String(row.staff_id));
+      const offIds = (timeOffData || []).map((row: { staff_id: string | number }) =>
+        String(row.staff_id)
+      );
       setOffStaffIds(new Set(offIds));
     }
   };
@@ -251,7 +263,7 @@ export default function StaffWhiteboardView({
     setIsJobModalOpen(true);
   };
 
-  const handleSaveJob = async (formData: any) => {
+  const handleSaveJob = async (formData: JobFormData) => {
     try {
       const { error } = await supabase
         .from('jobs')

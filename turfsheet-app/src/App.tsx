@@ -22,13 +22,14 @@ import LearningPage from './pages/LearningPage';
 import LogoutPage from './pages/LogoutPage';
 import Modal from './components/ui/Modal';
 import JobForm from './components/jobs/JobForm';
+import type { JobFormData } from './components/jobs/JobForm';
 
 function App() {
   const [isAddJobModalOpen, setIsAddJobModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isDailyBoardOpen, setIsDailyBoardOpen] = useState(false);
 
-  const handleCreateJob = (data: any) => {
+  const handleCreateJob = (data: JobFormData) => {
     console.log('New Job Data:', data);
     // Future: Logic to save job to state/backend
     setIsAddJobModalOpen(false);

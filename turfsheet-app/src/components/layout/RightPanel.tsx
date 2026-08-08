@@ -36,11 +36,6 @@ export default function RightPanel({ isOpen, onClose }: RightPanelProps) {
   const [dailyBoardId, setDailyBoardId] = useState<string | null>(null);
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
 
-  useEffect(() => {
-    fetchWorkingStaff();
-    fetchAnnouncement();
-  }, []);
-
   const fetchAnnouncement = async () => {
     const today = getTodayISO();
     const { data, error } = await supabase
@@ -110,6 +105,16 @@ export default function RightPanel({ isOpen, onClose }: RightPanelProps) {
     }
     setLoading(false);
   };
+
+  // Declared after the fetchers so neither is referenced before initialization. The awaited
+  // wrapper keeps the fetchers' setState off the effect's synchronous path; both still run
+  // in parallel.
+  useEffect(() => {
+    const load = async () => {
+      await Promise.all([fetchWorkingStaff(), fetchAnnouncement()]);
+    };
+    void load();
+  }, []);
 
   return (
     <>

@@ -14,7 +14,7 @@ interface ParsedRow {
 }
 
 export default function EquipmentBatchUpload({ onUpload, onCancel }: EquipmentBatchUploadProps) {
-    const [_file, setFile] = useState<File | null>(null);
+    const [, setFile] = useState<File | null>(null);
     const [parsedData, setParsedData] = useState<ParsedRow[]>([]);
     const [uploading, setUploading] = useState(false);
     const [uploadComplete, setUploadComplete] = useState(false);
@@ -90,12 +90,13 @@ export default function EquipmentBatchUpload({ onUpload, onCancel }: EquipmentBa
                         case 'purchase_date':
                             equipment.purchase_date = value;
                             break;
-                        case 'purchase_cost':
+                        case 'purchase_cost': {
                             const cost = parseFloat(value);
                             if (!isNaN(cost)) {
                                 equipment.purchase_cost = cost;
                             }
                             break;
+                        }
                         case 'maintenance_notes':
                             equipment.maintenance_notes = value;
                             break;

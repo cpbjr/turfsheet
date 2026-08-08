@@ -76,13 +76,11 @@ export default function MapsPage() {
 
   // Load chosen set pins onto the map
   useEffect(() => {
-    if (!showPinsLayer || !selectedPinSetId || !Object.keys(greenIndex).length) {
-      if (!showPinsLayer) {
-        setOverlayPins({});
-        setOverlaySetLabel('');
-      }
-      return;
-    }
+    // No need to clear the overlay when the layer goes off: both readers already gate on
+    // showPinsLayer (displayPins below, and the "Showing pins" caption), so a stale value is
+    // never displayed. Keeping it also means re-enabling the layer redraws the same set
+    // immediately instead of blanking until the refetch lands.
+    if (!showPinsLayer || !selectedPinSetId || !Object.keys(greenIndex).length) return;
     let cancelled = false;
     getPinSet(selectedPinSetId)
       .then((row) => {

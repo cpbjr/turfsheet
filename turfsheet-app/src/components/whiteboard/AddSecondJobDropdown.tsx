@@ -19,19 +19,6 @@ export default function AddSecondJobDropdown({
     }
   }, [isOpen]);
 
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        handleSubmit();
-      }
-    }
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
-  }, [isOpen, text]);
-
   const handleSubmit = () => {
     const lines = text
       .split('\n')
@@ -45,6 +32,20 @@ export default function AddSecondJobDropdown({
     setText('');
     setIsOpen(false);
   };
+
+  // Declared after handleSubmit so it is not referenced before initialization.
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        handleSubmit();
+      }
+    }
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isOpen, text]);
 
   return (
     <div className="relative" ref={containerRef}>

@@ -5,6 +5,9 @@ import ProductForm from './ProductForm';
 import { supabase } from '../../lib/supabase';
 import type { ChemicalProduct } from '../../types';
 
+/** Exactly what ProductForm submits. */
+type ProductFormPayload = Omit<ChemicalProduct, 'id' | 'created_at' | 'updated_at'>;
+
 const TYPE_LABELS: Record<string, string> = {
     FERTILIZER: 'Fertilizer',
     HERBICIDE: 'Herbicide',
@@ -60,7 +63,7 @@ export default function ProductLibrary() {
         }
     };
 
-    const handleAdd = async (formData: any) => {
+    const handleAdd = async (formData: ProductFormPayload) => {
         try {
             setError(null);
             const { data, error: insertError } = await supabase
@@ -77,7 +80,7 @@ export default function ProductLibrary() {
         }
     };
 
-    const handleUpdate = async (formData: any) => {
+    const handleUpdate = async (formData: ProductFormPayload) => {
         if (!editingProduct) return;
         try {
             setError(null);
@@ -252,6 +255,7 @@ export default function ProductLibrary() {
             >
                 {editingProduct && (
                     <ProductForm
+                        key={editingProduct.id}
                         onSubmit={handleUpdate}
                         onCancel={() => setEditingProduct(null)}
                         initialData={editingProduct}

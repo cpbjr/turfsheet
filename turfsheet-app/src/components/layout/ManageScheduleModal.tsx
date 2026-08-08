@@ -1,7 +1,17 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import type { Staff } from '../../types';
+import type { Staff, StaffTimeOff } from '../../types';
 import Modal from '../ui/Modal';
+
+/**
+ * A `staff_schedules` row as it actually comes back: flat `<day>_on` / `_start` / `_end`
+ * columns, looked up by a name built at runtime. Note this is NOT the `StaffSchedule` type
+ * in types/index.ts, which declares a nested `WeeklySchedule` shape the table doesn't have.
+ */
+interface ScheduleRow {
+  staff_id: string | number;
+  [column: string]: unknown;
+}
 
 interface ManageScheduleModalProps {
   isOpen: boolean;
@@ -25,12 +35,6 @@ export default function ManageScheduleModal({ isOpen, onClose, onUpdate }: Manag
   const [staffAvailability, setStaffAvailability] = useState<StaffAvailability[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (isOpen) {
-      fetchAvailability();
-    }
-  }, [isOpen]);
 
   const fetchAvailability = async () => {
     setLoading(true);
@@ -59,10 +63,10 @@ export default function ManageScheduleModal({ isOpen, onClose, onUpdate }: Manag
       .eq('status', 'approved');
 
     const scheduleMap = new Map(
-      (scheduleData || []).map((s: any) => [String(s.staff_id), s])
+      (scheduleData || []).map((s: ScheduleRow) => [String(s.staff_id), s])
     );
     const timeOffMap = new Map(
-      (timeOffData || []).map((t: any) => [String(t.staff_id), t])
+      (timeOffData || []).map((t: StaffTimeOff) => [String(t.staff_id), t])
     );
 
     const availability = (staffData || []).map((staff: Staff) => {
@@ -70,7 +74,7 @@ export default function ManageScheduleModal({ isOpen, onClose, onUpdate }: Manag
       const timeOff = timeOffMap.get(String(staff.id));
       return {
         staff,
-        isScheduled: schedule ? (schedule as any)[dayColumn] === true : false,
+        isScheduled: schedule ? schedule[dayColumn] === true : false,
         isOff: !!timeOff,
         timeOffId: timeOff?.id,
       };
@@ -79,6 +83,16 @@ export default function ManageScheduleModal({ isOpen, onClose, onUpdate }: Manag
     setStaffAvailability(availability);
     setLoading(false);
   };
+
+  // Declared after fetchAvailability so it is not referenced before initialization. The
+  // awaited wrapper keeps its setState off the effect's synchronous path.
+  useEffect(() => {
+    if (!isOpen) return;
+    const load = async () => {
+      await fetchAvailability();
+    };
+    void load();
+  }, [isOpen]);
 
   const toggleAvailability = async (staffId: string, currentlyOff: boolean, timeOffId?: string) => {
     setSaving(staffId);

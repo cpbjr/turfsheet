@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
 
+export interface StaffFormData {
+    name: string;
+    role: string;
+    telephone: string;
+    telegram_id: string;
+    notes: string;
+}
+
 interface StaffFormProps {
-    onSubmit: (data: any) => void;
+    onSubmit: (data: StaffFormData) => void;
     onCancel: () => void;
-    initialData?: {
-        name: string;
-        role: string;
-        telephone: string;
-        telegram_id: string;
-        notes: string;
-    };
+    initialData?: Partial<StaffFormData>;
 }
 
 export default function StaffForm({ onSubmit, onCancel, initialData }: StaffFormProps) {

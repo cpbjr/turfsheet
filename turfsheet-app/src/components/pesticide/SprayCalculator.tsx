@@ -103,9 +103,10 @@ export default function SprayCalculator({ onRecordApplication }: SprayCalculator
             setProducts(data || []);
             setLoading(false);
         };
-        fetchProducts();
-        fetchWeather();
-        fetchTemplates();
+        const load = async () => {
+            await Promise.all([fetchProducts(), fetchWeather(), fetchTemplates()]);
+        };
+        void load();
     }, []);
 
     const handleProductSelect = (index: number, productId: string) => {

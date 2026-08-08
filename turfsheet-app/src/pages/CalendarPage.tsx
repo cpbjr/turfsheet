@@ -6,7 +6,8 @@ import 'react-big-calendar/lib/css/react-big-calendar.css';
 import '../styles/calendar-overrides.css';
 import Modal from '../components/ui/Modal';
 import EventForm from '../components/calendar/EventForm';
-import { createCalendarToolbar } from '../components/calendar/CalendarToolbar';
+import type { EventFormData } from '../components/calendar/EventForm';
+import { createCalendarToolbar } from '../components/calendar/createCalendarToolbar';
 import { getUSHolidays } from '../data/us-holidays';
 import { supabase } from '../lib/supabase';
 import type { CalendarEvent, CalendarEventType } from '../types';
@@ -51,8 +52,12 @@ export default function CalendarPage() {
     setDbEvents(data || []);
   }, []);
 
+  // The awaited wrapper keeps fetchEvents' setState off the effect's synchronous path.
   useEffect(() => {
-    fetchEvents(currentDate);
+    const load = async () => {
+      await fetchEvents(currentDate);
+    };
+    void load();
   }, [currentDate, fetchEvents]);
 
   // Merge DB events with US holidays
@@ -126,7 +131,7 @@ export default function CalendarPage() {
   }, []);
 
   // Add event to Supabase
-  const handleAddEvent = useCallback(async (formData: any) => {
+  const handleAddEvent = useCallback(async (formData: EventFormData) => {
     const { error } = await supabase
       .from('calendar_events')
       .insert([formData]);

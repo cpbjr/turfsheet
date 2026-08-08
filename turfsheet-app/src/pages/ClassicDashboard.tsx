@@ -46,7 +46,23 @@ export default function ClassicDashboard({ onCreateJob }: ClassicDashboardProps)
     fetchJobs();
   }, []);
 
-  // Auto-populate scheduled job queue for today
+  const fetchScheduledQueue = async () => {
+    const { data, error } = await supabase
+      .from('scheduled_job_queue')
+      .select('*, job:jobs(*)')
+      .eq('queue_date', today)
+      .eq('dismissed', false)
+      .order('id', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching scheduled queue:', error);
+      return;
+    }
+    setScheduledQueue((data || []) as ScheduledJobQueueWithJob[]);
+  };
+
+  // Auto-populate scheduled job queue for today. Declared after fetchScheduledQueue so it is
+  // not referenced before initialization.
   useEffect(() => {
     if (firstJobs.length === 0) return;
 
@@ -76,21 +92,6 @@ export default function ClassicDashboard({ onCreateJob }: ClassicDashboardProps)
 
     populateScheduledQueue();
   }, [firstJobs, today, todayDOW]);
-
-  const fetchScheduledQueue = async () => {
-    const { data, error } = await supabase
-      .from('scheduled_job_queue')
-      .select('*, job:jobs(*)')
-      .eq('queue_date', today)
-      .eq('dismissed', false)
-      .order('id', { ascending: true });
-
-    if (error) {
-      console.error('Error fetching scheduled queue:', error);
-      return;
-    }
-    setScheduledQueue((data || []) as ScheduledJobQueueWithJob[]);
-  };
 
   const handleDismissScheduled = async (queueId: string) => {
     const { error } = await supabase

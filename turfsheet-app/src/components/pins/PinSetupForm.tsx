@@ -210,6 +210,7 @@ export default function PinSetupForm(props: PinSetupFormProps) {
           {/* overflow-hidden (not auto): only the table column scrolls; preview floats */}
           <div className="flex-1 min-h-0 overflow-hidden">
             <PinEntryTable
+              key={`${session.id}:${session.playDate}:${session.label}`}
               session={session}
               greenIndex={greenIndex}
               currentHole={currentHole}

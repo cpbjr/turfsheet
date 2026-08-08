@@ -1,7 +1,21 @@
 import React, { useState } from 'react';
 
+export interface EquipmentFormData {
+    name: string;
+    equipment_number?: string;
+    category: string;
+    model?: string;
+    manufacturer?: string;
+    description?: string;
+    status: string;
+    purchase_date?: string;
+    purchase_cost?: number;
+    maintenance_notes?: string;
+    last_serviced_date?: string;
+}
+
 interface EquipmentFormProps {
-    onSubmit: (data: any) => void;
+    onSubmit: (data: EquipmentFormData) => void;
     onCancel: () => void;
 }
 

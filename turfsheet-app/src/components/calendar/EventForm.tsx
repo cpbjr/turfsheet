@@ -1,7 +1,19 @@
 import React, { useState } from 'react';
 
+export interface EventFormData {
+  title: string;
+  event_type: string;
+  event_date: string;
+  end_date?: string;
+  all_day: boolean;
+  start_time?: string;
+  end_time?: string;
+  description?: string;
+  notes?: string;
+}
+
 interface EventFormProps {
-  onSubmit: (data: any) => void;
+  onSubmit: (data: EventFormData) => void;
   onCancel: () => void;
   initialDate?: Date;
 }
