@@ -269,6 +269,15 @@ const CourseMap = forwardRef<CourseMapHandle, CourseMapProps>(function CourseMap
         });
         mapRef.current = map;
 
+        // Pin mode: map clicks drop a pin instead of doing nothing. Attached here rather
+        // than in a [pinMode] effect because the map does not exist until this async boot
+        // resolves, so such an effect always sees a null map on mount and never re-runs
+        // (pinMode is a constant true in Setup Map mode).
+        clickListenerRef.current = map.addListener('click', (event: google.maps.MapMouseEvent) => {
+          if (!pinModeRef.current || !event.latLng) return;
+          onMapClickRef.current?.(event.latLng.lat(), event.latLng.lng());
+        });
+
         const res = await fetch(GEO_URL, { cache: 'no-cache' });
         if (!res.ok) throw new Error(`GeoJSON fetch failed (${res.status})`);
         const fc = (await res.json()) as CourseGeoJson;
@@ -392,22 +401,6 @@ const CourseMap = forwardRef<CourseMapHandle, CourseMapProps>(function CourseMap
   useEffect(() => {
     redrawPinMarkers();
   }, [redrawPinMarkers]);
-
-  // Pin mode: map clicks drop a pin instead of doing nothing.
-  useEffect(() => {
-    const map = mapRef.current;
-    clickListenerRef.current?.remove();
-    clickListenerRef.current = null;
-    if (!map || !pinMode) return;
-    clickListenerRef.current = map.addListener('click', (event: google.maps.MapMouseEvent) => {
-      if (!event.latLng) return;
-      onMapClickRef.current?.(event.latLng.lat(), event.latLng.lng());
-    });
-    return () => {
-      clickListenerRef.current?.remove();
-      clickListenerRef.current = null;
-    };
-  }, [pinMode]);
 
   useImperativeHandle(
     ref,

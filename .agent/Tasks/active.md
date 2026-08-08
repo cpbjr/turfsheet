@@ -3,7 +3,12 @@
 
 # Active Tasks
 
-Last Updated: 2026-08-07
+Last Updated: 2026-08-08
+
+**Shipped 2026-08-08:** Pin map-click listener — see `completed/2026-08/3-pin-map-click-listener.md`.
+Placing pins on `/pins` → Setup → Map mode works again. The listener was never attached (the
+`[pinMode]` effect always read a null `mapRef` on mount and never re-ran); it is now attached once
+inside the async boot effect. Broken since `a39ab0e` on 2026-07-31 — **not** caused by the auth work.
 
 **Session polish (2026-08-07):** Staff list — Name column first, sort by role ladder then name;
 Maintenance defaults to Open issues.
@@ -142,6 +147,18 @@ Plan retained for its parity checklist: `Implementation/2026-07-28-maps-banbury-
       **Blocker:** no working browser automation in this environment (see follow-ups below), so all
       three attempts were verified by `tsc`/`eslint` only and tested by hand by Chris.
 
+      **⚠️ RE-SCOPE THIS BEFORE ANY FURTHER WORK (2026-08-08).** This defect was reported against
+      `/maps`, but `/maps` has had `pinMode={false}` hardcoded since `a39ab0e`
+      (`MapsPage.tsx:210`) and registers **no map-click listener at all** — so there is nothing
+      there to double-advance. The report predates the pin-sheets restructure and is very likely
+      unreproducible as written, which may explain why two fixes "failed": they were tested against
+      a page that could no longer place pins.
+
+      Separately, the listener the fixes targeted was never attached in Setup Map mode either, until
+      `completed/2026-08/3-pin-map-click-listener.md`. **Re-test in `/pins` → Setup → Map mode
+      against the now-working listener before spending more time here** — the bug may be gone, or it
+      may finally be observable.
+
 ### Follow-ups surfaced this session (not started)
 - [ ] **Browser automation is non-functional — fix before further UI debugging.** Both paths are
       dead: `npx tsx run.ts chrome:console|errors` hangs indefinitely and is killed by timeout, and
@@ -174,6 +191,9 @@ Plan retained for its parity checklist: `Implementation/2026-07-28-maps-banbury-
 
 ## Recently Completed ✅
 
+- ✅ Pin map-click listener — pin placement by map works again; listener attached at boot instead of
+  in a `[pinMode]` effect that could never see a live map. Root cause was `a39ab0e`, not auth.
+  (2026-08-08)
 - ✅ Pesticide Event Model — event + product-line schema (A+B), multi-product UI, export still one
   regulator row per product; PR #30. Snapshot cleanup still open (above). (2026-08-07)
 - ✅ Site Authentication — the site is behind a login. Three shared accounts, RLS rewritten on all
