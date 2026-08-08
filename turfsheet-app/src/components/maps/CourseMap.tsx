@@ -261,11 +261,13 @@ const CourseMap = forwardRef<CourseMapHandle, CourseMapProps>(function CourseMap
           tilt: 0,
           streetViewControl: false,
           fullscreenControl: true,
-          mapTypeControl: true,
-          mapTypeControlOptions: {
-            style: google.maps.MapTypeControlStyle.DROPDOWN_MENU,
-            mapTypeIds: ['satellite', 'hybrid', 'roadmap'],
-          },
+          // No map-type switcher: satellite is the only useful base for pin work and the
+          // dropdown costs real estate on a phone. mapTypeId above still sets the imagery.
+          mapTypeControl: false,
+          // Reclaim the rest of the chrome on a phone. The Google logo and Map Data/Terms
+          // links stay -- they are required attribution under the Maps Platform terms.
+          keyboardShortcuts: false,
+          cameraControl: false,
         });
         mapRef.current = map;
 
@@ -428,12 +430,14 @@ const CourseMap = forwardRef<CourseMapHandle, CourseMapProps>(function CourseMap
         const map = mapRef.current;
         const g = greenIndexRef.current[hole];
         if (!map || !g) return;
-        fitLiteral(g.bounds, 80);
+        // Padding is per-side, so on a ~240px-tall phone map anything large leaves almost no
+        // usable height and the fit zooms way out. Keep it tight so the green fills the frame.
+        fitLiteral(g.bounds, 16);
         google.maps.event.addListenerOnce(map, 'idle', () => {
           const z = map.getZoom();
           if (z == null) return;
           if (z < 18) map.setZoom(18);
-          else if (z > 19) map.setZoom(19);
+          else if (z > 20) map.setZoom(20);
         });
       };
 
