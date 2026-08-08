@@ -84,11 +84,14 @@ export default function ManageScheduleModal({ isOpen, onClose, onUpdate }: Manag
     setLoading(false);
   };
 
-  // Declared after fetchAvailability so it is not referenced before initialization.
+  // Declared after fetchAvailability so it is not referenced before initialization. The
+  // awaited wrapper keeps its setState off the effect's synchronous path.
   useEffect(() => {
-    if (isOpen) {
-      fetchAvailability();
-    }
+    if (!isOpen) return;
+    const load = async () => {
+      await fetchAvailability();
+    };
+    void load();
   }, [isOpen]);
 
   const toggleAvailability = async (staffId: string, currentlyOff: boolean, timeOffId?: string) => {

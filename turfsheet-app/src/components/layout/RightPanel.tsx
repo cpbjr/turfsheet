@@ -106,10 +106,14 @@ export default function RightPanel({ isOpen, onClose }: RightPanelProps) {
     setLoading(false);
   };
 
-  // Declared after the fetchers so neither is referenced before initialization.
+  // Declared after the fetchers so neither is referenced before initialization. The awaited
+  // wrapper keeps the fetchers' setState off the effect's synchronous path; both still run
+  // in parallel.
   useEffect(() => {
-    fetchWorkingStaff();
-    fetchAnnouncement();
+    const load = async () => {
+      await Promise.all([fetchWorkingStaff(), fetchAnnouncement()]);
+    };
+    void load();
   }, []);
 
   return (
