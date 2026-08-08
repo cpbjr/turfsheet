@@ -108,7 +108,14 @@ export default function PinSetupForm(props: PinSetupFormProps) {
     <div className="flex flex-col flex-1 min-h-0 gap-3">
       {/* Meta header */}
       <div className="border border-border-color bg-panel-white p-3 space-y-3 shrink-0">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+        {/* Hidden on phones in Map mode: this block is shrink-0 and ~280px tall, which floors
+            the map at its min-h-[240px] and leaves the green unable to fill the frame. Switch
+            to Table to edit these. Desktop has the height, so it keeps them. */}
+        <div
+          className={`grid-cols-2 md:grid-cols-4 gap-2 ${
+            mode === 'map' ? 'hidden md:grid' : 'grid'
+          }`}
+        >
           <label className="block">
             <span className={labelClass}>Play date</span>
             <input
@@ -240,7 +247,7 @@ export default function PinSetupForm(props: PinSetupFormProps) {
           </div>
         </div>
       ) : (
-        <div className="flex-1 min-h-[50vh] flex flex-col">
+        <div className="flex-1 min-h-0 flex flex-col">
           <PinMapMode
             session={session}
             greenIndex={greenIndex}

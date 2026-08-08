@@ -128,6 +128,10 @@ const CourseMap = forwardRef<CourseMapHandle, CourseMapProps>(function CourseMap
       },
       title: `Hole ${holeNumber}${par ? ` · par ${par}` : ''}`,
       zIndex: 1000 + Number(holeNumber),
+      // A clickable marker swallows the click, so in pin mode this ~20px disc sitting on
+      // the green becomes a dead zone where a pin cannot be dropped. Same rule as the
+      // Data layer in applyStyle.
+      clickable: !pinModeRef.current,
     });
     holeLabelsRef.current.push(marker);
   }, []);
@@ -193,6 +197,8 @@ const CourseMap = forwardRef<CourseMapHandle, CourseMapProps>(function CourseMap
         },
         title: `Hole ${hole} pin · ${formatPinStats(pin)}`,
         zIndex: 2000 + hole,
+        // Otherwise the current pin blocks clicks on itself and nudging it is impossible.
+        clickable: !pinModeRef.current,
       });
     });
   }, [pins]);
@@ -261,13 +267,24 @@ const CourseMap = forwardRef<CourseMapHandle, CourseMapProps>(function CourseMap
           tilt: 0,
           streetViewControl: false,
           fullscreenControl: true,
-          mapTypeControl: true,
-          mapTypeControlOptions: {
-            style: google.maps.MapTypeControlStyle.DROPDOWN_MENU,
-            mapTypeIds: ['satellite', 'hybrid', 'roadmap'],
-          },
+          // No map-type switcher: satellite is the only useful base for pin work and the
+          // dropdown costs real estate on a phone. mapTypeId above still sets the imagery.
+          mapTypeControl: false,
+          // Reclaim the rest of the chrome on a phone. The Google logo and Map Data/Terms
+          // links stay -- they are required attribution under the Maps Platform terms.
+          keyboardShortcuts: false,
+          cameraControl: false,
         });
         mapRef.current = map;
+
+        // Pin mode: map clicks drop a pin instead of doing nothing. Attached here rather
+        // than in a [pinMode] effect because the map does not exist until this async boot
+        // resolves, so such an effect always sees a null map on mount and never re-runs
+        // (pinMode is a constant true in Setup Map mode).
+        clickListenerRef.current = map.addListener('click', (event: google.maps.MapMouseEvent) => {
+          if (!pinModeRef.current || !event.latLng) return;
+          onMapClickRef.current?.(event.latLng.lat(), event.latLng.lng());
+        });
 
         const res = await fetch(GEO_URL, { cache: 'no-cache' });
         if (!res.ok) throw new Error(`GeoJSON fetch failed (${res.status})`);
@@ -393,22 +410,6 @@ const CourseMap = forwardRef<CourseMapHandle, CourseMapProps>(function CourseMap
     redrawPinMarkers();
   }, [redrawPinMarkers]);
 
-  // Pin mode: map clicks drop a pin instead of doing nothing.
-  useEffect(() => {
-    const map = mapRef.current;
-    clickListenerRef.current?.remove();
-    clickListenerRef.current = null;
-    if (!map || !pinMode) return;
-    clickListenerRef.current = map.addListener('click', (event: google.maps.MapMouseEvent) => {
-      if (!event.latLng) return;
-      onMapClickRef.current?.(event.latLng.lat(), event.latLng.lng());
-    });
-    return () => {
-      clickListenerRef.current?.remove();
-      clickListenerRef.current = null;
-    };
-  }, [pinMode]);
-
   useImperativeHandle(
     ref,
     () => {
@@ -435,12 +436,14 @@ const CourseMap = forwardRef<CourseMapHandle, CourseMapProps>(function CourseMap
         const map = mapRef.current;
         const g = greenIndexRef.current[hole];
         if (!map || !g) return;
-        fitLiteral(g.bounds, 80);
+        // Padding is per-side, so on a ~240px-tall phone map anything large leaves almost no
+        // usable height and the fit zooms way out. Keep it tight so the green fills the frame.
+        fitLiteral(g.bounds, 16);
         google.maps.event.addListenerOnce(map, 'idle', () => {
           const z = map.getZoom();
           if (z == null) return;
           if (z < 18) map.setZoom(18);
-          else if (z > 19) map.setZoom(19);
+          else if (z > 20) map.setZoom(20);
         });
       };
 
