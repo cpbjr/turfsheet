@@ -24,7 +24,8 @@ const TABLES = [
   'banbury_pin_sets', 'calendar_events', 'chemical_products', 'course_features',
   'daily_assignments', 'daily_board', 'default_schedule', 'equipment', 'jobs',
   'maintenance_issues', 'maintenance_reporters', 'memory_chunks', 'memory_documents',
-  'memory_events', 'pesticide_applications', 'project_sections', 'projects',
+  'memory_events', 'pesticide_application_products', 'pesticide_applications',
+  'pesticide_applications_pre_split_20260810', 'project_sections', 'projects',
   'scheduled_job_queue', 'second_job_board', 'spray_mix_templates', 'staff',
   'staff_schedules', 'staff_skills', 'staff_time_off',
 ];

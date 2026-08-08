@@ -2,8 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Calculator, FlaskConical, AlertTriangle, Wind, Thermometer, CloudRain, Droplets, Compass, RefreshCw, ClipboardList, Printer, Save, Plus, FolderOpen } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { getCurrentWeather } from '../../services/weather';
-import type { CalculatorRecordPayload } from '../../lib/pesticideMix';
-import type { ChemicalProduct, SprayMixTemplate } from '../../types';
+import type { CalculatorRecordPayload, ChemicalProduct, SprayMixTemplate } from '../../types';
 import type { WeatherData } from '../../types/weather';
 
 interface MixItem {
@@ -53,6 +52,7 @@ export default function SprayCalculator({ onRecordApplication }: SprayCalculator
     const [products, setProducts] = useState<ChemicalProduct[]>([]);
     const [loading, setLoading] = useState(true);
     const [areaSqft, setAreaSqft] = useState('');
+    const [areaLabel, setAreaLabel] = useState('');
     const [tankSizeGal, setTankSizeGal] = useState('');
     const [carrierRate, setCarrierRate] = useState('2');
     const [mixItems, setMixItems] = useState<MixItem[]>([{ productId: '', rate: '', rateUnit: 'oz/1000sqft' }]);
@@ -504,7 +504,17 @@ export default function SprayCalculator({ onRecordApplication }: SprayCalculator
                 </div>
 
                 {/* Area & Tank */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+                    <div>
+                        <label className={labelClasses}>Area / Location *</label>
+                        <input
+                            type="text"
+                            className={inputClasses}
+                            placeholder="e.g. Greens 1-9"
+                            value={areaLabel}
+                            onChange={(e) => setAreaLabel(e.target.value)}
+                        />
+                    </div>
                     <div>
                         <label className={labelClasses}>Area to Spray (sq ft) *</label>
                         <input
@@ -712,7 +722,7 @@ export default function SprayCalculator({ onRecordApplication }: SprayCalculator
                                     onClick={() => {
                                         if (!calculations || calculations.productCalcs.length === 0) return;
 
-                                        const mixProducts = calculations.productCalcs.map((calc) => {
+                                        const lines = calculations.productCalcs.map((calc) => {
                                             const product = calc.product;
                                             return {
                                                 product_name: calc.productName || product?.name || '',
@@ -724,32 +734,30 @@ export default function SprayCalculator({ onRecordApplication }: SprayCalculator
                                                 amount_per_tank:
                                                     calculations.numberOfTanks > 0
                                                         ? `${calc.perTank.toFixed(2)} ${calc.displayUnit}`
-                                                        : undefined,
+                                                        : '',
                                                 manufacturer: product?.manufacturer || '',
+                                                epa_lot_number: '',
                                                 rei_hours: product?.rei_hours != null ? String(product.rei_hours) : '',
+                                                target_pest: '',
                                                 method: product?.carrier_volume_gal === 0 ? 'granular' : 'spray',
                                             };
                                         });
 
-                                        const first = mixProducts[0];
+                                        const methods = [
+                                            ...new Set(lines.map((l) => l.method).filter(Boolean)),
+                                        ];
                                         onRecordApplication({
-                                            shared: {
-                                                product_name: first.product_name,
-                                                epa_registration_number: first.epa_registration_number || '',
-                                                active_ingredient: first.active_ingredient || '',
-                                                application_rate: first.application_rate,
-                                                total_amount_used: first.total_amount_used || '',
-                                                amount_per_tank: first.amount_per_tank || '',
-                                                area_size: `${areaSqft} sq ft`,
-                                                method: first.method || 'spray',
-                                                rei_hours: first.rei_hours || '',
+                                            event: {
+                                                area_applied: areaLabel.trim(),
+                                                area_size: areaSqft ? `${areaSqft} sq ft` : '',
+                                                method: methods.length === 1 ? methods[0] : methods[0] || 'spray',
                                                 temperature: conditions?.temp_f?.toString() || '',
                                                 wind_speed: conditions?.wind_mph?.toString() || '',
                                                 wind_direction: conditions?.wind_direction || '',
                                                 humidity: conditions?.humidity?.toString() || '',
                                                 weather_conditions: conditions?.description || '',
                                             },
-                                            mixProducts,
+                                            lines,
                                         });
                                     }}
                                     className="bg-turf-green text-white px-6 py-3 shadow-sm flex items-center justify-center gap-2 font-heading font-black hover:bg-turf-green-dark hover:-translate-y-0.5 transition-all duration-300 text-[0.7rem] uppercase tracking-[0.15em] w-full sm:w-auto"
