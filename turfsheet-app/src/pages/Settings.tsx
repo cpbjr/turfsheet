@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useSettings } from '../contexts/SettingsContext';
+import { useSettings } from '../contexts/useSettings';
 import { Check, RotateCcw } from 'lucide-react';
 
 export default function Settings() {

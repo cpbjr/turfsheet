@@ -1,6 +1,6 @@
 import { useEffect, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/useAuth';
 import LoginPage from '../pages/LoginPage';
 
 /**
@@ -8,7 +8,7 @@ import LoginPage from '../pages/LoginPage';
  * Bare /maps still requires a session, otherwise the pin editor stays public.
  * Token length mirrors the guard in MapsPage.tsx.
  */
-export function isPinHandoutRequest(pathname: string, search: string): boolean {
+function isPinHandoutRequest(pathname: string, search: string): boolean {
   if (pathname !== '/maps') return false;
   const token = (new URLSearchParams(search).get('pinToken') || '').trim();
   return token.length >= 16;

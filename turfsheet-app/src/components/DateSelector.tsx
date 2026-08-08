@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import { useSettings } from '../contexts/SettingsContext';
+import { useSettings } from '../contexts/useSettings';
 
 export function DateSelector() {
   const { settings } = useSettings();

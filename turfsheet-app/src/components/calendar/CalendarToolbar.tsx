@@ -39,16 +39,4 @@ function CalendarToolbar({ label, onNavigate, onAddEvent }: CalendarToolbarProps
   );
 }
 
-/**
- * Factory function that creates a toolbar component with the onAddEvent callback baked in.
- * This is needed because react-big-calendar's `components.toolbar` expects a component,
- * not a component with extra props.
- */
-export function createCalendarToolbar(onAddEvent: () => void) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return function ToolbarWithAddEvent(props: ToolbarProps<any, object>) {
-    return <CalendarToolbar {...props} onAddEvent={onAddEvent} />;
-  };
-}
-
 export default CalendarToolbar;

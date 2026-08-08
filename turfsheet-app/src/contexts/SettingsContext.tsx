@@ -1,15 +1,8 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type { AppSettings } from '../types/settings';
 import { DEFAULT_SETTINGS } from '../types/settings';
-
-interface SettingsContextType {
-  settings: AppSettings;
-  updateSettings: (newSettings: Partial<AppSettings>) => void;
-  resetSettings: () => void;
-}
-
-const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
+import { SettingsContext } from './useSettings';
 
 const STORAGE_KEY = 'turfsheet_settings';
 
@@ -45,12 +38,4 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       {children}
     </SettingsContext.Provider>
   );
-}
-
-export function useSettings() {
-  const context = useContext(SettingsContext);
-  if (!context) {
-    throw new Error('useSettings must be used within a SettingsProvider');
-  }
-  return context;
 }

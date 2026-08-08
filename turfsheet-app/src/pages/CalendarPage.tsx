@@ -7,7 +7,7 @@ import '../styles/calendar-overrides.css';
 import Modal from '../components/ui/Modal';
 import EventForm from '../components/calendar/EventForm';
 import type { EventFormData } from '../components/calendar/EventForm';
-import { createCalendarToolbar } from '../components/calendar/CalendarToolbar';
+import { createCalendarToolbar } from '../components/calendar/createCalendarToolbar';
 import { getUSHolidays } from '../data/us-holidays';
 import { supabase } from '../lib/supabase';
 import type { CalendarEvent, CalendarEventType } from '../types';
