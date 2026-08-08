@@ -2,12 +2,12 @@
  * Setup Map mode: CourseMap pinMode + compact mobile bottom sheet (≤ ~40% height).
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import CourseMap from '@/components/maps/CourseMap';
 import type { CourseMapHandle } from '@/components/maps/CourseMap';
 import { DEFAULT_SHOW, formatPinStats, placePinFromYards } from '@/lib/courseGeometry';
-import type { GreenIndex, PinSession } from '@/types/courseMap';
+import type { GreenIndex, Pin, PinSession } from '@/types/courseMap';
 
 interface PinMapModeProps {
   session: PinSession;
@@ -32,44 +32,38 @@ const btnPrimary =
 const fieldClass =
   'w-full border border-border-color bg-panel-white px-2 py-1 text-sm font-sans text-text-primary tabular-nums';
 
-export default function PinMapMode({
-  session,
+interface NudgeByYardsProps {
+  greenIndex: GreenIndex;
+  currentHole: number | null;
+  pin: Pin | null | undefined;
+  onSetPin: (hole: number, pin: Pin | null) => void;
+  className?: string;
+}
+
+/**
+ * Fine-tune the pin by typing yards. Owns its own field state, seeded from `pin` on mount.
+ *
+ * The parent remounts this via a key covering the hole and the pin's measured yards, which is
+ * how the fields resync when the hole changes or the pin moves within a hole — deliberately
+ * not a useEffect, which would setState synchronously during an effect.
+ */
+function NudgeByYards({
   greenIndex,
   currentHole,
-  onMapClick,
-  onGeoLoaded,
-  onJumpToHole,
-  onBack,
-  onNext,
-  onSkip,
-  onClearPin,
+  pin,
   onSetPin,
-  onError,
-  mapRef: externalMapRef,
-}: PinMapModeProps) {
-  const localMapRef = useRef<CourseMapHandle | null>(null);
-  const mapRef = externalMapRef ?? localMapRef;
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [editOn, setEditOn] = useState('');
-  const [editSide, setEditSide] = useState<'L' | 'C' | 'R'>('C');
-  const [editLr, setEditLr] = useState('');
+  className = '',
+}: NudgeByYardsProps) {
+  const [editOn, setEditOn] = useState(() =>
+    pin?.ok && pin.onYd != null ? String(pin.onYd) : '',
+  );
+  const [editSide, setEditSide] = useState<'L' | 'C' | 'R'>(() =>
+    pin?.ok ? pin.lrSide || 'C' : 'C',
+  );
+  const [editLr, setEditLr] = useState(() =>
+    pin?.ok && pin.lrSide !== 'C' && pin.lrYd != null ? String(pin.lrYd) : '',
+  );
   const [editErr, setEditErr] = useState('');
-
-  const pin = currentHole != null ? session.pins[currentHole] : null;
-
-  // Sync edit fields when hole/pin changes
-  useEffect(() => {
-    if (pin?.ok) {
-      setEditOn(pin.onYd != null ? String(pin.onYd) : '');
-      setEditSide(pin.lrSide || 'C');
-      setEditLr(pin.lrSide === 'C' || pin.lrYd == null ? '' : String(pin.lrYd));
-    } else {
-      setEditOn('');
-      setEditSide('C');
-      setEditLr('');
-    }
-    setEditErr('');
-  }, [currentHole, pin?.onYd, pin?.lrSide, pin?.lrYd, pin?.ok]);
 
   const applyYardsNudge = () => {
     if (currentHole == null) return;
@@ -98,6 +92,71 @@ export default function PinMapMode({
     setEditErr('');
     onSetPin(currentHole, result.pin);
   };
+
+  return (
+    <div className={`border border-border-color bg-panel-white p-2 space-y-2 ${className}`}>
+      <div className="text-[10px] font-heading font-black uppercase tracking-wide text-text-muted">
+        Nudge by yards
+      </div>
+      <div className="grid grid-cols-3 gap-1">
+        <label className="block">
+          <span className="text-[10px] text-text-muted">Depth</span>
+          <input
+            className={fieldClass}
+            value={editOn}
+            onChange={(e) => setEditOn(e.target.value)}
+          />
+        </label>
+        <label className="block">
+          <span className="text-[10px] text-text-muted">Side</span>
+          <select
+            className={fieldClass}
+            value={editSide}
+            onChange={(e) => setEditSide(e.target.value as 'L' | 'C' | 'R')}
+          >
+            <option value="L">L</option>
+            <option value="C">C</option>
+            <option value="R">R</option>
+          </select>
+        </label>
+        <label className="block">
+          <span className="text-[10px] text-text-muted">Yards</span>
+          <input
+            className={fieldClass}
+            disabled={editSide === 'C'}
+            value={editSide === 'C' ? '' : editLr}
+            onChange={(e) => setEditLr(e.target.value)}
+          />
+        </label>
+      </div>
+      <button type="button" onClick={applyYardsNudge} className={`${btnClass} w-full`}>
+        Apply yards
+      </button>
+      {editErr && <div className="text-[11px] text-red-600 font-sans">{editErr}</div>}
+    </div>
+  );
+}
+
+export default function PinMapMode({
+  session,
+  greenIndex,
+  currentHole,
+  onMapClick,
+  onGeoLoaded,
+  onJumpToHole,
+  onBack,
+  onNext,
+  onSkip,
+  onClearPin,
+  onSetPin,
+  onError,
+  mapRef: externalMapRef,
+}: PinMapModeProps) {
+  const localMapRef = useRef<CourseMapHandle | null>(null);
+  const mapRef = externalMapRef ?? localMapRef;
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  const pin = currentHole != null ? session.pins[currentHole] : null;
 
   return (
     <div className="relative flex-1 min-h-0 flex flex-col">
@@ -196,50 +255,14 @@ export default function PinMapMode({
 
           {/* Occasional-use fine-tuning. Hidden by default on phones so the sheet stays short
               and the map keeps the height; the Details toggle above reveals it. */}
-          <div
-            className={`border border-border-color bg-panel-white p-2 space-y-2 ${
-              sheetOpen ? '' : 'hidden md:block'
-            }`}
-          >
-            <div className="text-[10px] font-heading font-black uppercase tracking-wide text-text-muted">
-              Nudge by yards
-            </div>
-            <div className="grid grid-cols-3 gap-1">
-              <label className="block">
-                <span className="text-[10px] text-text-muted">Depth</span>
-                <input
-                  className={fieldClass}
-                  value={editOn}
-                  onChange={(e) => setEditOn(e.target.value)}
-                />
-              </label>
-              <label className="block">
-                <span className="text-[10px] text-text-muted">Side</span>
-                <select
-                  className={fieldClass}
-                  value={editSide}
-                  onChange={(e) => setEditSide(e.target.value as 'L' | 'C' | 'R')}
-                >
-                  <option value="L">L</option>
-                  <option value="C">C</option>
-                  <option value="R">R</option>
-                </select>
-              </label>
-              <label className="block">
-                <span className="text-[10px] text-text-muted">Yards</span>
-                <input
-                  className={fieldClass}
-                  disabled={editSide === 'C'}
-                  value={editSide === 'C' ? '' : editLr}
-                  onChange={(e) => setEditLr(e.target.value)}
-                />
-              </label>
-            </div>
-            <button type="button" onClick={applyYardsNudge} className={`${btnClass} w-full`}>
-              Apply yards
-            </button>
-            {editErr && <div className="text-[11px] text-red-600 font-sans">{editErr}</div>}
-          </div>
+          <NudgeByYards
+            key={`${currentHole}:${pin?.onYd}:${pin?.lrSide}:${pin?.lrYd}:${pin?.ok}`}
+            greenIndex={greenIndex}
+            currentHole={currentHole}
+            pin={pin}
+            onSetPin={onSetPin}
+            className={sheetOpen ? '' : 'hidden md:block'}
+          />
         </div>
       </div>
     </div>
