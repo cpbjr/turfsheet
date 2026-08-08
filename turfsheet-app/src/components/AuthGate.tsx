@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useEffect, type ReactNode } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import LoginPage from '../pages/LoginPage';
 
@@ -12,6 +12,20 @@ export function isPinHandoutRequest(pathname: string, search: string): boolean {
   if (pathname !== '/maps') return false;
   const token = (new URLSearchParams(search).get('pinToken') || '').trim();
   return token.length >= 16;
+}
+
+/** Drop a stuck `/logout` URL so login cannot remount LogoutPage and sign out again. */
+function LoggedOut() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (location.pathname === '/logout') {
+      navigate('/', { replace: true });
+    }
+  }, [location.pathname, navigate]);
+
+  return <LoginPage />;
 }
 
 export default function AuthGate({ children }: { children: ReactNode }) {
@@ -32,7 +46,7 @@ export default function AuthGate({ children }: { children: ReactNode }) {
   }
 
   if (!session) {
-    return <LoginPage />;
+    return <LoggedOut />;
   }
 
   return <>{children}</>;
