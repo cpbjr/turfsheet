@@ -10,23 +10,30 @@ Dedicated `/pins` (Library | Setup Table/Map | Delivery); Maps pins layer defaul
 
 ## Active Tasks
 
-### Site Authentication — IN PROGRESS
-Plan: `Implementation/2026-08-07-site-authentication.md` (read this first — it is the spec)
-Branch: `feature/site-auth` · PR: https://github.com/cpbjr/turfsheet/pull/27
-Source task: `planned.md` Task 0
+### Site Authentication — SHIPPED 2026-08-08 (one check outstanding)
+Plan: `Implementation/2026-08-07-site-authentication.md`
+PRs: #27 (auth gate), #28 (logout clipping + verify script), #29 (PUBLIC execute revoke)
 
-Rollout order is load-bearing; step 4 before step 3 blanks every page for everyone.
+TurfSheet is no longer publicly readable. Three shared accounts; RLS rewritten across all 24
+tables; the `?pinToken=` clubhouse handout still works signed-out.
 
-- [x] Three shared accounts created in Studio, auto-confirmed, verified against `auth.users`
-- [x] Frontend gate built and verified locally (login, `/logout`, `?pinToken=` exemption)
-- [ ] **Merge PR #27** → auto-deploys → confirm on production that all three accounts log in
-      and that a signed-out `?pinToken=` handout link still renders the map
-- [ ] **Only then** apply `supabase/migrations/20260807200000_lock_down_anon_access.sql` via the
-      Supabase Studio SQL editor. Never `db push` on this project.
-      Then `node scripts/verify-anon-lockdown.mjs --token <pinToken>` → expect 0 of 24 open
-      (baseline 2026-08-07 was 18 of 24) with the pin RPC still reporting `WORKS`.
-- [ ] Tell OldTom its anon-key diagnostic stops reproducing "what the browser sees" at step 4 —
-      the SPA will query as `authenticated`, not `anon`. User-token recipe is in the plan.
+- [x] Three shared accounts created, auto-confirmed, verified against `auth.users`
+- [x] Frontend gate merged and deployed (login, `/logout`, pinToken exemption)
+- [x] Logout pinned in the sidebar - it was rendering but clipped below ~880px viewports
+- [x] RLS lockdown applied. Verified: 0 of 24 tables readable by anon (all hard 401,
+      baseline was 18 of 24), every table has an authenticated ALL policy and full grants,
+      0 residual anon/public policies or grants
+- [x] `match_memory_chunks` closed. The first migration revoked from `anon` but Supabase
+      grants function EXECUTE to PUBLIC by default and anon inherits it, so the SECURITY
+      DEFINER RPC stayed open at HTTP 200. Now 42501 permission denied.
+- [ ] **Sign in on production with each of the three accounts and load a page.** Structural
+      checks all pass, but no one has actually held a session since the lockdown. This is the
+      failure mode that would take the site down for staff.
+- [ ] Tell OldTom its anon-key diagnostic no longer reproduces "what the browser sees" - the
+      SPA queries as `authenticated` now. User-token recipe is in the plan doc.
+- [ ] Publish a real handout link from `/pins`, then re-run
+      `node scripts/verify-anon-lockdown.mjs --token <token>` for a `WORKS` rather than
+      `REACHABLE`. No pin set currently has a `public_token`.
 
 ### Chemicals Page — remaining items
 Plan: `Implementation/2026-07-28-chemicals-clean-up.md`
