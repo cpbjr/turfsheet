@@ -8,6 +8,21 @@ import type {
   ProductLineDraft,
 } from '../types';
 
+/**
+ * IDAPA 02.03.03.101.01 requires pesticide records be kept two (2) years.
+ * Mirrors the `enforce_pesticide_retention` database trigger so the UI can warn
+ * before attempting a delete the database will refuse. The trigger is the
+ * enforcement point; this is only the message.
+ */
+export function isWithinRetention(applicationDate?: string, now = new Date()): boolean {
+  if (!applicationDate) return true; // undated: treat as protected
+  const applied = new Date(`${applicationDate}T00:00:00`);
+  if (Number.isNaN(applied.getTime())) return true;
+  const cutoff = new Date(now);
+  cutoff.setFullYear(cutoff.getFullYear() - 2);
+  return applied > cutoff;
+}
+
 /** Trim; treat blank as SQL NULL so PATCH clears rather than storing ''. */
 function trimOrNull(value: string | undefined): string | null {
   const trimmed = String(value ?? '').trim();
@@ -58,6 +73,11 @@ export function toEventRow(event: EventDraft): Record<string, unknown> {
     weather_conditions: trimOrNull(event.weather_conditions),
     worker_protection_exchange: Boolean(event.worker_protection_exchange),
     worker_protection_requirements: trimOrNull(event.worker_protection_requirements),
+    wps_contact_name: trimOrNull(event.wps_contact_name),
+    wps_contact_date: trimOrNull(event.wps_contact_date),
+    wps_contact_time: trimOrNull(event.wps_contact_time),
+    supervisor_name: trimOrNull(event.supervisor_name),
+    supervisor_license: trimOrNull(event.supervisor_license),
     notes: trimOrNull(event.notes),
   };
 }

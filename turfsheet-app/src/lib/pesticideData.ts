@@ -1,17 +1,34 @@
 import { supabase } from './supabase';
 import { toEventRow, toProductRow } from './pesticideApplication';
 import type {
+  CourseSettings,
   PesticideApplicationDraft,
   PesticideApplicationProduct,
   PesticideApplicationWithProducts,
   ProductLineDraft,
 } from '../types';
 
+/**
+ * Course identity and location for the printed log header, backing
+ * IDAPA 02.03.03.101.01(c). Returns null when unset so the header omits the line
+ * rather than printing an empty label.
+ */
+export async function fetchCourseSettings(): Promise<CourseSettings | null> {
+  const { data, error } = await supabase
+    .from('course_settings')
+    .select('*')
+    .eq('id', 1)
+    .maybeSingle();
+  if (error) throw error;
+  return data ?? null;
+}
+
 /** Nested select: one event row + ordered product lines. */
 export const APPLICATION_SELECT = `
   id, application_date, application_time, area_applied, area_size, method, operator_id,
   applicator_license, recommended_by, equipment_used, temperature, wind_speed, wind_direction,
   humidity, weather_conditions, worker_protection_exchange, worker_protection_requirements,
+  wps_contact_name, wps_contact_date, wps_contact_time, supervisor_name, supervisor_license,
   notes, created_at, updated_at,
   products:pesticide_application_products (
     id, application_id, line_number, product_name, epa_registration_number, active_ingredient,
@@ -150,6 +167,11 @@ export function eventToDraft(
       weather_conditions: event.weather_conditions || '',
       worker_protection_exchange: Boolean(event.worker_protection_exchange),
       worker_protection_requirements: event.worker_protection_requirements || '',
+      wps_contact_name: event.wps_contact_name || '',
+      wps_contact_date: event.wps_contact_date || '',
+      wps_contact_time: event.wps_contact_time || '',
+      supervisor_name: event.supervisor_name || '',
+      supervisor_license: event.supervisor_license || '',
       notes: event.notes || '',
     },
     lines: (event.products ?? [])

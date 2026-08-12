@@ -15,6 +15,7 @@ import SelectWithOther from '../ui/SelectWithOther';
 import { METHOD_OPTIONS, EQUIPMENT_OPTIONS } from '../../lib/pesticideOptions';
 import { blankProductLine, reconcileMethods } from '../../lib/pesticideApplication';
 import { eventToDraft } from '../../lib/pesticideData';
+import { sameId } from '../../lib/utils';
 import ProductLineFields from './ProductLineFields';
 
 interface PesticideFormProps {
@@ -61,6 +62,11 @@ function blankEvent(darrylId: string): EventDraft {
         weather_conditions: '',
         worker_protection_exchange: false,
         worker_protection_requirements: '',
+        wps_contact_name: '',
+        wps_contact_date: today,
+        wps_contact_time: now,
+        supervisor_name: '',
+        supervisor_license: '',
         notes: '',
     };
 }
@@ -358,7 +364,18 @@ export default function PesticideForm({
                         required
                         className={inputClasses}
                         value={event.operator_id}
-                        onChange={(e) => setEvent({ ...event, operator_id: e.target.value })}
+                        onChange={(e) => {
+                            // IDAPA 02.03.03.101.01(m): the license is the applicator's, so it
+                            // autofills here rather than being retyped per application -- which
+                            // is why it was blank on every historical record.
+                            const picked = staffMembers.find((s) => sameId(s.id, e.target.value));
+                            setEvent({
+                                ...event,
+                                operator_id: e.target.value,
+                                applicator_license:
+                                    picked?.applicator_license || event.applicator_license,
+                            });
+                        }}
                     >
                         <option value="">Select operator...</option>
                         {staffMembers.map((s) => (
@@ -390,6 +407,50 @@ export default function PesticideForm({
                         <strong>Label Requirements:</strong> {event.worker_protection_requirements}
                     </p>
                 )}
+                {/* IDAPA 02.03.03.101.01(o) requires the name of the grower or operator
+                    contacted plus the date and time of contact -- a checkbox alone does not
+                    satisfy the element. */}
+                {event.worker_protection_exchange && (
+                    <div className="mt-4 grid grid-cols-3 gap-4 pl-8">
+                        <div>
+                            <label className={labelClasses}>Contact Name *</label>
+                            <input
+                                required
+                                type="text"
+                                className={inputClasses}
+                                placeholder="Grower or operator contacted"
+                                value={event.wps_contact_name}
+                                onChange={(e) =>
+                                    setEvent({ ...event, wps_contact_name: e.target.value })
+                                }
+                            />
+                        </div>
+                        <div>
+                            <label className={labelClasses}>Contact Date *</label>
+                            <input
+                                required
+                                type="date"
+                                className={inputClasses}
+                                value={event.wps_contact_date}
+                                onChange={(e) =>
+                                    setEvent({ ...event, wps_contact_date: e.target.value })
+                                }
+                            />
+                        </div>
+                        <div>
+                            <label className={labelClasses}>Contact Time *</label>
+                            <input
+                                required
+                                type="time"
+                                className={inputClasses}
+                                value={event.wps_contact_time}
+                                onChange={(e) =>
+                                    setEvent({ ...event, wps_contact_time: e.target.value })
+                                }
+                            />
+                        </div>
+                    </div>
+                )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -404,6 +465,10 @@ export default function PesticideForm({
                             setEvent({ ...event, applicator_license: e.target.value })
                         }
                     />
+                    <p className="mt-1 text-[0.65rem] text-text-secondary font-sans">
+                        Autofills from the operator&rsquo;s staff record. Editable for this
+                        application.
+                    </p>
                 </div>
                 <div>
                     <label className={labelClasses}>Pesticide Recommendation By</label>
@@ -443,6 +508,32 @@ export default function PesticideForm({
                         placeholder="e.g. 45,000 sq ft"
                         value={event.area_size}
                         onChange={(e) => setEvent({ ...event, area_size: e.target.value })}
+                    />
+                </div>
+            </div>
+
+            {/* IDAPA 02.03.03.101.01(n): required only when the applicator holds the
+                Apprentice Category (CA). Optional here -- not known to apply at Banbury,
+                but the record is conforming if it ever does. */}
+            <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <label className={labelClasses}>Supervising Applicator (if apprentice)</label>
+                    <input
+                        type="text"
+                        className={inputClasses}
+                        placeholder="Leave blank if not applicable"
+                        value={event.supervisor_name}
+                        onChange={(e) => setEvent({ ...event, supervisor_name: e.target.value })}
+                    />
+                </div>
+                <div>
+                    <label className={labelClasses}>Supervisor License #</label>
+                    <input
+                        type="text"
+                        className={inputClasses}
+                        placeholder="Leave blank if not applicable"
+                        value={event.supervisor_license}
+                        onChange={(e) => setEvent({ ...event, supervisor_license: e.target.value })}
                     />
                 </div>
             </div>

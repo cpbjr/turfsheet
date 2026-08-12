@@ -14,14 +14,21 @@ import {
 } from '../lib/pesticideLogExport';
 import {
     deletePesticideApplication,
+    fetchCourseSettings,
     fetchPesticideApplications,
     insertPesticideApplication,
     updatePesticideApplication,
 } from '../lib/pesticideData';
-import { flattenEventsToLogLines, maxReiHours, resolveMethod } from '../lib/pesticideApplication';
+import {
+    flattenEventsToLogLines,
+    isWithinRetention,
+    maxReiHours,
+    resolveMethod,
+} from '../lib/pesticideApplication';
 import type {
     CalculatorRecordPayload,
     ChemicalProduct,
+    CourseSettings,
     PesticideApplicationDraft,
     PesticideApplicationWithProducts,
     Staff,
@@ -40,6 +47,7 @@ export default function PesticidePage() {
     const [applications, setApplications] = useState<PesticideApplicationWithProducts[]>([]);
     const [staffMembers, setStaffMembers] = useState<Staff[]>([]);
     const [products, setProducts] = useState<ChemicalProduct[]>([]);
+    const [courseSettings, setCourseSettings] = useState<CourseSettings | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -66,14 +74,16 @@ export default function PesticidePage() {
             setLoading(true);
             setError(null);
 
-            const [apps, staffResult, productsResult] = await Promise.all([
+            const [apps, staffResult, productsResult, course] = await Promise.all([
                 fetchPesticideApplications(),
-                supabase.from('staff').select('id, name, role').order('name'),
+                // applicator_license is needed to autofill IDAPA 02.03.03.101.01(m).
+                supabase.from('staff').select('id, name, role, applicator_license').order('name'),
                 supabase
                     .from('chemical_products')
                     .select('*')
                     .eq('is_active', true)
                     .order('name'),
+                fetchCourseSettings(),
             ]);
 
             if (staffResult.error) throw staffResult.error;
@@ -84,6 +94,7 @@ export default function PesticidePage() {
             setApplications(apps);
             setStaffMembers((staffResult.data as Staff[]) || []);
             setProducts((productsResult.data as ChemicalProduct[]) || []);
+            setCourseSettings(course);
         } catch (err) {
             const message = err instanceof Error ? err.message : 'Failed to fetch data';
             setError(message);
@@ -143,6 +154,17 @@ export default function PesticidePage() {
 
     const handleDeleteApplication = async (event: PesticideApplicationWithProducts) => {
         const n = event.products?.length ?? 0;
+        // Idaho requires these records be kept 2 years (IDAPA 02.03.03.101.01); a
+        // database trigger refuses the delete. Say so here rather than letting the
+        // user confirm an action that cannot succeed.
+        if (isWithinRetention(event.application_date)) {
+            setError(
+                `This record is dated ${event.application_date} and is within Idaho's 2-year ` +
+                    `retention period (IDAPA 02.03.03.101.01). It cannot be deleted. ` +
+                    `Edit the record instead if it needs correcting.`
+            );
+            return;
+        }
         const msg =
             n > 1
                 ? `Delete this application and its ${n} product lines? This cannot be undone.`
@@ -233,6 +255,7 @@ export default function PesticidePage() {
             buildPesticideLogPrintHtml(filteredApplications, staffMembers, {
                 dateFrom: dateFrom || undefined,
                 dateTo: dateTo || undefined,
+                course: courseSettings,
             })
         );
         printWindow.document.close();
@@ -244,6 +267,7 @@ export default function PesticidePage() {
             downloadPesticideLogPdf(filteredApplications, staffMembers, {
                 dateFrom: dateFrom || undefined,
                 dateTo: dateTo || undefined,
+                course: courseSettings,
             });
             const lines = flattenEventsToLogLines(filteredApplications).length;
             setStatusMessage(

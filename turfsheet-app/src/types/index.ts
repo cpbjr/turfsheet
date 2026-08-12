@@ -57,6 +57,8 @@ export interface Staff {
   name: string;
   telephone: string;
   telegram_id: string;
+  /** Idaho applicator license; autofills the log per IDAPA 02.03.03.101.01(m). */
+  applicator_license?: string;
   notes?: string;
   created_at: string;
   updated_at: string;
@@ -310,7 +312,35 @@ export interface PesticideApplicationEvent {
   weather_conditions?: string;
   worker_protection_exchange: boolean;
   worker_protection_requirements?: string;
+  /** IDAPA 02.03.03.101.01(o): name of the grower or operator contacted. */
+  wps_contact_name?: string;
+  /** IDAPA 02.03.03.101.01(o): date of contact. */
+  wps_contact_date?: string;
+  /** IDAPA 02.03.03.101.01(o): time of contact. */
+  wps_contact_time?: string;
+  /** IDAPA 02.03.03.101.01(n): required only for Apprentice Category (CA) holders. */
+  supervisor_name?: string;
+  supervisor_license?: string;
   notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Single-row course identity and location.
+ * `street_address` backs IDAPA 02.03.03.101.01(c) on the printed log; it is a
+ * distinct requirement from the per-application `area_applied`, which is (b).
+ */
+export interface CourseSettings {
+  id: number;
+  course_name?: string;
+  street_address?: string;
+  city?: string;
+  state?: string;
+  postal_code?: string;
+  legal_description?: string;
+  latitude?: number;
+  longitude?: number;
   created_at: string;
   updated_at: string;
 }
@@ -362,6 +392,11 @@ export interface EventDraft {
   weather_conditions: string;
   worker_protection_exchange: boolean;
   worker_protection_requirements: string;
+  wps_contact_name: string;
+  wps_contact_date: string;
+  wps_contact_time: string;
+  supervisor_name: string;
+  supervisor_license: string;
   notes: string;
 }
 

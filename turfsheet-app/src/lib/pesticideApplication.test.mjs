@@ -235,4 +235,107 @@ const disagreeNoEvent = reconcileMethods(
 assert.equal(disagreeNoEvent.eventMethod, 'granular', 'first distinct method seeds an empty event');
 assert.deepEqual(disagreeNoEvent.lines.map((l) => l.method), ['', 'spray']);
 
+// ---------------------------------------------------------------------------
+// IDAPA 02.03.03.101 compliance helpers
+// Duplicated from pesticideApplication.ts / pesticideLogExport.ts per the
+// convention noted at the top of this file.
+// ---------------------------------------------------------------------------
+
+function isWithinRetention(applicationDate, now = new Date()) {
+  if (!applicationDate) return true;
+  const applied = new Date(`${applicationDate}T00:00:00`);
+  if (Number.isNaN(applied.getTime())) return true;
+  const cutoff = new Date(now);
+  cutoff.setFullYear(cutoff.getFullYear() - 2);
+  return applied > cutoff;
+}
+
+const NOW = new Date('2026-08-12T12:00:00');
+
+assert.equal(isWithinRetention('2026-08-01', NOW), true, 'recent record is protected');
+assert.equal(isWithinRetention('2025-01-15', NOW), true, 'record 19 months old is protected');
+assert.equal(
+  isWithinRetention('2024-08-13', NOW),
+  true,
+  'one day inside the 2-year boundary is protected'
+);
+assert.equal(
+  isWithinRetention('2024-08-11', NOW),
+  false,
+  'past the 2-year window, deletion is permitted'
+);
+assert.equal(isWithinRetention('2020-03-01', NOW), false, 'clearly expired record is deletable');
+// Fail safe: an unparseable or missing date must not open a deletion path.
+assert.equal(isWithinRetention(undefined, NOW), true, 'undated record is treated as protected');
+assert.equal(isWithinRetention('not-a-date', NOW), true, 'garbage date is treated as protected');
+
+function formatWpsContact(event) {
+  const { wps_contact_name, wps_contact_date, wps_contact_time } = event;
+  if (wps_contact_name || wps_contact_date || wps_contact_time) {
+    const when = [wps_contact_date, wps_contact_time].filter(Boolean).join(' ');
+    return [wps_contact_name, when].filter(Boolean).join(' — ');
+  }
+  return event.worker_protection_exchange ? '✓ (no contact recorded)' : '✗';
+}
+
+assert.equal(
+  formatWpsContact({
+    worker_protection_exchange: true,
+    wps_contact_name: 'Darryl',
+    wps_contact_date: '2026-08-12',
+    wps_contact_time: '06:30',
+  }),
+  'Darryl — 2026-08-12 06:30',
+  '101.01(o) prints contact name plus date and time'
+);
+// Records predating the new columns must not read as "no exchange occurred".
+assert.equal(
+  formatWpsContact({ worker_protection_exchange: true }),
+  '✓ (no contact recorded)',
+  'legacy row keeps its affirmative boolean and is marked incomplete'
+);
+assert.equal(
+  formatWpsContact({ worker_protection_exchange: false }),
+  '✗',
+  'no exchange still prints as absent'
+);
+assert.equal(
+  formatWpsContact({ worker_protection_exchange: false, wps_contact_name: 'Darryl' }),
+  'Darryl',
+  'partial contact data still prints what was recorded'
+);
+
+function formatCourseLocation(course) {
+  if (!course) return '';
+  const street = [course.street_address, course.city, course.state, course.postal_code]
+    .map((p) => (p ?? '').trim())
+    .filter(Boolean)
+    .join(', ');
+  if (street) return street;
+  if (course.legal_description?.trim()) return course.legal_description.trim();
+  if (course.latitude != null && course.longitude != null) {
+    return `${course.latitude}, ${course.longitude}`;
+  }
+  return '';
+}
+
+assert.equal(
+  formatCourseLocation({ street_address: '1 Fairway Dr', city: 'Eagle', state: 'ID', postal_code: '83616' }),
+  '1 Fairway Dr, Eagle, ID, 83616',
+  '101.01(c) street address form'
+);
+assert.equal(
+  formatCourseLocation({ legal_description: 'T4N R1E Sec 12' }),
+  'T4N R1E Sec 12',
+  'falls back to the general legal description'
+);
+assert.equal(
+  formatCourseLocation({ latitude: 43.6951, longitude: -116.3539 }),
+  '43.6951, -116.3539',
+  'falls back to latitude/longitude'
+);
+// Must be empty, not a stray comma — the header omits the line entirely when unset.
+assert.equal(formatCourseLocation({}), '', 'unset location yields no header line');
+assert.equal(formatCourseLocation(null), '', 'null course yields no header line');
+
 console.log('pesticideApplication tests passed');
