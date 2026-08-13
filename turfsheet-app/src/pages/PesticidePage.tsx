@@ -52,6 +52,9 @@ export default function PesticidePage() {
     const [error, setError] = useState<string | null>(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+    // Scoped to the detail modal. The page-level `error` hides the whole
+    // application list, which is the wrong response to one rejected delete.
+    const [detailError, setDetailError] = useState<string | null>(null);
     const [selectedApplication, setSelectedApplication] =
         useState<PesticideApplicationWithProducts | null>(null);
     const [editingApplication, setEditingApplication] =
@@ -158,7 +161,7 @@ export default function PesticidePage() {
         // database trigger refuses the delete. Say so here rather than letting the
         // user confirm an action that cannot succeed.
         if (isWithinRetention(event.application_date)) {
-            setError(
+            setDetailError(
                 `This record is dated ${event.application_date} and is within Idaho's 2-year ` +
                     `retention period (IDAPA 02.03.03.101.01). It cannot be deleted. ` +
                     `Edit the record instead if it needs correcting.`
@@ -171,19 +174,22 @@ export default function PesticidePage() {
                 : 'Delete this application record? This cannot be undone.';
         if (!window.confirm(msg)) return;
         try {
-            setError(null);
+            setDetailError(null);
             await deletePesticideApplication(event.id);
             setApplications((prev) => prev.filter((app) => app.id !== event.id));
             setIsDetailModalOpen(false);
             setSelectedApplication(null);
         } catch (err) {
+            // Includes the retention trigger rejecting a delete the UI guard missed.
             const message = err instanceof Error ? err.message : 'Failed to delete application';
-            setError(message);
+            setDetailError(message);
         }
     };
 
     const handleViewApplication = (app: PesticideApplicationWithProducts) => {
         setSelectedApplication(app);
+        // Clear any prior rejection so it cannot surface against a different record.
+        setDetailError(null);
         setIsDetailModalOpen(true);
     };
 
@@ -514,12 +520,23 @@ export default function PesticidePage() {
 
             <Modal
                 isOpen={isDetailModalOpen}
-                onClose={() => setIsDetailModalOpen(false)}
+                onClose={() => {
+                    setIsDetailModalOpen(false);
+                    setDetailError(null);
+                }}
                 title="Application Details"
                 size="lg"
             >
                 {selectedApplication && (
                     <div className="space-y-6 font-sans">
+                        {detailError && (
+                            <div
+                                role="alert"
+                                className="border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700"
+                            >
+                                {detailError}
+                            </div>
+                        )}
                         <div className="pb-4 border-b border-border-color">
                             <h3 className="text-2xl font-heading font-black text-text-primary uppercase tracking-tight">
                                 {selectedApplication.area_applied}
