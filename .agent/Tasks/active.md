@@ -1,66 +1,46 @@
 ## INSTRUCTIONS
-1. Once work has been completed on a task, move its corresponding implementation plan from Implementation/ to completed/ along with any associated code and a description of the work done.
+1. Once work has been completed on a task, move its corresponding implementation plan from
+   Implementation/ to Completed/ along with any associated code and a description of the work done.
 
 # Active Tasks
 
-Last Updated: 2026-08-08
+Last Updated: 2026-08-12
 
-**Shipped 2026-08-08:** eslint cleanup — see `completed/2026-08/7-eslint-cleanup.md`.
-All 45 errors in `turfsheet-app/src` fixed, 0 remaining (5 pre-existing warnings unchanged).
-Also surfaced that **`npx tsc --noEmit` compiles nothing in this repo** — see the section below.
+**Awaiting merge:** Idaho pesticide record-keeping compliance — branch
+`feature/idaho-pesticide-compliance`, 4 commits, migrations already applied to the database.
+Record: `Completed/2026-08/8-idaho-pesticide-compliance.md`. One data step remains: enter each
+applicator's license under Staff → Edit, or element (m) prints `--`.
 
-**Shipped 2026-08-08:** Skip button removed from Pin Sheets Setup — see
-`completed/2026-08/6-remove-pin-skip-button.md`. It duplicated Next on any hole with a pin, and
-no-opped on hole 18 where Next finishes to Delivery; the `skipped` flag it set was never read.
+Everything else below is queued. Shipped work lives in `Completed/`.
 
-**Shipped 2026-08-08:** Nudge card set-state-in-effect — see
-`completed/2026-08/5-pin-nudge-set-state-in-effect.md`.
+## Open Work
 
-**Shipped 2026-08-08:** Pin Map Mobile Usability — see `completed/2026-08/4-pin-map-mobile-usability.md`.
-Tapping near the hole-number badge or the current pin no longer does nothing (clickable markers were
-swallowing the click), and the map frame fills the phone screen instead of sitting at 240px (a
-`min-h-[50vh]` with no `min-h-0` was overflowing the column and getting clipped). Confirmed in the
-browser by Chris.
-
-**Shipped 2026-08-08:** Pin map-click listener — see `completed/2026-08/3-pin-map-click-listener.md`.
-Placing pins on `/pins` → Setup → Map mode works again. The listener was never attached (the
-`[pinMode]` effect always read a null `mapRef` on mount and never re-ran); it is now attached once
-inside the async boot effect. Broken since `a39ab0e` on 2026-07-31 — **not** caused by the auth work.
-
-**Session polish (2026-08-07):** Staff list — Name column first, sort by role ladder then name;
-Maintenance defaults to Open issues.
-
-**Shipped 2026-08-07:** Pesticide Event Model — see `completed/2026-08/2-pesticide-event-model.md`.
-Spray events are first-class rows with product line items (32 products → 13 events). Migrations A+B
-applied; frontend cutover merged (PR #30); edit/save verified after dropping legacy product columns.
-
-**Shipped 2026-08-08:** Site Authentication — see `completed/2026-08/1-site-authentication.md`.
-TurfSheet is no longer publicly readable: three shared accounts, RLS rewritten across all 24
-tables (anon went from 18 of 24 readable to 0), `?pinToken=` clubhouse handout still works
-signed-out.
-
-## Active Tasks
-
-**What's open, at a glance** (nothing below is in progress — all are queued):
+**At a glance:**
 
 | Item | Blocking? | Gist |
 |---|---|---|
 | Browser automation dead | **Yes — blocks UI work** | No `chrome:console`, no extension. Every UI fix must be hand-tested by Chris. Root cause of three failed maps fixes. |
 | Google Maps key / localhost | Blocks local `/maps` | `RefererNotAllowedMapError`; `.env.local` may hold a superseded key. |
 | MCP `supabase:sql` broken | Workaround exists | `Unknown project: turfsheet` + bad passwords. Use the Management API (details below). |
-| Credential scrub | **Security** | A Postgres connection string with password is committed in `completed/2026-02/*.md`. Rotate and scrub. |
+| Credential scrub | **Security** | A Postgres connection string with password is committed in `Completed/2026-02/*.md`. Rotate and scrub. |
 | Maps tap-cycle double-advance | No | **Re-scope before touching** — filed against `/maps`, which can't place pins at all. |
 | Pesticide snapshot cleanup | No | Drop the pre-split rollback table once the event model is settled. |
 | Pin handout token | No | No `public_token` published yet, so the anon path is untested with real data. |
 | Chemicals REI hours | No | Every product is `rei_hours = 0`; proposed values unverified against physical labels. |
 | OldTom anon-key diagnostic | No | Inverted silently since the auth lockdown — reports "no rows" instead of erroring. |
-| `applicator_license` blank | No | Real Idaho ISDA field; belongs on `staff`, autofilled from the operator. |
+| Applicator licenses unentered | No | Column + autofill shipped; the numbers themselves still need typing in per staff member. |
 | `StaffSchedule` type wrong | No | Declares nested `WeeklySchedule`; table is flat `<day>_on`. Two local `ScheduleRow` workarounds in place. |
 
-Plus one standing warning that is not a task: **`npx tsc --noEmit` is a no-op here** — use `tsc -b`.
+**Standing warnings — not tasks, but read before you work:**
+- **`npx tsc --noEmit` is a no-op here** — use `tsc -b` / `npm run build`. Details below.
+- **Do not run `git add .`** — six untracked pgvector/memory migrations sit in
+  `supabase/migrations/` from paused work and will be swept onto `main`. Stage explicit paths.
+  See `blocked.md`.
+- **Do not run `npx supabase db push`** — unsafe on this project's migration history. Use
+  `db query --linked -f`, or the Management API below.
 
 ### Pesticide event model — Task 9 snapshot cleanup
-Context: `completed/2026-08/2-pesticide-event-model.md`
+Context: `Completed/2026-08/2-pesticide-event-model.md`
 
 Migration A left a full pre-split copy for rollback:
 `turfsheet.pesticide_applications_pre_split_20260810` (service_role only; listed in
@@ -82,7 +62,7 @@ Not urgent — keep the snapshot until you are sure the event model is permanent
 irreversible for full pre-split restore (children remain source of truth either way).
 
 ### OldTom — anon-key diagnostic no longer means what it used to
-Context: `completed/2026-08/1-site-authentication.md`
+Context: `Completed/2026-08/1-site-authentication.md`
 
 OldTom queries a table with the **anon** key to reproduce what the live SPA sees, and diffs that
 against the service-key result. That was valid while the SPA queried as `anon`. Since the
@@ -114,7 +94,7 @@ A bare anon-key query is still worth keeping. From now on it answers "is the sit
 not "what does the browser see?"
 
 ### Pin handout — no published token exists
-Context: `completed/2026-08/1-site-authentication.md`
+Context: `Completed/2026-08/1-site-authentication.md`
 
 All 4 rows in `banbury_pin_sets` have `public_token = NULL`, so no clubhouse handout link exists
 and the anonymous `?pinToken=` path is currently unused in production. It is verified working
@@ -133,7 +113,7 @@ doing before one is needed rather than during.
 
 ### Chemicals Page — remaining items
 Plan: `Implementation/2026-07-28-chemicals-clean-up.md`
-Shipped portion recorded in `completed/2026-07/1-chemicals-page-clean-up.md`
+Shipped portion recorded in `Completed/2026-07/1-chemicals-page-clean-up.md`
 
 - [ ] **Confirm REI hours against the physical labels**, then apply
       `supabase/migrations/20260728120100_set_product_rei_hours.sql` via Supabase Studio.
@@ -152,7 +132,7 @@ Shipped portion recorded in `completed/2026-07/1-chemicals-page-clean-up.md`
       *Broadcast (By Hand)* / *By Hand* now that those options exist.
 
 ### Maps — tap-cycle double-advance (UNRESOLVED, two failed fixes)
-Feature shipped and live at `/turfsheet/maps` — see `completed/2026-07/2-maps-banbury-course-map.md`.
+Feature shipped and live at `/turfsheet/maps` — see `Completed/2026-07/2-maps-banbury-course-map.md`.
 Plan retained for its parity checklist: `Implementation/2026-07-28-maps-banbury-course-map.md`
 
 - [ ] **Two quick taps advance two holes.** Reproduced by Chris on production. Should advance one.
@@ -190,12 +170,12 @@ Plan retained for its parity checklist: `Implementation/2026-07-28-maps-banbury-
       a page that could no longer place pins.
 
       Separately, the listener the fixes targeted was never attached in Setup Map mode either, until
-      `completed/2026-08/3-pin-map-click-listener.md`. **Re-test in `/pins` → Setup → Map mode
+      `Completed/2026-08/3-pin-map-click-listener.md`. **Re-test in `/pins` → Setup → Map mode
       against the now-working listener before spending more time here** — the bug may be gone, or it
       may finally be observable.
 
 ### ⚠️ `npx tsc --noEmit` is a no-op in this repo — use `tsc -b` (2026-08-08)
-Context: `completed/2026-08/7-eslint-cleanup.md`
+Context: `Completed/2026-08/7-eslint-cleanup.md`
 
 The root `tsconfig.json` is `"files": []` plus project references, so **`npx tsc --noEmit`
 compiles nothing and always exits 0.** It has been cited as verification in past handoffs and
@@ -208,7 +188,7 @@ that `tsc --noEmit` had just reported clean.
 agent does not repeat the mistake.
 
 ### `StaffSchedule` type does not match the database (2026-08-08)
-Context: `completed/2026-08/7-eslint-cleanup.md`
+Context: `Completed/2026-08/7-eslint-cleanup.md`
 
 `types/index.ts:169` declares `StaffSchedule extends WeeklySchedule` — nested `monday:
 DaySchedule` objects. The actual `staff_schedules` table has **flat** `monday_on` /
@@ -235,10 +215,10 @@ This is why `ManageScheduleModal` and `StaffWhiteboardView` were reading the tab
       `:5180/*` were added but still returned `RefererNotAllowedMapError`. Possibly a new key was
       created while `turfsheet-app/.env.local` still holds the old one. Local `/maps` dev is blocked
       until resolved.
-- [ ] `applicator_license` is blank on every record and is a real Idaho ISDA field. It is free text
-      re-typed per application, so it never gets filled. Belongs on `staff`, autofilled from the
-      selected operator.
-- [ ] `.agent/Tasks/completed/2026-02/*.md` contain a committed Postgres connection string with
+- [ ] **Enter each applicator's license number** under Staff → Edit → Applicator License #. The
+      column and the autofill shipped 2026-08-12 (`Completed/2026-08/8-idaho-pesticide-compliance.md`),
+      but the numbers themselves are still blank, so IDAPA element (m) prints `--` on the log.
+- [ ] `.agent/Tasks/Completed/2026-02/*.md` contain a committed Postgres connection string with
       password. Rotate and scrub.
 - [ ] Register `turfsheet` in `Tools/mcp-servers/supabase/index.ts` (the hardcoded config `run.ts`
       actually reads) and fix the wrong password in `config.json`. Still broken — `supabase:sql`
@@ -255,36 +235,28 @@ This is why `ManageScheduleModal` and `StaffWhiteboardView` were reading the tab
 
 ## Recently Completed ✅
 
-- ✅ eslint cleanup — all 45 errors in `turfsheet-app/src` fixed, 0 remaining; 5 pre-existing
-  warnings unchanged (verified by diffing the warning list against `main`, not just counts).
-  Six commits by fix class: `any` → real form-payload types, non-component exports split out of
-  component modules, effect/declaration ordering, edit buffers seeded at mount, awaited fetchers,
-  and one genuinely-dead overlay clear in `MapsPage`. PR #36. (2026-08-08)
-- ✅ Skip button removed from Pin Sheets Setup — it duplicated Next on any hole that already had a
-  pin, and no-opped on hole 18 where Next finishes to Delivery. The `skipped` flag it set was
-  never read anywhere; the field stays in `PinSession` for draft compatibility. PR #35.
-  (2026-08-08)
-- ✅ Nudge card `set-state-in-effect` — the last lint error in the pin components. Extracted
-  `NudgeByYards`, which seeds its own state on mount and is remounted via a key covering the hole
-  plus the pin's measured yards. PR #33. (2026-08-08)
-- ✅ Pin Map Mobile Usability — tap dead zones around the hole badge and current pin removed
-  (`clickable: !pinModeRef.current` on both markers); map frame now fills the phone screen after
-  removing a `min-h-[50vh]` flex floor that could never shrink. (2026-08-08)
-- ✅ Pin map-click listener — pin placement by map works again; listener attached at boot instead of
-  in a `[pinMode]` effect that could never see a live map. Root cause was `a39ab0e`, not auth.
-  (2026-08-08)
-- ✅ Pesticide Event Model — event + product-line schema (A+B), multi-product UI, export still one
-  regulator row per product; PR #30. Snapshot cleanup still open (above). (2026-08-07)
-- ✅ Site Authentication — the site is behind a login. Three shared accounts, RLS rewritten on all
-  24 tables, `match_memory_chunks` PUBLIC grant closed, logout un-clipped from the sidebar.
-  Verified 0 of 24 tables readable by the bundled anon key. (2026-08-08)
-- ✅ Banbury Course Map merged into `/maps` — full port from the standalone, pin data migrated into
-  the TurfSheet DB, geometry parity proven (0 mismatches / 90 fields), `/banbury-map` retired to a
-  302. One open defect: tap-cycle double-advance, above. (2026-07-29)
-- ✅ Chemicals Page Clean-Up — method/equipment options + Other free text, Recommended By fix,
-  wider modal, form correctness fixes (2026-07-28)
+Each item below has a full record in `Completed/` — read that rather than relying on this index.
 
-See `completed/2026-02/` for completed tasks including:
+**`Completed/2026-08/`**
+1. Site Authentication — site is behind a login; RLS rewritten on all 24 tables (2026-08-08)
+2. Pesticide Event Model — event + product-line schema; PR #30. Snapshot cleanup still open, above (2026-08-07)
+3. Pin map-click listener — pin placement by map works again; root cause `a39ab0e`, not auth (2026-08-08)
+4. Pin Map Mobile Usability — tap dead zones removed; map frame fills the phone screen (2026-08-08)
+5. Nudge card `set-state-in-effect` — extracted `NudgeByYards`; PR #33 (2026-08-08)
+6. Skip button removed from Pin Sheets Setup — PR #35 (2026-08-08)
+7. eslint cleanup — all 45 errors fixed, 0 remaining; PR #36 (2026-08-08)
+8. Idaho pesticide record-keeping compliance — all 15 IDAPA elements captured, 2-year retention
+   enforced in the database, edits audited (2026-08-12)
+
+**`Completed/2026-07/`**
+1. Chemicals Page Clean-Up — method/equipment options + Other free text, Recommended By fix (2026-07-28)
+2. Banbury Course Map merged into `/maps` — geometry parity proven, `/banbury-map` retired to a 302 (2026-07-29)
+3. Pin Sheet Redesign
+
+Also shipped, no separate record: **Staff list polish** (2026-08-07) — Name column first, sort by
+role ladder then name; Maintenance defaults to Open issues.
+
+See `Completed/2026-02/` for completed tasks including:
 - ✅ Whiteboard Misc Fixes + Announcements — Off staff display, manage schedule modal, announcements CRUD, UTC date fix, 3-column layout (2026-02-27)
 - ✅ Pesticide Tracker Improvements — Date filtering, weather alerts, mix templates, print sheet, edit/delete, calc→log bridge (2026-02-26)
 - ✅ Scheduled Jobs + Job Edit/Delete — Recurring schedules, auto-populate dashboard, full CRUD with confirm-delete (2026-02-25)
@@ -310,5 +282,10 @@ See [planned.md](file:///home/cpbjr/WhitePineTech/Projects/TurfSheet/.agent/Task
 
 1. Create a site style guide. (Completed)
 2. Create a site on whitepine-tech.com for TurfSheet. (Completed)
-3. Move implemented plans from Implemented/ to completed/ as of yesterday. (On Hold)
+3. Move implemented plans from Implementation/ to Completed/ as of yesterday. (On Hold)
 3.2 Equipment page (On Hold)
+
+**Note (2026-08-12):** item 3 is still real — `Implementation/` holds 12 plans, most of them for
+work that shipped long ago. Worth a sweep: delete the plans whose work is recorded in `Completed/`,
+and keep only those still backing open items (`2026-07-28-chemicals-clean-up.md`,
+`2026-07-28-maps-banbury-course-map.md`, `implementation-blue-orange-schedules.md`).

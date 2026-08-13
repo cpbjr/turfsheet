@@ -31,7 +31,7 @@ Verified before planning:
 | 3 | Record Application modal too narrow | UX |
 | 4 | Every product has `rei_hours = 0`, so REI never autofills | Data |
 
-Explicitly **out of scope:** anon write / RLS lockdown (needs auth — flagged in the audit as Medium, acceptable for a private pilot URL); the repo-wide `Staff.id` type sweep; the committed Postgres password found in `.agent/Tasks/completed/2026-02/*.md` (**flagging only — separate security task, do not touch here**).
+Explicitly **out of scope:** anon write / RLS lockdown (needs auth — flagged in the audit as Medium, acceptable for a private pilot URL); the repo-wide `Staff.id` type sweep; the committed Postgres password found in `.agent/Tasks/Completed/2026-02/*.md` (**flagging only — separate security task, do not touch here**).
 
 ---
 

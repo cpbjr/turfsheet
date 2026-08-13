@@ -36,7 +36,7 @@ TurfSheet is a comprehensive task management and agronomic intelligence platform
 │   ├── blocked.md         # Blocked tasks
 │   ├── Implementation/    # Implementation plans (REQUIRED before coding)
 │   │   └── *.md          # Detailed plans for each task
-│   └── completed/         # Archived completed tasks
+│   └── Completed/         # Archived completed tasks
 │       └── YYYY-MM/       # Monthly folders
 │           └── *.md       # Completion records
 ├── System/                # Current State Documentation
@@ -55,7 +55,7 @@ TurfSheet is a comprehensive task management and agronomic intelligence platform
 **CRITICAL RULES:**
 - Implementation plans MUST be saved to `.agent/Tasks/Implementation/` before coding
 - When work is completed:
-  1. Move task to `.agent/Tasks/completed/YYYY-MM/`
+  1. Move task to `.agent/Tasks/Completed/YYYY-MM/`
   2. Delete associated file from `Implementation/`
 - NEVER guess at folder structure - check this file first
 
@@ -93,7 +93,7 @@ TurfSheet is a comprehensive task management and agronomic intelligence platform
 - Resolution path (if known)
 
 ### 5. Completion
-**Location:** `.agent/Tasks/completed/YYYY-MM/`
+**Location:** `.agent/Tasks/Completed/YYYY-MM/`
 - Move completed task documentation here
 - Include:
   - What was accomplished
@@ -209,7 +209,7 @@ npx tsx run.ts supabase:sql '{"project":"turfsheet","sql":"SELECT * FROM public.
 ### Completing Work
 
 1. ✅ Test all functionality
-2. ✅ Document completion in `.agent/Tasks/completed/YYYY-MM/`
+2. ✅ Document completion in `.agent/Tasks/Completed/YYYY-MM/`
 3. ✅ Delete plan from `.agent/Tasks/Implementation/`
 4. ✅ Update domain knowledge if applicable
 5. ✅ Commit changes (feature branch)
@@ -245,7 +245,7 @@ npx tsx run.ts supabase:sql '{"project":"turfsheet","sql":"SELECT * FROM public.
 | `planned` | `.agent/Tasks/planned.md` |
 | `blocked` | `.agent/Tasks/blocked.md` |
 | `implementation` | `.agent/Tasks/Implementation/` |
-| `completed` | `.agent/Tasks/completed/` |
+| `completed` | `.agent/Tasks/Completed/` |
 | `prd` | `.agent/PRD/README.md` |
 | `style-guide` | `.agent/System/style-guide.md` |
 | `knowledge` | `.agent/Knowledge/` |

@@ -5,6 +5,8 @@ export interface StaffFormData {
     role: string;
     telephone: string;
     telegram_id: string;
+    /** Autofills the pesticide log per IDAPA 02.03.03.101.01(m). */
+    applicator_license: string;
     notes: string;
 }
 
@@ -20,6 +22,7 @@ export default function StaffForm({ onSubmit, onCancel, initialData }: StaffForm
         role: initialData?.role ?? '',
         telephone: initialData?.telephone ?? '',
         telegram_id: initialData?.telegram_id ?? '',
+        applicator_license: initialData?.applicator_license ?? '',
         notes: initialData?.notes ?? ''
     });
 
@@ -85,6 +88,23 @@ export default function StaffForm({ onSubmit, onCancel, initialData }: StaffForm
                         onChange={(e) => setFormData({ ...formData, telegram_id: e.target.value })}
                     />
                 </div>
+            </div>
+
+            <div>
+                <label className={labelClasses}>Applicator License # (Idaho)</label>
+                <input
+                    type="text"
+                    className={inputClasses}
+                    placeholder="e.g. ID-12345 — leave blank if not an applicator"
+                    value={formData.applicator_license}
+                    onChange={(e) =>
+                        setFormData({ ...formData, applicator_license: e.target.value })
+                    }
+                />
+                <p className="mt-1 text-[0.65rem] text-text-secondary font-sans">
+                    Autofills the pesticide application log when this person is the operator
+                    (IDAPA 02.03.03.101.01(m)).
+                </p>
             </div>
 
             <div>

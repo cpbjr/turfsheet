@@ -23,7 +23,7 @@ Use `npm run dev` to start the local development server in turfsheet-app. Prefer
 - "planned" = .agent/Tasks/planned.md
 - "blocked" = .agent/Tasks/blocked.md
 - "implementation" = .agent/Tasks/Implementation/
-- "completed" = .agent/Tasks/completed/
+- "completed" = .agent/Tasks/Completed/
 - "prd" = PRD.md
 - "style-guide" = .agent/System/style-guide.md
 

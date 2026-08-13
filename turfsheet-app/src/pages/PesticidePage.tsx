@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Search, Plus, Printer, Download, ClipboardList, Package, Calculator, Edit2, Trash2 } from 'lucide-react';
 import Modal from '../components/ui/Modal';
 import PesticideForm from '../components/pesticide/PesticideForm';
@@ -14,14 +14,21 @@ import {
 } from '../lib/pesticideLogExport';
 import {
     deletePesticideApplication,
+    fetchCourseSettings,
     fetchPesticideApplications,
     insertPesticideApplication,
     updatePesticideApplication,
 } from '../lib/pesticideData';
-import { flattenEventsToLogLines, maxReiHours, resolveMethod } from '../lib/pesticideApplication';
+import {
+    flattenEventsToLogLines,
+    isWithinRetention,
+    maxReiHours,
+    resolveMethod,
+} from '../lib/pesticideApplication';
 import type {
     CalculatorRecordPayload,
     ChemicalProduct,
+    CourseSettings,
     PesticideApplicationDraft,
     PesticideApplicationWithProducts,
     Staff,
@@ -40,10 +47,17 @@ export default function PesticidePage() {
     const [applications, setApplications] = useState<PesticideApplicationWithProducts[]>([]);
     const [staffMembers, setStaffMembers] = useState<Staff[]>([]);
     const [products, setProducts] = useState<ChemicalProduct[]>([]);
+    const [courseSettings, setCourseSettings] = useState<CourseSettings | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+    // Scoped to the detail modal. The page-level `error` hides the whole
+    // application list, which is the wrong response to one rejected delete.
+    const [detailError, setDetailError] = useState<string | null>(null);
+    // The modal body scrolls and Delete sits at its bottom, so a banner rendered
+    // at the top is off-screen when it appears. Scroll it into view.
+    const detailErrorRef = useRef<HTMLDivElement | null>(null);
     const [selectedApplication, setSelectedApplication] =
         useState<PesticideApplicationWithProducts | null>(null);
     const [editingApplication, setEditingApplication] =
@@ -66,14 +80,16 @@ export default function PesticidePage() {
             setLoading(true);
             setError(null);
 
-            const [apps, staffResult, productsResult] = await Promise.all([
+            const [apps, staffResult, productsResult, course] = await Promise.all([
                 fetchPesticideApplications(),
-                supabase.from('staff').select('id, name, role').order('name'),
+                // applicator_license is needed to autofill IDAPA 02.03.03.101.01(m).
+                supabase.from('staff').select('id, name, role, applicator_license').order('name'),
                 supabase
                     .from('chemical_products')
                     .select('*')
                     .eq('is_active', true)
                     .order('name'),
+                fetchCourseSettings(),
             ]);
 
             if (staffResult.error) throw staffResult.error;
@@ -84,6 +100,7 @@ export default function PesticidePage() {
             setApplications(apps);
             setStaffMembers((staffResult.data as Staff[]) || []);
             setProducts((productsResult.data as ChemicalProduct[]) || []);
+            setCourseSettings(course);
         } catch (err) {
             const message = err instanceof Error ? err.message : 'Failed to fetch data';
             setError(message);
@@ -143,25 +160,45 @@ export default function PesticidePage() {
 
     const handleDeleteApplication = async (event: PesticideApplicationWithProducts) => {
         const n = event.products?.length ?? 0;
+        // Idaho requires these records be kept 2 years (IDAPA 02.03.03.101.01); a
+        // database trigger refuses the delete. Say so here rather than letting the
+        // user confirm an action that cannot succeed.
+        if (isWithinRetention(event.application_date)) {
+            setDetailError(
+                `This record is dated ${event.application_date} and is within Idaho's 2-year ` +
+                    `retention period (IDAPA 02.03.03.101.01). It cannot be deleted. ` +
+                    `Edit the record instead if it needs correcting.`
+            );
+            return;
+        }
         const msg =
             n > 1
                 ? `Delete this application and its ${n} product lines? This cannot be undone.`
                 : 'Delete this application record? This cannot be undone.';
         if (!window.confirm(msg)) return;
         try {
-            setError(null);
+            setDetailError(null);
             await deletePesticideApplication(event.id);
             setApplications((prev) => prev.filter((app) => app.id !== event.id));
             setIsDetailModalOpen(false);
             setSelectedApplication(null);
         } catch (err) {
+            // Includes the retention trigger rejecting a delete the UI guard missed.
             const message = err instanceof Error ? err.message : 'Failed to delete application';
-            setError(message);
+            setDetailError(message);
         }
     };
 
+    useEffect(() => {
+        if (detailError) {
+            detailErrorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }, [detailError]);
+
     const handleViewApplication = (app: PesticideApplicationWithProducts) => {
         setSelectedApplication(app);
+        // Clear any prior rejection so it cannot surface against a different record.
+        setDetailError(null);
         setIsDetailModalOpen(true);
     };
 
@@ -233,6 +270,7 @@ export default function PesticidePage() {
             buildPesticideLogPrintHtml(filteredApplications, staffMembers, {
                 dateFrom: dateFrom || undefined,
                 dateTo: dateTo || undefined,
+                course: courseSettings,
             })
         );
         printWindow.document.close();
@@ -244,6 +282,7 @@ export default function PesticidePage() {
             downloadPesticideLogPdf(filteredApplications, staffMembers, {
                 dateFrom: dateFrom || undefined,
                 dateTo: dateTo || undefined,
+                course: courseSettings,
             });
             const lines = flattenEventsToLogLines(filteredApplications).length;
             setStatusMessage(
@@ -490,12 +529,24 @@ export default function PesticidePage() {
 
             <Modal
                 isOpen={isDetailModalOpen}
-                onClose={() => setIsDetailModalOpen(false)}
+                onClose={() => {
+                    setIsDetailModalOpen(false);
+                    setDetailError(null);
+                }}
                 title="Application Details"
                 size="lg"
             >
                 {selectedApplication && (
                     <div className="space-y-6 font-sans">
+                        {detailError && (
+                            <div
+                                ref={detailErrorRef}
+                                role="alert"
+                                className="border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700"
+                            >
+                                {detailError}
+                            </div>
+                        )}
                         <div className="pb-4 border-b border-border-color">
                             <h3 className="text-2xl font-heading font-black text-text-primary uppercase tracking-tight">
                                 {selectedApplication.area_applied}
@@ -677,11 +728,14 @@ export default function PesticidePage() {
                             </h4>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className={detailLabelClasses}>WPS Briefing</label>
+                                    <label className={detailLabelClasses}>Info Exchange</label>
                                     <p className="text-sm text-text-primary">
+                                        {/* "Not completed" read as a failure; on a course that
+                                            applies only to its own property the element simply
+                                            does not apply. */}
                                         {selectedApplication.worker_protection_exchange
                                             ? 'Completed'
-                                            : 'Not completed'}
+                                            : 'Not applicable'}
                                     </p>
                                 </div>
                                 {selectedApplication.recommended_by && (

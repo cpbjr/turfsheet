@@ -3,7 +3,39 @@ import autoTable from 'jspdf-autotable';
 import { formatMethod } from './pesticideOptions';
 import { flattenEventsToLogLines, resolveMethod } from './pesticideApplication';
 import { sameId } from './utils';
-import type { PesticideApplicationWithProducts, PesticideLogLine, Staff } from '../types';
+import type {
+    CourseSettings,
+    PesticideApplicationWithProducts,
+    PesticideLogLine,
+    Staff,
+} from '../types';
+
+/**
+ * IDAPA 02.03.03.101.01(c) requires the location of the property treated, by
+ * address, general legal description, or latitude/longitude. This is a separate
+ * element from (b), the property treated, which the per-application `area_applied`
+ * column already satisfies.
+ *
+ * Returns an empty string when unset, so the caller omits the line entirely
+ * rather than printing a label with nothing after it.
+ */
+export function formatCourseLocation(course?: CourseSettings | null): string {
+    if (!course) return '';
+    const street = [course.street_address, course.city, course.state, course.postal_code]
+        .map((p) => (p ?? '').trim())
+        .filter(Boolean)
+        .join(', ');
+    if (street) return street;
+    if (course.legal_description?.trim()) return course.legal_description.trim();
+    if (course.latitude != null && course.longitude != null) {
+        return `${course.latitude}, ${course.longitude}`;
+    }
+    return '';
+}
+
+/** Footer citation. Kept in one place so both export paths cannot drift apart. */
+export const COMPLIANCE_FOOTER =
+    'Records maintained per IDAPA 02.03.03.101 (authority: Idaho Code § 22-3421) | Retain minimum 2 years';
 
 export const PESTICIDE_LOG_COLUMNS = [
     'Date',
@@ -23,8 +55,9 @@ export const PESTICIDE_LOG_COLUMNS = [
     'Equipment',
     'Applicator',
     'License #',
+    'Supervisor',
     'Rec. By',
-    'WPS',
+    'WPS Contact',
     'REI',
     'Temp',
     'Wind',
@@ -43,6 +76,26 @@ export function formatLongDate(d = new Date()): string {
 
 function staffName(staffMembers: Staff[], id?: string | number): string {
     return staffMembers.find((s) => sameId(s.id, id))?.name || '--';
+}
+
+/**
+ * IDAPA 02.03.03.101.01(o) requires the name of the grower or operator contacted
+ * and the date and time of that contact. Records written before those fields
+ * existed carry only the boolean, so fall back to it rather than printing a blank
+ * that would read as "no exchange occurred".
+ */
+export function formatWpsContact(event: {
+    worker_protection_exchange?: boolean;
+    wps_contact_name?: string;
+    wps_contact_date?: string;
+    wps_contact_time?: string;
+}): string {
+    const { wps_contact_name, wps_contact_date, wps_contact_time } = event;
+    if (wps_contact_name || wps_contact_date || wps_contact_time) {
+        const when = [wps_contact_date, wps_contact_time].filter(Boolean).join(' ');
+        return [wps_contact_name, when].filter(Boolean).join(' — ');
+    }
+    return event.worker_protection_exchange ? '✓ (no contact recorded)' : '✗';
 }
 
 /**
@@ -69,8 +122,14 @@ export function logLineToRow(line: PesticideLogLine, staffMembers: Staff[]): str
         event.equipment_used || '--',
         staffName(staffMembers, event.operator_id),
         event.applicator_license || '--',
+        // 101.01(n): blank unless an apprentice was supervised.
+        event.supervisor_name
+            ? `${event.supervisor_name}${event.supervisor_license ? ` (${event.supervisor_license})` : ''}`
+            : '--',
         staffName(staffMembers, event.recommended_by),
-        event.worker_protection_exchange ? '✓' : '✗',
+        // 101.01(o): the element is the contact's name plus date and time -- a tick
+        // mark alone does not satisfy it.
+        formatWpsContact(event),
         product?.rei_hours != null ? `${product.rei_hours}h` : '--',
         event.temperature != null ? String(event.temperature) : '--',
         event.wind_speed != null ? String(event.wind_speed) : '--',
@@ -133,7 +192,7 @@ function flattenForExport(events: PesticideApplicationWithProducts[]): Pesticide
 export function buildPesticideLogPrintHtml(
     events: PesticideApplicationWithProducts[],
     staffMembers: Staff[],
-    opts?: { dateFrom?: string; dateTo?: string }
+    opts?: { dateFrom?: string; dateTo?: string; course?: CourseSettings | null }
 ): string {
     const today = formatLongDate();
     const logLines = flattenForExport(events);
@@ -159,6 +218,7 @@ export function buildPesticideLogPrintHtml(
     <style>
         body { font-family: Arial, sans-serif; font-size: 8pt; margin: 0.4in; color: #000; }
         h1 { font-size: 14pt; text-align: center; margin: 0 0 4px; }
+        .site { text-align: center; font-size: 9pt; color: #333; margin-bottom: 2px; }
         .subtitle { text-align: center; font-size: 9pt; color: #555; margin-bottom: 8px; border-bottom: 2px solid #333; padding-bottom: 8px; }
         .compliance { font-size: 7pt; color: #666; text-align: center; font-style: italic; margin-bottom: 12px; }
         table { width: 100%; border-collapse: collapse; }
@@ -173,10 +233,18 @@ export function buildPesticideLogPrintHtml(
 </head>
 <body>
     <h1>PESTICIDE &amp; FERTILIZER APPLICATION LOG</h1>
+    ${
+        opts?.course?.course_name
+            ? `<div class="site">${escapeHtml(opts.course.course_name)}</div>`
+            : ''
+    }
+    ${
+        formatCourseLocation(opts?.course)
+            ? `<div class="site">${escapeHtml(formatCourseLocation(opts?.course))}</div>`
+            : ''
+    }
     <div class="subtitle">${escapeHtml(subtitleForLog(events.length, logLines.length, opts?.dateFrom, opts?.dateTo, today))}</div>
-    <div class="compliance">
-        Records maintained per Idaho Statutes Title 22, Ch. 34 &amp; IDAPA 02.03.03 | Retain for minimum 2 years
-    </div>
+    <div class="compliance">${escapeHtml(COMPLIANCE_FOOTER)}</div>
     <table>
         <thead><tr>${headers}</tr></thead>
         <tbody>${rows}</tbody>
@@ -197,7 +265,7 @@ export function buildPesticideLogPrintHtml(
 export function downloadPesticideLogPdf(
     events: PesticideApplicationWithProducts[],
     staffMembers: Staff[],
-    opts?: { dateFrom?: string; dateTo?: string }
+    opts?: { dateFrom?: string; dateTo?: string; course?: CourseSettings | null }
 ): void {
     const today = formatLongDate();
     const logLines = flattenForExport(events);
@@ -209,32 +277,44 @@ export function downloadPesticideLogPdf(
     doc.setFontSize(14);
     doc.text('PESTICIDE & FERTILIZER APPLICATION LOG', pageWidth / 2, 36, { align: 'center' });
 
+    // Header lines flow from a cursor: the site and location lines are conditional,
+    // so fixed offsets would collide when they are absent.
+    let cursorY = 36;
+
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
+    doc.setTextColor(51);
+    if (opts?.course?.course_name) {
+        cursorY += 14;
+        doc.text(opts.course.course_name, pageWidth / 2, cursorY, { align: 'center' });
+    }
+    const courseLocation = formatCourseLocation(opts?.course);
+    if (courseLocation) {
+        cursorY += 11;
+        doc.text(courseLocation, pageWidth / 2, cursorY, { align: 'center' });
+    }
+
+    cursorY += 16;
     doc.setTextColor(85);
     doc.text(
         subtitleForLog(events.length, logLines.length, opts?.dateFrom, opts?.dateTo, today),
         pageWidth / 2,
-        52,
+        cursorY,
         { align: 'center' }
     );
 
+    cursorY += 14;
     doc.setFontSize(7);
     doc.setTextColor(102);
     doc.setFont('helvetica', 'italic');
-    doc.text(
-        'Records maintained per Idaho Statutes Title 22, Ch. 34 & IDAPA 02.03.03 | Retain for minimum 2 years',
-        pageWidth / 2,
-        66,
-        { align: 'center' }
-    );
+    doc.text(COMPLIANCE_FOOTER, pageWidth / 2, cursorY, { align: 'center' });
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(0);
 
     const body = logLines.map((line) => logLineToRow(line, staffMembers));
 
     autoTable(doc, {
-        startY: 76,
+        startY: cursorY + 10,
         head: [PESTICIDE_LOG_COLUMNS as unknown as string[]],
         body,
         theme: 'grid',

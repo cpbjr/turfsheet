@@ -64,4 +64,4 @@ inherited path closes. Confirmed: anon now gets `42501 permission denied for fun
   where n.nspname = '<schema>' and p.prosecdef;
   ```
 
-See `Tasks/completed/2026-08/1-site-authentication.md`.
+See `Tasks/Completed/2026-08/1-site-authentication.md`.
