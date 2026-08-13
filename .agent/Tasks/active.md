@@ -6,11 +6,10 @@
 
 Last Updated: 2026-08-12
 
-**In progress:** Idaho pesticide record-keeping compliance —
-`Implementation/2026-08-12-idaho-pesticide-compliance.md`, branch
-`feature/idaho-pesticide-compliance`. Code complete and verified (`tsc -b`, build, lint, tests).
-**Blocked on two things only Chris can do:** apply 4 migrations via Supabase Studio (DDL cannot be
-applied programmatically on this project), and supply Banbury's street address for the log header.
+**Awaiting merge:** Idaho pesticide record-keeping compliance — branch
+`feature/idaho-pesticide-compliance`, 4 commits, migrations already applied to the database.
+Record: `Completed/2026-08/8-idaho-pesticide-compliance.md`. One data step remains: enter each
+applicator's license under Staff → Edit, or element (m) prints `--`.
 
 Everything else below is queued. Shipped work lives in `Completed/`.
 
@@ -29,7 +28,7 @@ Everything else below is queued. Shipped work lives in `Completed/`.
 | Pin handout token | No | No `public_token` published yet, so the anon path is untested with real data. |
 | Chemicals REI hours | No | Every product is `rei_hours = 0`; proposed values unverified against physical labels. |
 | OldTom anon-key diagnostic | No | Inverted silently since the auth lockdown — reports "no rows" instead of erroring. |
-| `applicator_license` blank | No | Real Idaho ISDA field; belongs on `staff`, autofilled from the operator. |
+| Applicator licenses unentered | No | Column + autofill shipped; the numbers themselves still need typing in per staff member. |
 | `StaffSchedule` type wrong | No | Declares nested `WeeklySchedule`; table is flat `<day>_on`. Two local `ScheduleRow` workarounds in place. |
 
 **Standing warnings — not tasks, but read before you work:**
@@ -216,9 +215,9 @@ This is why `ManageScheduleModal` and `StaffWhiteboardView` were reading the tab
       `:5180/*` were added but still returned `RefererNotAllowedMapError`. Possibly a new key was
       created while `turfsheet-app/.env.local` still holds the old one. Local `/maps` dev is blocked
       until resolved.
-- [ ] `applicator_license` is blank on every record and is a real Idaho ISDA field. It is free text
-      re-typed per application, so it never gets filled. Belongs on `staff`, autofilled from the
-      selected operator.
+- [ ] **Enter each applicator's license number** under Staff → Edit → Applicator License #. The
+      column and the autofill shipped 2026-08-12 (`Completed/2026-08/8-idaho-pesticide-compliance.md`),
+      but the numbers themselves are still blank, so IDAPA element (m) prints `--` on the log.
 - [ ] `.agent/Tasks/Completed/2026-02/*.md` contain a committed Postgres connection string with
       password. Rotate and scrub.
 - [ ] Register `turfsheet` in `Tools/mcp-servers/supabase/index.ts` (the hardcoded config `run.ts`
@@ -246,6 +245,8 @@ Each item below has a full record in `Completed/` — read that rather than rely
 5. Nudge card `set-state-in-effect` — extracted `NudgeByYards`; PR #33 (2026-08-08)
 6. Skip button removed from Pin Sheets Setup — PR #35 (2026-08-08)
 7. eslint cleanup — all 45 errors fixed, 0 remaining; PR #36 (2026-08-08)
+8. Idaho pesticide record-keeping compliance — all 15 IDAPA elements captured, 2-year retention
+   enforced in the database, edits audited (2026-08-12)
 
 **`Completed/2026-07/`**
 1. Chemicals Page Clean-Up — method/equipment options + Other free text, Recommended By fix (2026-07-28)

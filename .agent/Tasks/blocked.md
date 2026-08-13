@@ -24,7 +24,7 @@ along onto any branch created from it:
 - **Do NOT `git add .`** — they will be swept into an unrelated commit and land on `main` at merge.
   Stage explicit paths instead.
 - **Do NOT `npx supabase db push`** — unsafe on this project for a separate reason too; see
-  `completed/2026-07/1-chemicals-page-clean-up.md` for the full explanation of the migration
+  `Completed/2026-07/1-chemicals-page-clean-up.md` for the full explanation of the migration
   history situation.
 - The matching plan is `Implementation/implementation-blue-orange-schedules.md` (also untracked).
 
