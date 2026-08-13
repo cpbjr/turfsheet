@@ -38,8 +38,8 @@ TurfSheet captures all fifteen:
 | (k) | Rate of application | Rate + rate unit |
 | (l) | Total amount applied | Total used, and amount per tank |
 | (m) | Applicator name and license number | Operator, license autofilled from the staff record |
-| (n) | Worker Protection Standard contact | Contact name, date, and time |
-| (o) | Supervising applicator, where applicable | Supervisor name and license |
+| (n) | Supervising applicator, where applicable | Supervisor name and license |
+| (o) | Worker protection information exchange, where required | Name of grower/operator contacted, date, and time |
 
 Beyond the minimum, each record also carries **temperature, wind speed, wind direction, humidity,
 and general weather conditions**, the application method and equipment used, who recommended the
@@ -108,11 +108,13 @@ record should take less effort than an incomplete one.
 - An application can be started directly from the spray calculator, carrying the rates over.
 
 **Worker safety is part of the record, not a separate binder.**
-- **Worker Protection Standard contact (element (n))** is captured with the name of the person
-  notified, and the date and time they were notified. The fields appear only when a WPS exchange
-  actually occurred, so the form stays short for applications where it does not apply — and when
-  it does apply, the date and time prefill to the current moment, which is when the notification
-  genuinely happened. A WPS record is only worth having if it is contemporaneous.
+- **The worker protection information exchange (element (o))** is captured properly when it
+  applies: the name of the grower or operator contacted, plus the date and time of contact. This
+  element covers the exchange between an applicator and the operator of a property they do not
+  themselves run — it is a contact you log, not a crew briefing you deliver. A course that applies
+  only to its own property generally has no exchange to record, and the fields stay hidden unless
+  the box is ticked. Where it does apply, the date and time prefill to the current moment, because
+  a contact record is only worth having if it is contemporaneous.
 - **Restricted-entry interval is calculated for the tank, not the bottle.** When several products
   are applied together, the site's REI is the *longest* of them. TurfSheet computes that maximum
   across every product in the application. A per-product REI — which is what a single-line log
@@ -144,11 +146,11 @@ New columns on `turfsheet.pesticide_applications`:
 
 | Column | Type | Element | Notes |
 |---|---|---|---|
-| `wps_contact_name` | text | (n) | Person notified under the Worker Protection Standard |
-| `wps_contact_date` | date | (n) | Date of that notification |
-| `wps_contact_time` | text | (n) | Time of that notification |
-| `supervisor_name` | text | (o) | Supervising applicator, where applicable |
-| `supervisor_license` | text | (o) | That supervisor's license number |
+| `wps_contact_name` | text | (o) | **Grower or operator contacted** — not the applicator, not a briefing giver |
+| `wps_contact_date` | date | (o) | Date of that contact |
+| `wps_contact_time` | text | (o) | Time of that contact |
+| `supervisor_name` | text | (n) | Supervising applicator, where applicable |
+| `supervisor_license` | text | (n) | That supervisor's license number |
 
 New column on `turfsheet.staff`:
 
@@ -189,9 +191,12 @@ Required for a compliant record — a POST to `pesticide_applications` should ca
 - `operator_id`, and `applicator_license` **read from that staff member's row**
 - `method`, `equipment_used`
 - weather: `temperature`, `wind_speed`, `wind_direction`, `humidity`, `weather_conditions`
-- if a WPS exchange occurred: `worker_protection_exchange: true` plus `wps_contact_name`,
-  `wps_contact_date`, `wps_contact_time` — the date and time of the **actual notification**, not of
-  your data entry
+- **normally leave `worker_protection_exchange` false.** Banbury applies only to its own property
+  (confirmed by Chris, 2026-08-12), so element (o) — the information exchange with the grower or
+  operator of the treated property — has no counterparty and does not apply. Set it true *only* if
+  an application is ever made on property Banbury does not operate, and then record
+  `wps_contact_name` as the **person contacted at that property**, with the date and time of the
+  actual contact rather than of your data entry. Do not put the applicator's own name here.
 - if the applicator worked under supervision: `supervisor_name`, `supervisor_license`
 
 Then one row in `pesticide_application_products` per chemical, each with `line_number`,

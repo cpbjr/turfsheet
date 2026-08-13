@@ -278,12 +278,10 @@ export default function PesticideForm({
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!event.worker_protection_exchange) {
-            alert(
-                'Worker Protection Safety briefing must be completed before recording an application.'
-            );
-            return;
-        }
+        // The information exchange (IDAPA 02.03.03.101.01(o)) applies only when treating property
+        // the applicator does not operate. Requiring the tick on a self-applying course forced a
+        // false assertion onto a regulatory record, which is exactly what Idaho Code § 22-3420
+        // prohibits. Ticked or not is now the recorder's call.
 
         // Drop lines blank in both name and rate
         const surviving = lines.filter(
@@ -399,9 +397,13 @@ export default function PesticideForm({
                         }
                     />
                     <span className="text-sm font-heading font-black uppercase tracking-wider text-amber-800">
-                        Worker Protection Safety briefing completed *
+                        Information exchange with grower/operator completed
                     </span>
                 </label>
+                <p className="mt-2 text-xs text-amber-700 font-sans leading-relaxed pl-8">
+                    Only applies when treating property you do not operate. Leave unticked for
+                    applications on your own course (IDAPA 02.03.03.101.01(o)).
+                </p>
                 {event.worker_protection_requirements && (
                     <p className="mt-2 text-xs text-amber-700 font-sans leading-relaxed pl-8">
                         <strong>Label Requirements:</strong> {event.worker_protection_requirements}
@@ -409,7 +411,8 @@ export default function PesticideForm({
                 )}
                 {/* IDAPA 02.03.03.101.01(o) requires the name of the grower or operator
                     contacted plus the date and time of contact -- a checkbox alone does not
-                    satisfy the element. */}
+                    satisfy the element. This is the applicator-to-operator exchange, not a
+                    crew safety briefing (that is 40 CFR 170, recorded elsewhere). */}
                 {event.worker_protection_exchange && (
                     <div className="mt-4 grid grid-cols-3 gap-4 pl-8">
                         <div>

@@ -728,11 +728,14 @@ export default function PesticidePage() {
                             </h4>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className={detailLabelClasses}>WPS Briefing</label>
+                                    <label className={detailLabelClasses}>Info Exchange</label>
                                     <p className="text-sm text-text-primary">
+                                        {/* "Not completed" read as a failure; on a course that
+                                            applies only to its own property the element simply
+                                            does not apply. */}
                                         {selectedApplication.worker_protection_exchange
                                             ? 'Completed'
-                                            : 'Not completed'}
+                                            : 'Not applicable'}
                                     </p>
                                 </div>
                                 {selectedApplication.recommended_by && (
