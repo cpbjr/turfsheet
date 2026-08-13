@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Search, Plus, Printer, Download, ClipboardList, Package, Calculator, Edit2, Trash2 } from 'lucide-react';
 import Modal from '../components/ui/Modal';
 import PesticideForm from '../components/pesticide/PesticideForm';
@@ -55,6 +55,9 @@ export default function PesticidePage() {
     // Scoped to the detail modal. The page-level `error` hides the whole
     // application list, which is the wrong response to one rejected delete.
     const [detailError, setDetailError] = useState<string | null>(null);
+    // The modal body scrolls and Delete sits at its bottom, so a banner rendered
+    // at the top is off-screen when it appears. Scroll it into view.
+    const detailErrorRef = useRef<HTMLDivElement | null>(null);
     const [selectedApplication, setSelectedApplication] =
         useState<PesticideApplicationWithProducts | null>(null);
     const [editingApplication, setEditingApplication] =
@@ -185,6 +188,12 @@ export default function PesticidePage() {
             setDetailError(message);
         }
     };
+
+    useEffect(() => {
+        if (detailError) {
+            detailErrorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }, [detailError]);
 
     const handleViewApplication = (app: PesticideApplicationWithProducts) => {
         setSelectedApplication(app);
@@ -531,6 +540,7 @@ export default function PesticidePage() {
                     <div className="space-y-6 font-sans">
                         {detailError && (
                             <div
+                                ref={detailErrorRef}
                                 role="alert"
                                 className="border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700"
                             >
