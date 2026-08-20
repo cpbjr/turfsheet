@@ -1,7 +1,8 @@
 # Task 8 - Idaho Pesticide Record-Keeping Compliance ✅
 
 **Completed**: 2026-08-12
-**Branch**: `feature/idaho-pesticide-compliance` (4 commits, not yet merged)
+**Merged**: 2026-08-12 as PR #39 (`0abad6e`). Branch `feature/idaho-pesticide-compliance` trimmed.
+**Stage closed**: 2026-08-19 — Christopher marked the compliance stage done. Follow-on delete-by-role is `planned.md` Task 8.
 **Compliance review**: `tmp/idaho-pesticide-recordkeeping-compliance.md`
 
 ## What Was Done

@@ -4,12 +4,14 @@
 
 # Active Tasks
 
-Last Updated: 2026-08-12
+Last Updated: 2026-08-19
 
-**Awaiting merge:** Idaho pesticide record-keeping compliance — branch
-`feature/idaho-pesticide-compliance`, 4 commits, migrations already applied to the database.
-Record: `Completed/2026-08/8-idaho-pesticide-compliance.md`. One data step remains: enter each
-applicator's license under Staff → Edit, or element (m) prints `--`.
+**Idaho pesticide compliance: done.** Merged 2026-08-12 as PR #39 (`0abad6e`). Feature
+branch trimmed. Record: `Completed/2026-08/8-idaho-pesticide-compliance.md`. Print still
+reads the snapshot on the application row, so old rows stay `--` until those rows are
+updated. New inserts pick up Staff → Applicator License # when the operator is selected.
+Role-gated delete (admin, maybe superintendent) is on `planned.md` Task 8. Do not start it
+until the 2-year retention rule is decided.
 
 Everything else below is queued. Shipped work lives in `Completed/`.
 
@@ -28,8 +30,7 @@ Everything else below is queued. Shipped work lives in `Completed/`.
 | Pin handout token | No | No `public_token` published yet, so the anon path is untested with real data. |
 | Chemicals REI hours | No | Every product is `rei_hours = 0`; proposed values unverified against physical labels. |
 | OldTom anon-key diagnostic | No | Inverted silently since the auth lockdown — reports "no rows" instead of erroring. |
-| Applicator licenses unentered | No | Column + autofill shipped; the numbers themselves still need typing in per staff member. |
-| `StaffSchedule` type wrong | No | Declares nested `WeeklySchedule`; table is flat `<day>_on`. Two local `ScheduleRow` workarounds in place. |
+| Applicator licenses | No | Chris entered on Staff. Print uses the application snapshot, not a live Staff join. Old rows stay `--` until updated. |
 
 **Standing warnings — not tasks, but read before you work:**
 - **`npx tsc --noEmit` is a no-op here** — use `tsc -b` / `npm run build`. Details below.
@@ -187,22 +188,6 @@ that `tsc --noEmit` had just reported clean.
 **Nothing to fix in code — this is a standing warning, not a task.** Kept here so the next
 agent does not repeat the mistake.
 
-### `StaffSchedule` type does not match the database (2026-08-08)
-Context: `Completed/2026-08/7-eslint-cleanup.md`
-
-`types/index.ts:169` declares `StaffSchedule extends WeeklySchedule` — nested `monday:
-DaySchedule` objects. The actual `staff_schedules` table has **flat** `monday_on` /
-`monday_start` / `monday_end` columns, as `StaffPage.handleSaveSchedule` shows when it builds
-its upsert.
-
-This is why `ManageScheduleModal` and `StaffWhiteboardView` were reading the table through
-`any`. Both now use a local `ScheduleRow` with a comment, rather than reuse a wrong type.
-
-- [ ] Decide whether to correct `StaffSchedule` to the real column shape (and drop the two
-      local `ScheduleRow` declarations), or keep `WeeklySchedule` for some other purpose and
-      add a separate `StaffScheduleRow` to `types/index.ts`. Check for other consumers first —
-      `RightPanel.tsx` also casts a `dayColumn` through `keyof StaffSchedule`.
-
 ### Follow-ups surfaced this session (not started)
 - [ ] **Browser automation is non-functional — fix before further UI debugging.** Both paths are
       dead: `npx tsx run.ts chrome:console|errors` hangs indefinitely and is killed by timeout, and
@@ -288,4 +273,5 @@ See [planned.md](file:///home/cpbjr/WhitePineTech/Projects/TurfSheet/.agent/Task
 **Note (2026-08-12):** item 3 is still real — `Implementation/` holds 12 plans, most of them for
 work that shipped long ago. Worth a sweep: delete the plans whose work is recorded in `Completed/`,
 and keep only those still backing open items (`2026-07-28-chemicals-clean-up.md`,
-`2026-07-28-maps-banbury-course-map.md`, `implementation-blue-orange-schedules.md`).
+`2026-07-28-maps-banbury-course-map.md`). Blue/Orange schedules parked to `planned.md`
+Task 2. Darryl has shown no interest.
